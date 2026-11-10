@@ -3,24 +3,24 @@
 
 const mongoose = require('mongoose');
 
-// Sub-schema for piece geometry (optional, populated in later phases)
+// Sub-schema for piece geometry (populated when geometry is added)
 const GeometrySchema = new mongoose.Schema(
   {
     polygonCm: {
-      type: [[Number]],
+      type: mongoose.Schema.Types.Mixed,
       default: undefined,
     },
     holes: {
-      type: [[[Number]]],
+      type: mongoose.Schema.Types.Mixed,
       default: undefined,
     },
     confirmed: {
       type: Boolean,
-      default: undefined,
+      default: false,
     },
     version: {
       type: Number,
-      default: undefined,
+      default: 1,
     },
   },
   { _id: false }
