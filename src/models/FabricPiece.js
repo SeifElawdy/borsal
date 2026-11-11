@@ -3,9 +3,29 @@
 
 const mongoose = require('mongoose');
 
+// A value snapshot at confirmation time, never a reference to the live analysis.
+const GeometryBasisSchema = new mongoose.Schema(
+  {
+    analysisId: { type: String },
+    photoPath: { type: String },
+    calibrationSource: { type: String, enum: ['manual-dev', 'auto-marker'] },
+    markerSizeCm: { type: Number },
+    markerCornersPx: { type: mongoose.Schema.Types.Mixed },
+    scale: {
+      pxPerCmApprox: { type: Number },
+      perspectiveSkew: { type: Number },
+    },
+    suggestedPolygonCm: { type: mongoose.Schema.Types.Mixed },
+    analysisCreatedAt: { type: Date },
+    matchesSuggestion: { type: Boolean },
+  },
+  { _id: false }
+);
+
 // Sub-schema for piece geometry (populated after confirm-geometry)
 const GeometrySchema = new mongoose.Schema(
   {
+    basis: { type: GeometryBasisSchema, default: undefined },
     polygonCm: {
       type: mongoose.Schema.Types.Mixed,
       default: undefined,
@@ -42,6 +62,7 @@ const GeometrySchema = new mongoose.Schema(
 // Sub-schema for a previous geometry snapshot stored in geometryHistory
 const GeometryHistorySchema = new mongoose.Schema(
   {
+    basis: { type: GeometryBasisSchema, default: undefined },
     polygonCm: { type: mongoose.Schema.Types.Mixed },
     holes: { type: mongoose.Schema.Types.Mixed },
     confirmed: { type: Boolean },
@@ -57,6 +78,8 @@ const GeometryHistorySchema = new mongoose.Schema(
 const AnalysisSchema = new mongoose.Schema(
   {
     // Absolute path on disk, preserving the upload route storage convention
+    // No default: legacy analyses remain valid without an ID.
+    analysisId: { type: String },
     photoPath: { type: String },
     markerCornersPx: { type: mongoose.Schema.Types.Mixed },
     markerSizeCm: { type: Number },

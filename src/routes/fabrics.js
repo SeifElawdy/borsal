@@ -93,6 +93,7 @@ const putGeometrySchema = z.object({
 }).strict();
 const confirmGeometrySchema = putGeometrySchema.extend({
   source: z.enum(['suggested', 'manual']),
+  basedOnAnalysisId: z.string().optional(),
 });
 
 // Shared calibration checks for both photo endpoints.
@@ -225,7 +226,7 @@ async function removePhoto(photoPath) {
 
 function buildAnalysis(photoPath, corners, size, result) {
   return {
-    photoPath, markerCornersPx: corners, markerSizeCm: size,
+    analysisId: randomUUID(), photoPath, markerCornersPx: corners, markerSizeCm: size,
     scale: { pxPerCmApprox: result.stats.pxPerCmApprox, perspectiveSkew: result.stats.perspectiveSkew },
     suggestedPolygonCm: result.polygonCm, stats: result.stats, warnings: result.warnings,
     createdAt: new Date(), calibrationSource: 'manual-dev',
@@ -244,6 +245,33 @@ function frozen(fabric, res) {
   if ((fabric.availabilityStatus || 'AVAILABLE') === 'AVAILABLE') return false;
   res.status(409).json({ error: 'Fabric is reserved or consumed; geometry is frozen' });
   return true;
+}
+
+// Derived per response, never persisted (legacy IDs cannot establish a match).
+function geometryBasedOnCurrentAnalysis(fabric) {
+  const geometry = fabric.geometry;
+  if (!geometry?.confirmed || !geometry.basis?.analysisId || !fabric.analysis?.analysisId) return null;
+  return geometry.basis.analysisId === fabric.analysis.analysisId;
+}
+
+function geometryBasis(analysis, normalizedPolygon) {
+  if (!analysis) return undefined;
+  analysis = analysis.toObject ? analysis.toObject() : analysis;
+  const suggested = normalizeToCounterClockwise(analysis.suggestedPolygonCm);
+  const matchesSuggestion = normalizedPolygon.length === suggested.length &&
+    normalizedPolygon.every((point, i) => point.every((value, j) => Math.abs(value - suggested[i][j]) <= 1e-6));
+  // Clone nested arrays, scale and timestamp too; future analyses cannot change this basis.
+  return structuredClone({
+    analysisId: analysis.analysisId,
+    photoPath: analysis.photoPath,
+    calibrationSource: analysis.calibrationSource,
+    markerSizeCm: analysis.markerSizeCm,
+    markerCornersPx: analysis.markerCornersPx,
+    scale: analysis.scale?.toObject ? analysis.scale.toObject() : analysis.scale,
+    suggestedPolygonCm: analysis.suggestedPolygonCm,
+    analysisCreatedAt: analysis.createdAt,
+    matchesSuggestion,
+  });
 }
 
 function archiveGeometry(fabric) {
@@ -309,7 +337,7 @@ router.get('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid ObjectId format' });
     const piece = await FabricPiece.findById(id);
     if (!piece) return res.status(404).json({ error: 'Fabric piece not found' });
-    return res.status(200).json(piece);
+    return res.status(200).json({ ...piece.toObject(), geometryBasedOnCurrentAnalysis: geometryBasedOnCurrentAnalysis(piece) });
   } catch (error) {
     console.error('Unexpected error in GET /api/fabrics/:id:', error.name);
     return res.status(500).json({ error: 'Internal server error' });
@@ -369,7 +397,13 @@ router.post('/:id/analyze-photo', uploadPhoto, async (req, res) => {
     if (fabric.analysis) fabric.analysisHistory.push(fabric.analysis.toObject());
     fabric.analysis = buildAnalysis(photoPath, corners, parsed.data.markerSizeCm, result);
     await fabric.save();
-    return res.status(200).json(analysisResponse(result));
+    return res.status(200).json({
+      ...analysisResponse(result),
+      geometryBasedOnCurrentAnalysis: geometryBasedOnCurrentAnalysis(fabric),
+      ...(fabric.geometry?.confirmed ? {
+        notice: 'Confirmed geometry is based on a previous analysis; confirm the geometry again to base it on this photo.',
+      } : {}),
+    });
   } catch (error) {
     if (photoPath) await removePhoto(photoPath);
     console.error('Unexpected error in POST /api/fabrics/:id/analyze-photo:', error.name);
@@ -386,18 +420,25 @@ router.post('/:id/confirm-geometry', async (req, res) => {
     if (frozen(fabric, res)) return;
     const parsed = confirmGeometrySchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed.error);
-    const { polygonCm, holes, source } = parsed.data;
+    const { polygonCm, holes, source, basedOnAnalysisId } = parsed.data;
     const geoValidation = validateWithHoles(polygonCm, holes);
     if (!geoValidation.valid) return res.status(400).json({ error: 'Invalid geometry', errors: geoValidation.errors });
+    let basisAnalysis = fabric.analysis;
+    if (basedOnAnalysisId !== undefined) {
+      basisAnalysis = fabric.analysis?.analysisId === basedOnAnalysisId
+        ? fabric.analysis : fabric.analysisHistory.find((entry) => entry.analysisId === basedOnAnalysisId);
+      if (!basisAnalysis) return res.status(400).json({ error: 'basedOnAnalysisId does not match a current or historical analysis' });
+    }
     // Retain the replaced draft as well as confirmed versions for complete history.
     archiveGeometry(fabric);
     const previousVersion = fabric.geometry?.version || 0;
     let suggestedPolygonCm;
-    if (source === 'suggested' && fabric.analysis?.suggestedPolygonCm) suggestedPolygonCm = fabric.analysis.suggestedPolygonCm;
+    if (source === 'suggested' && basisAnalysis?.suggestedPolygonCm) suggestedPolygonCm = basisAnalysis.suggestedPolygonCm;
     const normalizedPolygon = normalizeToCounterClockwise(polygonCm);
     fabric.geometry = {
       polygonCm: normalizedPolygon, holes, confirmed: true, version: previousVersion + 1,
       source, suggestedPolygonCm, confirmedAt: new Date(),
+      basis: geometryBasis(basisAnalysis, normalizedPolygon),
     };
     fabric.status = 'CONFIRMED';
     fabric.markModified('geometry');
@@ -409,7 +450,7 @@ router.post('/:id/confirm-geometry', async (req, res) => {
       netAreaCm2: Number(geoValidation.netAreaCm2.toFixed(4)),
       widthCm: Number(dims.widthCm.toFixed(4)), heightCm: Number(dims.heightCm.toFixed(4)),
     };
-    return res.status(200).json({ fabric: fabric.toObject(), summary });
+    return res.status(200).json({ fabric: fabric.toObject(), summary, geometryBasedOnCurrentAnalysis: geometryBasedOnCurrentAnalysis(fabric) });
   } catch (error) {
     console.error('Unexpected error in POST /api/fabrics/:id/confirm-geometry:', error.name);
     return res.status(500).json({ error: 'Internal server error' });
