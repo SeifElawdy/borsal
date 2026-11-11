@@ -159,50 +159,75 @@ async function extractFabricContour(imageBuffer, markerCornersPx, markerSizeCm, 
     const ringMask = track(new cv.Mat());
     cv.subtract(roiMask, innerMask, ringMask);
 
-    // Collect Lab values inside ring mask and compute per-channel median
+    // Collect Lab values inside ring mask and compute per-channel median.
+    // OpenCV 8-bit Lab: L is in [0, 255], a and b are in [0, 255] with 128 as the neutral offset.
+    // We work in 8-bit space for the median, then convert to real CIELAB for distances and reporting.
     const ringData = ringMask.data;
     const labData = labMat.data;
-    const Ls = [];
-    const As = [];
-    const Bs = [];
+    const Ls8 = [];
+    const As8 = [];
+    const Bs8 = [];
     const totalPixels = width * height;
 
     for (let i = 0; i < totalPixels; i++) {
       if (ringData[i] > 0) {
-        Ls.push(labData[i * 3]);
-        As.push(labData[i * 3 + 1]);
-        Bs.push(labData[i * 3 + 2]);
+        Ls8.push(labData[i * 3]);
+        As8.push(labData[i * 3 + 1]);
+        Bs8.push(labData[i * 3 + 2]);
       }
     }
 
-    if (Ls.length === 0) {
+    if (Ls8.length === 0) {
       warnings.push('ROI ring mask contains no pixels; background estimation fell back to center');
-      Ls.push(128);
-      As.push(128);
-      Bs.push(128);
+      Ls8.push(128);
+      As8.push(128);
+      Bs8.push(128);
     }
 
-    Ls.sort((a, b) => a - b);
-    As.sort((a, b) => a - b);
-    Bs.sort((a, b) => a - b);
-    const medianL = Ls[Math.floor(Ls.length / 2)];
-    const medianA = As[Math.floor(As.length / 2)];
-    const medianB = Bs[Math.floor(Bs.length / 2)];
-    const backgroundLab = [medianL, medianA, medianB];
+    Ls8.sort((a, b) => a - b);
+    As8.sort((a, b) => a - b);
+    Bs8.sort((a, b) => a - b);
 
-    // Check if more than 5% of ring pixels are far (> 25 Euclidean Lab distance) from median
+    // Medians in 8-bit Lab space
+    const medianL8 = Ls8[Math.floor(Ls8.length / 2)];
+    const medianA8 = As8[Math.floor(As8.length / 2)];
+    const medianB8 = Bs8[Math.floor(Bs8.length / 2)];
+
+    /**
+     * Convert a single OpenCV 8-bit Lab triple to real CIELAB:
+     *   L* = L8 * 100 / 255
+     *   a* = A8 - 128
+     *   b* = B8 - 128
+     */
+    function toCielab(L8, A8, B8) {
+      return [L8 * 100 / 255, A8 - 128, B8 - 128];
+    }
+
+    // Background color in real CIELAB (reported to callers)
+    const [bgL, bgA, bgB] = toCielab(medianL8, medianA8, medianB8);
+    const backgroundLab = [
+      Number(bgL.toFixed(2)),
+      Number(bgA.toFixed(2)),
+      Number(bgB.toFixed(2)),
+    ];
+
+    // Check if more than 5% of ring pixels are far (> 25 CIELAB units) from median.
+    // The threshold 25 ΔE is now in real CIELAB, matching human-perception intuition.
     let farRingPixels = 0;
-    for (let i = 0; i < Ls.length; i++) {
-      const d = Math.hypot(Ls[i] - medianL, As[i] - medianA, Bs[i] - medianB);
+    for (let i = 0; i < Ls8.length; i++) {
+      const [l, a, b] = toCielab(Ls8[i], As8[i], Bs8[i]);
+      const d = Math.hypot(l - bgL, a - bgA, b - bgB);
       if (d > 25) {
         farRingPixels++;
       }
     }
-    if (Ls.length > 0 && farRingPixels / Ls.length > 0.05) {
+    if (Ls8.length > 0 && farRingPixels / Ls8.length > 0.05) {
       warnings.push('Fabric may touch the marker border or the background is not uniform');
     }
 
-    // 5. Compute Euclidean Lab distance to background color for ROI pixels
+    // 5. Compute Euclidean CIELAB distance to background color for each ROI pixel.
+    // We convert each pixel from 8-bit Lab to real CIELAB before computing the distance
+    // so that the distance values are in proper ΔE units (not 8-bit-scaled Lab units).
     const distMat = track(cv.Mat.zeros(height, width, cv.CV_32FC1));
     const roiData = roiMask.data;
 
@@ -210,10 +235,8 @@ async function extractFabricContour(imageBuffer, markerCornersPx, markerSizeCm, 
       for (let x = 0; x < width; x++) {
         const idx = y * width + x;
         if (roiData[idx] > 0) {
-          const l = labData[idx * 3];
-          const a = labData[idx * 3 + 1];
-          const b = labData[idx * 3 + 2];
-          const d = Math.hypot(l - medianL, a - medianA, b - medianB);
+          const [l, a, b] = toCielab(labData[idx * 3], labData[idx * 3 + 1], labData[idx * 3 + 2]);
+          const d = Math.hypot(l - bgL, a - bgA, b - bgB);
           distMat.floatPtr(y, x)[0] = d;
         }
       }
@@ -223,16 +246,18 @@ async function extractFabricContour(imageBuffer, markerCornersPx, markerSizeCm, 
     const blurredDist = track(new cv.Mat());
     cv.GaussianBlur(distMat, blurredDist, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
 
-    // Scale to 8-bit (distance 100 maps to 255 -> factor 2.55)
+    // Scale to 8-bit for Otsu: real CIELAB ΔE distance 100 → 255 (factor 2.55).
+    // The Otsu step runs on 8-bit data for efficiency; we convert the result back to real ΔE units.
     const gray8u = track(new cv.Mat());
     cv.convertScaleAbs(blurredDist, gray8u, 2.55, 0);
 
-    // Compute Otsu threshold exclusively from ROI pixels
+    // Compute Otsu threshold exclusively from ROI pixels.
     const optimalThreshold8u = computeOtsuThresholdROI(gray8u, roiMask);
+    // Convert 8-bit threshold back to real CIELAB ΔE units for reporting.
     const thresholdUsedLab = Number((optimalThreshold8u / 2.55).toFixed(2));
 
     if (thresholdUsedLab < 8) {
-      warnings.push('Threshold used is below 8 Lab units; fabric color is very close to background and result is unreliable');
+      warnings.push('Threshold used is below 8 CIELAB ΔE units; fabric color is very close to background and result is unreliable');
     }
 
     // Apply threshold and mask to ROI
