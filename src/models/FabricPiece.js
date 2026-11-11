@@ -56,10 +56,15 @@ const GeometryHistorySchema = new mongoose.Schema(
 // Sub-schema for the latest photo-analysis result
 const AnalysisSchema = new mongoose.Schema(
   {
-    // Path on disk where the original photo was saved (relative to project root)
+    // Absolute path on disk, preserving the upload route storage convention
     photoPath: { type: String },
     markerCornersPx: { type: mongoose.Schema.Types.Mixed },
     markerSizeCm: { type: Number },
+    calibrationSource: {
+      type: String,
+      enum: ['manual-dev', 'auto-marker'],
+      default: 'manual-dev',
+    },
     // Scale calibration info
     scale: {
       pxPerCmApprox: { type: Number },
@@ -93,8 +98,19 @@ const FabricPieceSchema = new mongoose.Schema(
     grainDirectionDeg: {
       type: Number,
       min: 0,
-      max: 179,
+      validate: { validator: (value) => value == null || value < 180, message: 'grainDirectionDeg must be less than 180' },
     },
+    availabilityStatus: {
+      type: String,
+      enum: ['AVAILABLE', 'RESERVED', 'CONSUMED'],
+      default: 'AVAILABLE',
+    },
+    registrationSource: {
+      type: String,
+      enum: ['photo', 'api-manual'],
+      default: 'api-manual',
+    },
+    // Geometry status; separate from inventory availability.
     status: {
       type: String,
       enum: ['DRAFT', 'CONFIRMED'],
@@ -104,9 +120,13 @@ const FabricPieceSchema = new mongoose.Schema(
       type: GeometrySchema,
       default: undefined,
     },
-    // History of previously confirmed geometries — never deleted
+    // History of replaced geometries (confirmed, and drafts replaced on confirmation) — never deleted
     geometryHistory: {
       type: [GeometryHistorySchema],
+      default: [],
+    },
+    analysisHistory: {
+      type: [AnalysisSchema],
       default: [],
     },
     // Latest photo analysis result (overwritten on each new analyze-photo call)
