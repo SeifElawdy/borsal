@@ -1,0 +1,8 @@
+{
+  "maxRequests": 12,
+  "legacyRequests": 1,
+  "hashes": {
+    "live-campaign.json": "be74227d29613e8fc1f2448d8da4d548326e823ca0e748ba4796b9d0eaaeb1a5",
+    "live-smoke.json": "523e79339645082232021960ce121a2d23767d93c287876dfe1f81b6f4b09549"
+  }
+}

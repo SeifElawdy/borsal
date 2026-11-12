@@ -1,0 +1,1276 @@
+{
+  "mode": "LIVE",
+  "provider": "Cloudflare Workers AI",
+  "model": "@cf/meta/llama-3.1-8b-instruct",
+  "schemaVersion": "borsal.design/0.1",
+  "status": "RUNNING",
+  "liveInferencePerformed": true,
+  "requests": 2,
+  "initialRequests": 1,
+  "repairRequests": 1,
+  "results": [
+    {
+      "brief": {
+        "id": "simple-shoulder",
+        "difficulty": "simple",
+        "category": "SHOULDER_BAG",
+        "brief": "An original women's small asymmetrical shoulder bag with one sloping top, an external webbing strap, and a visible wooden button closure.",
+        "requirements": [
+          "Asymmetric sloping opening",
+          "External webbing shoulder strap",
+          "Wooden button closure",
+          "One fabric scrap for cut outer pieces"
+        ]
+      },
+      "status": "INVALID_OUTPUT",
+      "attempts": [
+        {
+          "phase": "initial",
+          "usage": {
+            "prompt_tokens": 1821,
+            "completion_tokens": 1192,
+            "total_tokens": 3013,
+            "neurons": 49.06235122680664
+          },
+          "httpStatus": 200,
+          "finishReason": "stop",
+          "outputTokenLimit": 6144,
+          "truncated": false,
+          "text": "{\"schemaVersion\":\"borsal.design/0.1\",\"id\":\"simple-shoulder\",\"name\":\"Simple Shoulder Bag\",\"category\":\"SHOULDER_BAG\",\"creative\":{\"description\":\"\",\"aesthetic\":[\"Minimalist\",\"Fashionable\",\"Practical\"],\"intendedUse\":\"Everyday\",\"technical\":{\"dimensionUnit\":\"cm\",\"evidence\":\"ILLUSTRATIVE_ONLY\",\"overallDimensions\":{\"width\":0,\"height\":0,\"depth\":0},\"scrapSources\":[{\"id\":\"simple-shoulder\"}],\"bom\":[{\"id\":\"outer-fabric\",\"source\":{\"kind\":\"SCRAP\",\"scrapId\":\"simple-shoulder\"},\"material\":{\"type\":\"WOVEN_FABRIC\",\"specs\":{\"fiber\":\"COTTON\",\"weave\":\"PLAIN\",\"weightGsm\":250}},\"quantity\":{\"value\":100,\"unit\":\"cm2\"}}],\"components\":[{\"id\":\"strap\",\"role\":\"STRAP\",\"pieceIds\":[\"strap-piece\"]},{\"id\":\"button\",\"role\":\"CLOSURE\",\"pieceIds\":[\"button-piece\"]},{\"id\":\"bag-body\",\"role\":\"BODY\",\"pieceIds\":[\"bag-piece\"]},{\"id\":\"linings\",\"role\":\"LINING\",\"pieceIds\":[\"linings-piece\"]},{\"id\":\"interfacing\",\"role\":\"DIVIDER\",\"pieceIds\":[\"interfacing-piece\"]}],\"patternPieces\":[{\"id\":\"strap-piece\",\"bomId\":\"outer-fabric\",\"cutCount\":2,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[10,10],\"segments\":[{\"id\":\"strap-piece-segment-3\",\"type\":\"LINE\",\"to\":[10,20]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"button-piece\",\"bomId\":\"outer-fabric\",\"cutCount\":1,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[15,15],\"segments\":[{\"id\":\"button-piece-segment-3\",\"type\":\"LINE\",\"to\":[15,25]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"bag-piece\",\"bomId\":\"outer-fabric\",\"cutCount\":2,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[5,5],\"segments\":[{\"id\":\"bag-piece-segment-3\",\"type\":\"LINE\",\"to\":[5,15]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"linings-piece\",\"bomId\":\"linings-fabric\",\"cutCount\":2,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[10,10],\"segments\":[{\"id\":\"linings-piece-segment-3\",\"type\":\"LINE\",\"to\":[10,20]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"interfacing-piece\",\"bomId\":\"interfacing\",\"cutCount\":1,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[15,15],\"segments\":[{\"id\":\"interfacing-piece-segment-3\",\"type\":\"LINE\",\"to\":[15,25]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]}],\"assembly\":[{\"id\":\"strap-assembly\",\"type\":\"INSTALL\",\"bomId\":\"strap-thread\",\"anchors\":[{\"pieceId\":\"strap-piece\",\"copy\":1,\"point\":[20,10]}]}],\"features\":[{\"id\":\"strap-feature\",\"kind\":\"STRAP\",\"intent\":\"Simple shoulder strap for easy carrying\",\"componentIds\":[\"strap\"],\"bomIds\":[\"strap-fabric\"]}]},\"limitations\":[{\"id\":\"asymmetric-opening\",\"featureId\":\"strap-feature\",\"status\":\"PARTIAL\",\"reason\":\"Silhouette and opening geometry not fully modeled\",\"missingInformation\":[\"Seam allowance and grain direction for strap pieces\"]},{\"id\":\"wooden-button\",\"featureId\":\"button-feature\",\"status\":\"UNSUPPORTED\",\"reason\":\"Button closure not fully modeled\",\"missingInformation\":[\"Button material and button thread specification\"]},{\"id\":\"strap-piece\",\"featureId\":\"strap-feature\",\"status\":\"PARTIAL\",\"reason\":\"Silhouette and opening geometry not fully modeled\",\"missingInformation\":[\"Seam allowance and grain direction for strap pieces\"]}]},\"limitations\":[{\"id\":\"asymmetric-opening\",\"featureId\":\"strap-feature\",\"status\":\"PARTIAL\",\"reason\":\"Silhouette and opening geometry not fully modeled\",\"missingInformation\":[\"Seam allowance and grain direction for strap pieces\"]},{\"id\":\"wooden-button\",\"featureId\":\"button-feature\",\"status\":\"UNSUPPORTED\",\"reason\":\"Button closure not fully modeled\",\"missingInformation\":[\"Button material and button thread specification\"]},{\"id\":\"strap-piece\",\"featureId\":\"strap-feature\",\"status\":\"PARTIAL\",\"reason\":\"Silhouette and opening geometry not fully modeled\",\"missingInformation\":[\"Seam allowance and grain direction for strap pieces\"]}]}",
+          "outputDiagnostics": {
+            "characters": 3680,
+            "utf8Bytes": 3680,
+            "validJson": true,
+            "whitespaceCharacters": 77,
+            "trailingWhitespaceCharacters": 0,
+            "whitespaceFraction": 0.02092391304347826,
+            "excessiveWhitespace": false,
+            "incompleteJson": false,
+            "unclosedContainers": 0,
+            "unterminatedString": false,
+            "mismatchedDelimiters": false
+          },
+          "automated": {
+            "validJson": true,
+            "schemaValid": false,
+            "referencesValid": null,
+            "scrapStockValid": null,
+            "categoryMatchesBrief": true,
+            "limitationsRecorded": 3,
+            "declaredPartial": [
+              {
+                "id": "asymmetric-opening",
+                "featureId": "strap-feature",
+                "status": "PARTIAL",
+                "reason": "Silhouette and opening geometry not fully modeled",
+                "missingInformation": [
+                  "Seam allowance and grain direction for strap pieces"
+                ]
+              },
+              {
+                "id": "strap-piece",
+                "featureId": "strap-feature",
+                "status": "PARTIAL",
+                "reason": "Silhouette and opening geometry not fully modeled",
+                "missingInformation": [
+                  "Seam allowance and grain direction for strap pieces"
+                ]
+              }
+            ],
+            "declaredUnsupported": [
+              {
+                "id": "wooden-button",
+                "featureId": "button-feature",
+                "status": "UNSUPPORTED",
+                "reason": "Button closure not fully modeled",
+                "missingInformation": [
+                  "Button material and button thread specification"
+                ]
+              }
+            ],
+            "proposal": {
+              "schemaVersion": "borsal.design/0.1",
+              "id": "simple-shoulder",
+              "name": "Simple Shoulder Bag",
+              "category": "SHOULDER_BAG",
+              "creative": {
+                "description": "",
+                "aesthetic": [
+                  "Minimalist",
+                  "Fashionable",
+                  "Practical"
+                ],
+                "intendedUse": "Everyday",
+                "technical": {
+                  "dimensionUnit": "cm",
+                  "evidence": "ILLUSTRATIVE_ONLY",
+                  "overallDimensions": {
+                    "width": 0,
+                    "height": 0,
+                    "depth": 0
+                  },
+                  "scrapSources": [
+                    {
+                      "id": "simple-shoulder"
+                    }
+                  ],
+                  "bom": [
+                    {
+                      "id": "outer-fabric",
+                      "source": {
+                        "kind": "SCRAP",
+                        "scrapId": "simple-shoulder"
+                      },
+                      "material": {
+                        "type": "WOVEN_FABRIC",
+                        "specs": {
+                          "fiber": "COTTON",
+                          "weave": "PLAIN",
+                          "weightGsm": 250
+                        }
+                      },
+                      "quantity": {
+                        "value": 100,
+                        "unit": "cm2"
+                      }
+                    }
+                  ],
+                  "components": [
+                    {
+                      "id": "strap",
+                      "role": "STRAP",
+                      "pieceIds": [
+                        "strap-piece"
+                      ]
+                    },
+                    {
+                      "id": "button",
+                      "role": "CLOSURE",
+                      "pieceIds": [
+                        "button-piece"
+                      ]
+                    },
+                    {
+                      "id": "bag-body",
+                      "role": "BODY",
+                      "pieceIds": [
+                        "bag-piece"
+                      ]
+                    },
+                    {
+                      "id": "linings",
+                      "role": "LINING",
+                      "pieceIds": [
+                        "linings-piece"
+                      ]
+                    },
+                    {
+                      "id": "interfacing",
+                      "role": "DIVIDER",
+                      "pieceIds": [
+                        "interfacing-piece"
+                      ]
+                    }
+                  ],
+                  "patternPieces": [
+                    {
+                      "id": "strap-piece",
+                      "bomId": "outer-fabric",
+                      "cutCount": 2,
+                      "outlineBasis": "SEAM_LINE",
+                      "outline": {
+                        "start": [
+                          10,
+                          10
+                        ],
+                        "segments": [
+                          {
+                            "id": "strap-piece-segment-3",
+                            "type": "LINE",
+                            "to": [
+                              10,
+                              20
+                            ]
+                          }
+                        ]
+                      },
+                      "seamAllowanceCm": 0,
+                      "grainDirectionDeg": 0,
+                      "folds": []
+                    },
+                    {
+                      "id": "button-piece",
+                      "bomId": "outer-fabric",
+                      "cutCount": 1,
+                      "outlineBasis": "SEAM_LINE",
+                      "outline": {
+                        "start": [
+                          15,
+                          15
+                        ],
+                        "segments": [
+                          {
+                            "id": "button-piece-segment-3",
+                            "type": "LINE",
+                            "to": [
+                              15,
+                              25
+                            ]
+                          }
+                        ]
+                      },
+                      "seamAllowanceCm": 0,
+                      "grainDirectionDeg": 0,
+                      "folds": []
+                    },
+                    {
+                      "id": "bag-piece",
+                      "bomId": "outer-fabric",
+                      "cutCount": 2,
+                      "outlineBasis": "SEAM_LINE",
+                      "outline": {
+                        "start": [
+                          5,
+                          5
+                        ],
+                        "segments": [
+                          {
+                            "id": "bag-piece-segment-3",
+                            "type": "LINE",
+                            "to": [
+                              5,
+                              15
+                            ]
+                          }
+                        ]
+                      },
+                      "seamAllowanceCm": 0,
+                      "grainDirectionDeg": 0,
+                      "folds": []
+                    },
+                    {
+                      "id": "linings-piece",
+                      "bomId": "linings-fabric",
+                      "cutCount": 2,
+                      "outlineBasis": "SEAM_LINE",
+                      "outline": {
+                        "start": [
+                          10,
+                          10
+                        ],
+                        "segments": [
+                          {
+                            "id": "linings-piece-segment-3",
+                            "type": "LINE",
+                            "to": [
+                              10,
+                              20
+                            ]
+                          }
+                        ]
+                      },
+                      "seamAllowanceCm": 0,
+                      "grainDirectionDeg": 0,
+                      "folds": []
+                    },
+                    {
+                      "id": "interfacing-piece",
+                      "bomId": "interfacing",
+                      "cutCount": 1,
+                      "outlineBasis": "SEAM_LINE",
+                      "outline": {
+                        "start": [
+                          15,
+                          15
+                        ],
+                        "segments": [
+                          {
+                            "id": "interfacing-piece-segment-3",
+                            "type": "LINE",
+                            "to": [
+                              15,
+                              25
+                            ]
+                          }
+                        ]
+                      },
+                      "seamAllowanceCm": 0,
+                      "grainDirectionDeg": 0,
+                      "folds": []
+                    }
+                  ],
+                  "assembly": [
+                    {
+                      "id": "strap-assembly",
+                      "type": "INSTALL",
+                      "bomId": "strap-thread",
+                      "anchors": [
+                        {
+                          "pieceId": "strap-piece",
+                          "copy": 1,
+                          "point": [
+                            20,
+                            10
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "features": [
+                    {
+                      "id": "strap-feature",
+                      "kind": "STRAP",
+                      "intent": "Simple shoulder strap for easy carrying",
+                      "componentIds": [
+                        "strap"
+                      ],
+                      "bomIds": [
+                        "strap-fabric"
+                      ]
+                    }
+                  ]
+                },
+                "limitations": [
+                  {
+                    "id": "asymmetric-opening",
+                    "featureId": "strap-feature",
+                    "status": "PARTIAL",
+                    "reason": "Silhouette and opening geometry not fully modeled",
+                    "missingInformation": [
+                      "Seam allowance and grain direction for strap pieces"
+                    ]
+                  },
+                  {
+                    "id": "wooden-button",
+                    "featureId": "button-feature",
+                    "status": "UNSUPPORTED",
+                    "reason": "Button closure not fully modeled",
+                    "missingInformation": [
+                      "Button material and button thread specification"
+                    ]
+                  },
+                  {
+                    "id": "strap-piece",
+                    "featureId": "strap-feature",
+                    "status": "PARTIAL",
+                    "reason": "Silhouette and opening geometry not fully modeled",
+                    "missingInformation": [
+                      "Seam allowance and grain direction for strap pieces"
+                    ]
+                  }
+                ]
+              },
+              "limitations": [
+                {
+                  "id": "asymmetric-opening",
+                  "featureId": "strap-feature",
+                  "status": "PARTIAL",
+                  "reason": "Silhouette and opening geometry not fully modeled",
+                  "missingInformation": [
+                    "Seam allowance and grain direction for strap pieces"
+                  ]
+                },
+                {
+                  "id": "wooden-button",
+                  "featureId": "button-feature",
+                  "status": "UNSUPPORTED",
+                  "reason": "Button closure not fully modeled",
+                  "missingInformation": [
+                    "Button material and button thread specification"
+                  ]
+                },
+                {
+                  "id": "strap-piece",
+                  "featureId": "strap-feature",
+                  "status": "PARTIAL",
+                  "reason": "Silhouette and opening geometry not fully modeled",
+                  "missingInformation": [
+                    "Seam allowance and grain direction for strap pieces"
+                  ]
+                }
+              ]
+            },
+            "errors": [
+              {
+                "code": "too_small",
+                "path": [
+                  "creative",
+                  "description"
+                ],
+                "message": "Too small: expected string to have >=1 characters"
+              },
+              {
+                "code": "unrecognized_keys",
+                "path": [
+                  "creative"
+                ],
+                "message": "Unrecognized keys: \"technical\", \"limitations\""
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical"
+                ],
+                "message": "Invalid input: expected object, received undefined"
+              }
+            ]
+          }
+        },
+        {
+          "phase": "repair",
+          "usage": {
+            "prompt_tokens": 2987,
+            "completion_tokens": 1217,
+            "total_tokens": 4204,
+            "neurons": 54.736289978027344
+          },
+          "httpStatus": 200,
+          "finishReason": "stop",
+          "outputTokenLimit": 6144,
+          "truncated": false,
+          "text": "{\"schemaVersion\":\"borsal.design/0.1\",\"id\":\"simple-shoulder\",\"name\":\"Simple Shoulder Bag\",\"category\":\"SHOULDER_BAG\",\"creative\":{\"description\":\"\",\"aesthetic\":[\"Minimalist\",\"Fashionable\",\"Practical\"],\"intendedUse\":\"Everyday\"},\"technical\":{\"dimensionUnit\":\"cm\",\"evidence\":\"ILLUSTRATIVE_ONLY\",\"overallDimensions\":{\"width\":0,\"height\":0,\"depth\":0},\"scrapSources\":[{\"id\":\"simple-shoulder\"}],\"bom\":[{\"id\":\"outer-fabric\",\"source\":{\"kind\":\"SCRAP\",\"scrapId\":\"simple-shoulder\"},\"material\":{\"type\":\"WOVEN_FABRIC\",\"specs\":{\"fiber\":\"COTTON\",\"weave\":\"PLAIN\",\"weightGsm\":250}},\"quantity\":{\"value\":100,\"unit\":\"cm2\"}}],\"components\":[{\"id\":\"strap\",\"role\":\"STRAP\",\"pieceIds\":[\"strap-piece\"]},{\"id\":\"button\",\"role\":\"CLOSURE\",\"pieceIds\":[\"button-piece\"]},{\"id\":\"bag-body\",\"role\":\"BODY\",\"pieceIds\":[\"bag-piece\"]},{\"id\":\"linings\",\"role\":\"LINING\",\"pieceIds\":[\"linings-piece\"]},{\"id\":\"interfacing\",\"role\":\"DIVIDER\",\"pieceIds\":[\"interfacing-piece\"]}],\"patternPieces\":[{\"id\":\"strap-piece\",\"bomId\":\"outer-fabric\",\"cutCount\":2,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[10,10],\"segments\":[{\"id\":\"strap-piece-segment-3\",\"type\":\"LINE\",\"to\":[10,20]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"button-piece\",\"bomId\":\"outer-fabric\",\"cutCount\":1,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[15,15],\"segments\":[{\"id\":\"button-piece-segment-3\",\"type\":\"LINE\",\"to\":[15,25]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"bag-piece\",\"bomId\":\"outer-fabric\",\"cutCount\":2,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[5,5],\"segments\":[{\"id\":\"bag-piece-segment-3\",\"type\":\"LINE\",\"to\":[5,15]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"linings-piece\",\"bomId\":\"linings-fabric\",\"cutCount\":2,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[10,10],\"segments\":[{\"id\":\"linings-piece-segment-3\",\"type\":\"LINE\",\"to\":[10,20]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]},{\"id\":\"interfacing-piece\",\"bomId\":\"interfacing\",\"cutCount\":1,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":[15,15],\"segments\":[{\"id\":\"interfacing-piece-segment-3\",\"type\":\"LINE\",\"to\":[15,25]}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":0,\"folds\":[]}],\"assembly\":[{\"id\":\"strap-assembly\",\"type\":\"INSTALL\",\"bomId\":\"strap-thread\",\"anchors\":[{\"pieceId\":\"strap-piece\",\"copy\":1,\"point\":[20,10]}]}],\"features\":[{\"id\":\"strap-feature\",\"kind\":\"STRAP\",\"intent\":\"Simple shoulder strap for easy carrying\",\"componentIds\":[\"strap\"],\"bomIds\":[\"strap-fabric\"]},{\"id\":\"button-feature\",\"kind\":\"CLOSURE\",\"intent\":\"Wooden button closure for secure fastening\",\"componentIds\":[\"button\"],\"bomIds\":[\"button-thread\"]}],\"limitations\":[{\"id\":\"strap-feature\",\"featureId\":\"strap-feature\",\"status\":\"PARTIAL\",\"reason\":\"Silhouette and opening geometry not fully modeled\",\"missingInformation\":[\"Seam allowance and grain direction for strap pieces\"]}]},\"limitations\":[{\"id\":\"strap-feature\",\"featureId\":\"strap-feature\",\"status\":\"PARTIAL\",\"reason\":\"Silhouette and opening geometry not fully modeled\",\"missingInformation\":[\"Seam allowance and grain direction for strap pieces\"]}]}",
+          "outputDiagnostics": {
+            "characters": 3022,
+            "utf8Bytes": 3022,
+            "validJson": true,
+            "whitespaceCharacters": 38,
+            "trailingWhitespaceCharacters": 0,
+            "whitespaceFraction": 0.01257445400397088,
+            "excessiveWhitespace": false,
+            "incompleteJson": false,
+            "unclosedContainers": 0,
+            "unterminatedString": false,
+            "mismatchedDelimiters": false
+          },
+          "automated": {
+            "validJson": true,
+            "schemaValid": false,
+            "referencesValid": null,
+            "scrapStockValid": null,
+            "categoryMatchesBrief": true,
+            "limitationsRecorded": 1,
+            "declaredPartial": [
+              {
+                "id": "strap-feature",
+                "featureId": "strap-feature",
+                "status": "PARTIAL",
+                "reason": "Silhouette and opening geometry not fully modeled",
+                "missingInformation": [
+                  "Seam allowance and grain direction for strap pieces"
+                ]
+              }
+            ],
+            "declaredUnsupported": [],
+            "proposal": {
+              "schemaVersion": "borsal.design/0.1",
+              "id": "simple-shoulder",
+              "name": "Simple Shoulder Bag",
+              "category": "SHOULDER_BAG",
+              "creative": {
+                "description": "",
+                "aesthetic": [
+                  "Minimalist",
+                  "Fashionable",
+                  "Practical"
+                ],
+                "intendedUse": "Everyday"
+              },
+              "technical": {
+                "dimensionUnit": "cm",
+                "evidence": "ILLUSTRATIVE_ONLY",
+                "overallDimensions": {
+                  "width": 0,
+                  "height": 0,
+                  "depth": 0
+                },
+                "scrapSources": [
+                  {
+                    "id": "simple-shoulder"
+                  }
+                ],
+                "bom": [
+                  {
+                    "id": "outer-fabric",
+                    "source": {
+                      "kind": "SCRAP",
+                      "scrapId": "simple-shoulder"
+                    },
+                    "material": {
+                      "type": "WOVEN_FABRIC",
+                      "specs": {
+                        "fiber": "COTTON",
+                        "weave": "PLAIN",
+                        "weightGsm": 250
+                      }
+                    },
+                    "quantity": {
+                      "value": 100,
+                      "unit": "cm2"
+                    }
+                  }
+                ],
+                "components": [
+                  {
+                    "id": "strap",
+                    "role": "STRAP",
+                    "pieceIds": [
+                      "strap-piece"
+                    ]
+                  },
+                  {
+                    "id": "button",
+                    "role": "CLOSURE",
+                    "pieceIds": [
+                      "button-piece"
+                    ]
+                  },
+                  {
+                    "id": "bag-body",
+                    "role": "BODY",
+                    "pieceIds": [
+                      "bag-piece"
+                    ]
+                  },
+                  {
+                    "id": "linings",
+                    "role": "LINING",
+                    "pieceIds": [
+                      "linings-piece"
+                    ]
+                  },
+                  {
+                    "id": "interfacing",
+                    "role": "DIVIDER",
+                    "pieceIds": [
+                      "interfacing-piece"
+                    ]
+                  }
+                ],
+                "patternPieces": [
+                  {
+                    "id": "strap-piece",
+                    "bomId": "outer-fabric",
+                    "cutCount": 2,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": [
+                        10,
+                        10
+                      ],
+                      "segments": [
+                        {
+                          "id": "strap-piece-segment-3",
+                          "type": "LINE",
+                          "to": [
+                            10,
+                            20
+                          ]
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 0,
+                    "folds": []
+                  },
+                  {
+                    "id": "button-piece",
+                    "bomId": "outer-fabric",
+                    "cutCount": 1,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": [
+                        15,
+                        15
+                      ],
+                      "segments": [
+                        {
+                          "id": "button-piece-segment-3",
+                          "type": "LINE",
+                          "to": [
+                            15,
+                            25
+                          ]
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 0,
+                    "folds": []
+                  },
+                  {
+                    "id": "bag-piece",
+                    "bomId": "outer-fabric",
+                    "cutCount": 2,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": [
+                        5,
+                        5
+                      ],
+                      "segments": [
+                        {
+                          "id": "bag-piece-segment-3",
+                          "type": "LINE",
+                          "to": [
+                            5,
+                            15
+                          ]
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 0,
+                    "folds": []
+                  },
+                  {
+                    "id": "linings-piece",
+                    "bomId": "linings-fabric",
+                    "cutCount": 2,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": [
+                        10,
+                        10
+                      ],
+                      "segments": [
+                        {
+                          "id": "linings-piece-segment-3",
+                          "type": "LINE",
+                          "to": [
+                            10,
+                            20
+                          ]
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 0,
+                    "folds": []
+                  },
+                  {
+                    "id": "interfacing-piece",
+                    "bomId": "interfacing",
+                    "cutCount": 1,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": [
+                        15,
+                        15
+                      ],
+                      "segments": [
+                        {
+                          "id": "interfacing-piece-segment-3",
+                          "type": "LINE",
+                          "to": [
+                            15,
+                            25
+                          ]
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 0,
+                    "folds": []
+                  }
+                ],
+                "assembly": [
+                  {
+                    "id": "strap-assembly",
+                    "type": "INSTALL",
+                    "bomId": "strap-thread",
+                    "anchors": [
+                      {
+                        "pieceId": "strap-piece",
+                        "copy": 1,
+                        "point": [
+                          20,
+                          10
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "features": [
+                  {
+                    "id": "strap-feature",
+                    "kind": "STRAP",
+                    "intent": "Simple shoulder strap for easy carrying",
+                    "componentIds": [
+                      "strap"
+                    ],
+                    "bomIds": [
+                      "strap-fabric"
+                    ]
+                  },
+                  {
+                    "id": "button-feature",
+                    "kind": "CLOSURE",
+                    "intent": "Wooden button closure for secure fastening",
+                    "componentIds": [
+                      "button"
+                    ],
+                    "bomIds": [
+                      "button-thread"
+                    ]
+                  }
+                ],
+                "limitations": [
+                  {
+                    "id": "strap-feature",
+                    "featureId": "strap-feature",
+                    "status": "PARTIAL",
+                    "reason": "Silhouette and opening geometry not fully modeled",
+                    "missingInformation": [
+                      "Seam allowance and grain direction for strap pieces"
+                    ]
+                  }
+                ]
+              },
+              "limitations": [
+                {
+                  "id": "strap-feature",
+                  "featureId": "strap-feature",
+                  "status": "PARTIAL",
+                  "reason": "Silhouette and opening geometry not fully modeled",
+                  "missingInformation": [
+                    "Seam allowance and grain direction for strap pieces"
+                  ]
+                }
+              ]
+            },
+            "errors": [
+              {
+                "code": "too_small",
+                "path": [
+                  "creative",
+                  "description"
+                ],
+                "message": "Too small: expected string to have >=1 characters"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "overallDimensions",
+                  "width"
+                ],
+                "message": "Too small: expected number to be >0"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "overallDimensions",
+                  "height"
+                ],
+                "message": "Too small: expected number to be >0"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "overallDimensions",
+                  "depth"
+                ],
+                "message": "Too small: expected number to be >0"
+              },
+              {
+                "code": "invalid_value",
+                "path": [
+                  "technical",
+                  "components",
+                  1,
+                  "role"
+                ],
+                "message": "Invalid option: expected one of \"BODY\"|\"GUSSET\"|\"BASE\"|\"POCKET\"|\"FLAP\"|\"STRAP\"|\"HANDLE\"|\"LINING\"|\"DIVIDER\"|\"REINFORCEMENT\""
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  0,
+                  "outline",
+                  "segments"
+                ],
+                "message": "Too small: expected array to have >=2 items"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  1,
+                  "outline",
+                  "segments"
+                ],
+                "message": "Too small: expected array to have >=2 items"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  2,
+                  "outline",
+                  "segments"
+                ],
+                "message": "Too small: expected array to have >=2 items"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  3,
+                  "outline",
+                  "segments"
+                ],
+                "message": "Too small: expected array to have >=2 items"
+              },
+              {
+                "code": "too_small",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  4,
+                  "outline",
+                  "segments"
+                ],
+                "message": "Too small: expected array to have >=2 items"
+              },
+              {
+                "code": "unrecognized_keys",
+                "path": [
+                  "technical"
+                ],
+                "message": "Unrecognized key: \"limitations\""
+              }
+            ]
+          }
+        }
+      ],
+      "automated": {
+        "validJson": true,
+        "schemaValid": false,
+        "referencesValid": null,
+        "scrapStockValid": null,
+        "categoryMatchesBrief": true,
+        "limitationsRecorded": 1,
+        "declaredPartial": [
+          {
+            "id": "strap-feature",
+            "featureId": "strap-feature",
+            "status": "PARTIAL",
+            "reason": "Silhouette and opening geometry not fully modeled",
+            "missingInformation": [
+              "Seam allowance and grain direction for strap pieces"
+            ]
+          }
+        ],
+        "declaredUnsupported": [],
+        "proposal": {
+          "schemaVersion": "borsal.design/0.1",
+          "id": "simple-shoulder",
+          "name": "Simple Shoulder Bag",
+          "category": "SHOULDER_BAG",
+          "creative": {
+            "description": "",
+            "aesthetic": [
+              "Minimalist",
+              "Fashionable",
+              "Practical"
+            ],
+            "intendedUse": "Everyday"
+          },
+          "technical": {
+            "dimensionUnit": "cm",
+            "evidence": "ILLUSTRATIVE_ONLY",
+            "overallDimensions": {
+              "width": 0,
+              "height": 0,
+              "depth": 0
+            },
+            "scrapSources": [
+              {
+                "id": "simple-shoulder"
+              }
+            ],
+            "bom": [
+              {
+                "id": "outer-fabric",
+                "source": {
+                  "kind": "SCRAP",
+                  "scrapId": "simple-shoulder"
+                },
+                "material": {
+                  "type": "WOVEN_FABRIC",
+                  "specs": {
+                    "fiber": "COTTON",
+                    "weave": "PLAIN",
+                    "weightGsm": 250
+                  }
+                },
+                "quantity": {
+                  "value": 100,
+                  "unit": "cm2"
+                }
+              }
+            ],
+            "components": [
+              {
+                "id": "strap",
+                "role": "STRAP",
+                "pieceIds": [
+                  "strap-piece"
+                ]
+              },
+              {
+                "id": "button",
+                "role": "CLOSURE",
+                "pieceIds": [
+                  "button-piece"
+                ]
+              },
+              {
+                "id": "bag-body",
+                "role": "BODY",
+                "pieceIds": [
+                  "bag-piece"
+                ]
+              },
+              {
+                "id": "linings",
+                "role": "LINING",
+                "pieceIds": [
+                  "linings-piece"
+                ]
+              },
+              {
+                "id": "interfacing",
+                "role": "DIVIDER",
+                "pieceIds": [
+                  "interfacing-piece"
+                ]
+              }
+            ],
+            "patternPieces": [
+              {
+                "id": "strap-piece",
+                "bomId": "outer-fabric",
+                "cutCount": 2,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": [
+                    10,
+                    10
+                  ],
+                  "segments": [
+                    {
+                      "id": "strap-piece-segment-3",
+                      "type": "LINE",
+                      "to": [
+                        10,
+                        20
+                      ]
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 0,
+                "folds": []
+              },
+              {
+                "id": "button-piece",
+                "bomId": "outer-fabric",
+                "cutCount": 1,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": [
+                    15,
+                    15
+                  ],
+                  "segments": [
+                    {
+                      "id": "button-piece-segment-3",
+                      "type": "LINE",
+                      "to": [
+                        15,
+                        25
+                      ]
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 0,
+                "folds": []
+              },
+              {
+                "id": "bag-piece",
+                "bomId": "outer-fabric",
+                "cutCount": 2,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": [
+                    5,
+                    5
+                  ],
+                  "segments": [
+                    {
+                      "id": "bag-piece-segment-3",
+                      "type": "LINE",
+                      "to": [
+                        5,
+                        15
+                      ]
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 0,
+                "folds": []
+              },
+              {
+                "id": "linings-piece",
+                "bomId": "linings-fabric",
+                "cutCount": 2,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": [
+                    10,
+                    10
+                  ],
+                  "segments": [
+                    {
+                      "id": "linings-piece-segment-3",
+                      "type": "LINE",
+                      "to": [
+                        10,
+                        20
+                      ]
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 0,
+                "folds": []
+              },
+              {
+                "id": "interfacing-piece",
+                "bomId": "interfacing",
+                "cutCount": 1,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": [
+                    15,
+                    15
+                  ],
+                  "segments": [
+                    {
+                      "id": "interfacing-piece-segment-3",
+                      "type": "LINE",
+                      "to": [
+                        15,
+                        25
+                      ]
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 0,
+                "folds": []
+              }
+            ],
+            "assembly": [
+              {
+                "id": "strap-assembly",
+                "type": "INSTALL",
+                "bomId": "strap-thread",
+                "anchors": [
+                  {
+                    "pieceId": "strap-piece",
+                    "copy": 1,
+                    "point": [
+                      20,
+                      10
+                    ]
+                  }
+                ]
+              }
+            ],
+            "features": [
+              {
+                "id": "strap-feature",
+                "kind": "STRAP",
+                "intent": "Simple shoulder strap for easy carrying",
+                "componentIds": [
+                  "strap"
+                ],
+                "bomIds": [
+                  "strap-fabric"
+                ]
+              },
+              {
+                "id": "button-feature",
+                "kind": "CLOSURE",
+                "intent": "Wooden button closure for secure fastening",
+                "componentIds": [
+                  "button"
+                ],
+                "bomIds": [
+                  "button-thread"
+                ]
+              }
+            ],
+            "limitations": [
+              {
+                "id": "strap-feature",
+                "featureId": "strap-feature",
+                "status": "PARTIAL",
+                "reason": "Silhouette and opening geometry not fully modeled",
+                "missingInformation": [
+                  "Seam allowance and grain direction for strap pieces"
+                ]
+              }
+            ]
+          },
+          "limitations": [
+            {
+              "id": "strap-feature",
+              "featureId": "strap-feature",
+              "status": "PARTIAL",
+              "reason": "Silhouette and opening geometry not fully modeled",
+              "missingInformation": [
+                "Seam allowance and grain direction for strap pieces"
+              ]
+            }
+          ]
+        },
+        "errors": [
+          {
+            "code": "too_small",
+            "path": [
+              "creative",
+              "description"
+            ],
+            "message": "Too small: expected string to have >=1 characters"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "overallDimensions",
+              "width"
+            ],
+            "message": "Too small: expected number to be >0"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "overallDimensions",
+              "height"
+            ],
+            "message": "Too small: expected number to be >0"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "overallDimensions",
+              "depth"
+            ],
+            "message": "Too small: expected number to be >0"
+          },
+          {
+            "code": "invalid_value",
+            "path": [
+              "technical",
+              "components",
+              1,
+              "role"
+            ],
+            "message": "Invalid option: expected one of \"BODY\"|\"GUSSET\"|\"BASE\"|\"POCKET\"|\"FLAP\"|\"STRAP\"|\"HANDLE\"|\"LINING\"|\"DIVIDER\"|\"REINFORCEMENT\""
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "patternPieces",
+              0,
+              "outline",
+              "segments"
+            ],
+            "message": "Too small: expected array to have >=2 items"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "patternPieces",
+              1,
+              "outline",
+              "segments"
+            ],
+            "message": "Too small: expected array to have >=2 items"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "patternPieces",
+              2,
+              "outline",
+              "segments"
+            ],
+            "message": "Too small: expected array to have >=2 items"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "patternPieces",
+              3,
+              "outline",
+              "segments"
+            ],
+            "message": "Too small: expected array to have >=2 items"
+          },
+          {
+            "code": "too_small",
+            "path": [
+              "technical",
+              "patternPieces",
+              4,
+              "outline",
+              "segments"
+            ],
+            "message": "Too small: expected array to have >=2 items"
+          },
+          {
+            "code": "unrecognized_keys",
+            "path": [
+              "technical"
+            ],
+            "message": "Unrecognized key: \"limitations\""
+          }
+        ]
+      },
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    }
+  ],
+  "humanDiversityReview": {
+    "status": "PENDING",
+    "assessment": null
+  },
+  "manufacturingVerified": false,
+  "campaignId": "phase2b-simple-shoulder-003",
+  "requestsDispatched": 2
+}

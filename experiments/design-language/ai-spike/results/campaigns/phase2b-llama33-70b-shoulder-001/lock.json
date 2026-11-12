@@ -1,0 +1,8 @@
+{
+  "campaignId": "phase2b-llama33-70b-shoulder-001",
+  "briefId": "simple-shoulder",
+  "mode": "LIVE",
+  "maxRequests": 1,
+  "maxRepairs": 1,
+  "startedAt": "2026-11-12T02:22:06.826Z"
+}

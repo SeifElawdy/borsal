@@ -1,0 +1,166 @@
+{
+  "status": "LIVE_TEST_BLOCKED",
+  "reason": "LIVE_TEST_BLOCKED_FREE_TIER_UNVERIFIED",
+  "provider": "Cloudflare Workers AI",
+  "model": "@cf/meta/llama-3.1-8b-instruct",
+  "liveInferencePerformed": false,
+  "requests": 0,
+  "initialRequests": 0,
+  "repairRequests": 0,
+  "results": [
+    {
+      "brief": {
+        "id": "simple-shoulder",
+        "difficulty": "simple",
+        "category": "SHOULDER_BAG",
+        "brief": "An original women's small asymmetrical shoulder bag with one sloping top, an external webbing strap, and a visible wooden button closure.",
+        "requirements": [
+          "Asymmetric sloping opening",
+          "External webbing shoulder strap",
+          "Wooden button closure",
+          "One fabric scrap for cut outer pieces"
+        ]
+      },
+      "status": "NOT_RUN",
+      "automated": null,
+      "attempts": [],
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    },
+    {
+      "brief": {
+        "id": "simple-tote",
+        "difficulty": "simple",
+        "category": "TOTE_BAG",
+        "brief": "An original women's narrow market tote with short self-fabric handles and a tall external book sleeve offset toward one side; keep the main opening uncovered.",
+        "requirements": [
+          "Narrow open-top tote",
+          "Short self-fabric handles",
+          "Tall offset external book sleeve",
+          "One fabric scrap for shell, handles and sleeve"
+        ]
+      },
+      "status": "NOT_RUN",
+      "automated": null,
+      "attempts": [],
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    },
+    {
+      "brief": {
+        "id": "complex-shoulder",
+        "difficulty": "complex",
+        "category": "SHOULDER_BAG",
+        "brief": "A women's shoulder bag with detachable accordion side gussets, a reversible asymmetric flap with a turn lock, and a zipped inner valuables pocket. Preserve the detachability and reversibility as explicit intent if unsupported.",
+        "requirements": [
+          "Detachable accordion gussets",
+          "Reversible asymmetric flap",
+          "Turn-lock hardware",
+          "Zipped inner valuables pocket",
+          "One outer scrap; stock lining and hardware remain unchecked"
+        ]
+      },
+      "status": "NOT_RUN",
+      "automated": null,
+      "attempts": [],
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    },
+    {
+      "brief": {
+        "id": "complex-tote",
+        "difficulty": "complex",
+        "category": "TOTE_BAG",
+        "brief": "A women's commuter tote with an interfaced base, a suspended laptop compartment, crossed webbing handles, and a folding rain-cover panel that stows in an inner pocket. Record unmodeled suspension and folding behavior honestly.",
+        "requirements": [
+          "Interfaced base",
+          "Suspended laptop compartment",
+          "Crossed webbing handles",
+          "Folding rain-cover panel and stowage pocket",
+          "One outer scrap; any stock materials remain unchecked"
+        ]
+      },
+      "status": "NOT_RUN",
+      "automated": null,
+      "attempts": [],
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    },
+    {
+      "brief": {
+        "id": "creative-lily",
+        "difficulty": "creative",
+        "category": "SHOULDER_BAG",
+        "brief": "An original women's calla-lily shoulder bag: overlapping unequal petal panels create a spiraling opening, and a concealed magnetic snap holds the petals together. A narrow stem-like strap emerges diagonally from the silhouette.",
+        "requirements": [
+          "Unequal overlapping petal panels",
+          "Spiraling opening silhouette",
+          "Concealed magnetic snap",
+          "Diagonal stem-like shoulder strap",
+          "Retain spatial petal behavior as unsupported where necessary"
+        ]
+      },
+      "status": "NOT_RUN",
+      "automated": null,
+      "attempts": [],
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    },
+    {
+      "brief": {
+        "id": "creative-orbit",
+        "difficulty": "creative",
+        "category": "TOTE_BAG",
+        "brief": "An original women's constellation kite tote with a concave asymmetric body, an orbit-shaped webbing handle route crossing the front, and a suspended crescent pocket whose visible position suggests a moon inside the kite.",
+        "requirements": [
+          "Concave asymmetric kite body",
+          "Orbit-shaped crossed webbing route",
+          "Suspended crescent pocket",
+          "Constellation/moon visual relationship",
+          "Retain spatial suspension and curved routing intent if unrepresentable"
+        ]
+      },
+      "status": "NOT_RUN",
+      "automated": null,
+      "attempts": [],
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    }
+  ]
+}

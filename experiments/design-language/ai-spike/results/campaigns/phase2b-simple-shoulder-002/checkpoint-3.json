@@ -1,0 +1,725 @@
+{
+  "mode": "LIVE",
+  "provider": "Cloudflare Workers AI",
+  "model": "@cf/meta/llama-3.1-8b-instruct",
+  "schemaVersion": "borsal.design/0.1",
+  "status": "RUNNING",
+  "liveInferencePerformed": true,
+  "requests": 2,
+  "initialRequests": 1,
+  "repairRequests": 1,
+  "results": [
+    {
+      "brief": {
+        "id": "simple-shoulder",
+        "difficulty": "simple",
+        "category": "SHOULDER_BAG",
+        "brief": "An original women's small asymmetrical shoulder bag with one sloping top, an external webbing strap, and a visible wooden button closure.",
+        "requirements": [
+          "Asymmetric sloping opening",
+          "External webbing shoulder strap",
+          "Wooden button closure",
+          "One fabric scrap for cut outer pieces"
+        ]
+      },
+      "status": "REQUESTED",
+      "attempts": [
+        {
+          "phase": "initial",
+          "usage": {
+            "prompt_tokens": 1667,
+            "completion_tokens": 1069,
+            "total_tokens": 2736,
+            "neurons": 44.13935089111328
+          },
+          "httpStatus": 200,
+          "finishReason": "stop",
+          "outputTokenLimit": 6144,
+          "truncated": false,
+          "text": "{\"schemaVersion\":\"borsal.design/0.1\",\"id\":\"simple-shoulder\",\"name\":\"Simple Shoulder Bag\",\"category\":\"SHOULDER_BAG\",\"creative\":{\"description\":\"An original women's small asymmetrical shoulder bag\",\"aesthetic\":[\"asymmetrical\",\"small\",\"original\"],\"intendedUse\":\"women's shoulder bag\"},\"technical\":{\"dimensionUnit\":\"cm\",\"evidence\":\"ILLUSTRATIVE_ONLY\",\"overallDimensions\":{\"width\":30,\"height\":20,\"depth\":10},\"scrapSources\":[{\"id\":\"scrap-1\"}],\"bom\":[{\"id\":\"scrap-1\",\"source\":{\"kind\":\"SCRAP\",\"scrapId\":\"scrap-1\"},\"material\":{\"type\":\"WOVEN_FABRIC\",\"specs\":{\"fiber\":\"COTTON\",\"weave\":\"PLAIN\",\"weightGsm\":250}},\"quantity\":{\"value\":1,\"unit\":\"cm2\"}}],\"components\":[{\"id\":\"component-1\",\"role\":\"BODY\",\"pieceIds\":[\"piece-1\",\"piece-2\"]}],\"patternPieces\":[{\"id\":\"piece-1\",\"bomId\":\"scrap-1\",\"cutCount\":1,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":{\"x\":0,\"y\":0},\"segments\":[{\"id\":\"segment-1\",\"type\":\"LINE\",\"to\":{\"x\":10,\"y\":0}},{\"id\":\"segment-2\",\"type\":\"CUBIC_BEZIER\",\"control1\":{\"x\":5,\"y\":5},\"control2\":{\"x\":15,\"y\":5},\"to\":{\"x\":20,\"y\":0}}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":90,\"folds\":[]},{\"id\":\"piece-2\",\"bomId\":\"scrap-1\",\"cutCount\":1,\"outlineBasis\":\"SEAM_LINE\",\"outline\":{\"start\":{\"x\":0,\"y\":10},\"segments\":[{\"id\":\"segment-3\",\"type\":\"LINE\",\"to\":{\"x\":10,\"y\":10}},{\"id\":\"segment-4\",\"type\":\"CUBIC_BEZIER\",\"control1\":{\"x\":5,\"y\":15},\"control2\":{\"x\":15,\"y\":15},\"to\":{\"x\":20,\"y\":10}}]},\"seamAllowanceCm\":0,\"grainDirectionDeg\":90,\"folds\":[]}],\"assembly\":[],\"features\":[{\"id\":\"feature-1\",\"kind\":\"BODY\",\"intent\":\"An original women's small asymmetrical shoulder bag\",\"componentIds\":[\"component-1\"],\"bomIds\":[\"scrap-1\"]},{\"id\":\"feature-2\",\"kind\":\"FOLD\",\"intent\":\"Asymmetric sloping opening\",\"componentIds\":[],\"bomIds\":[]},{\"id\":\"feature-3\",\"kind\":\"CLOSURE\",\"intent\":\"Wooden button closure\",\"componentIds\":[],\"bomIds\":[]}]},\"limitations\":[{\"id\":\"limitation-1\",\"featureId\":\"feature-2\",\"status\":\"PARTIAL\",\"reason\":\"No specific dimensions provided for the opening\",\"missingInformation\":[\"opening dimensions\"]}]}",
+          "automated": {
+            "validJson": true,
+            "schemaValid": false,
+            "referencesValid": null,
+            "scrapStockValid": null,
+            "categoryMatchesBrief": true,
+            "limitationsRecorded": 1,
+            "declaredPartial": [
+              {
+                "id": "limitation-1",
+                "featureId": "feature-2",
+                "status": "PARTIAL",
+                "reason": "No specific dimensions provided for the opening",
+                "missingInformation": [
+                  "opening dimensions"
+                ]
+              }
+            ],
+            "declaredUnsupported": [],
+            "proposal": {
+              "schemaVersion": "borsal.design/0.1",
+              "id": "simple-shoulder",
+              "name": "Simple Shoulder Bag",
+              "category": "SHOULDER_BAG",
+              "creative": {
+                "description": "An original women's small asymmetrical shoulder bag",
+                "aesthetic": [
+                  "asymmetrical",
+                  "small",
+                  "original"
+                ],
+                "intendedUse": "women's shoulder bag"
+              },
+              "technical": {
+                "dimensionUnit": "cm",
+                "evidence": "ILLUSTRATIVE_ONLY",
+                "overallDimensions": {
+                  "width": 30,
+                  "height": 20,
+                  "depth": 10
+                },
+                "scrapSources": [
+                  {
+                    "id": "scrap-1"
+                  }
+                ],
+                "bom": [
+                  {
+                    "id": "scrap-1",
+                    "source": {
+                      "kind": "SCRAP",
+                      "scrapId": "scrap-1"
+                    },
+                    "material": {
+                      "type": "WOVEN_FABRIC",
+                      "specs": {
+                        "fiber": "COTTON",
+                        "weave": "PLAIN",
+                        "weightGsm": 250
+                      }
+                    },
+                    "quantity": {
+                      "value": 1,
+                      "unit": "cm2"
+                    }
+                  }
+                ],
+                "components": [
+                  {
+                    "id": "component-1",
+                    "role": "BODY",
+                    "pieceIds": [
+                      "piece-1",
+                      "piece-2"
+                    ]
+                  }
+                ],
+                "patternPieces": [
+                  {
+                    "id": "piece-1",
+                    "bomId": "scrap-1",
+                    "cutCount": 1,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": {
+                        "x": 0,
+                        "y": 0
+                      },
+                      "segments": [
+                        {
+                          "id": "segment-1",
+                          "type": "LINE",
+                          "to": {
+                            "x": 10,
+                            "y": 0
+                          }
+                        },
+                        {
+                          "id": "segment-2",
+                          "type": "CUBIC_BEZIER",
+                          "control1": {
+                            "x": 5,
+                            "y": 5
+                          },
+                          "control2": {
+                            "x": 15,
+                            "y": 5
+                          },
+                          "to": {
+                            "x": 20,
+                            "y": 0
+                          }
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 90,
+                    "folds": []
+                  },
+                  {
+                    "id": "piece-2",
+                    "bomId": "scrap-1",
+                    "cutCount": 1,
+                    "outlineBasis": "SEAM_LINE",
+                    "outline": {
+                      "start": {
+                        "x": 0,
+                        "y": 10
+                      },
+                      "segments": [
+                        {
+                          "id": "segment-3",
+                          "type": "LINE",
+                          "to": {
+                            "x": 10,
+                            "y": 10
+                          }
+                        },
+                        {
+                          "id": "segment-4",
+                          "type": "CUBIC_BEZIER",
+                          "control1": {
+                            "x": 5,
+                            "y": 15
+                          },
+                          "control2": {
+                            "x": 15,
+                            "y": 15
+                          },
+                          "to": {
+                            "x": 20,
+                            "y": 10
+                          }
+                        }
+                      ]
+                    },
+                    "seamAllowanceCm": 0,
+                    "grainDirectionDeg": 90,
+                    "folds": []
+                  }
+                ],
+                "assembly": [],
+                "features": [
+                  {
+                    "id": "feature-1",
+                    "kind": "BODY",
+                    "intent": "An original women's small asymmetrical shoulder bag",
+                    "componentIds": [
+                      "component-1"
+                    ],
+                    "bomIds": [
+                      "scrap-1"
+                    ]
+                  },
+                  {
+                    "id": "feature-2",
+                    "kind": "FOLD",
+                    "intent": "Asymmetric sloping opening",
+                    "componentIds": [],
+                    "bomIds": []
+                  },
+                  {
+                    "id": "feature-3",
+                    "kind": "CLOSURE",
+                    "intent": "Wooden button closure",
+                    "componentIds": [],
+                    "bomIds": []
+                  }
+                ]
+              },
+              "limitations": [
+                {
+                  "id": "limitation-1",
+                  "featureId": "feature-2",
+                  "status": "PARTIAL",
+                  "reason": "No specific dimensions provided for the opening",
+                  "missingInformation": [
+                    "opening dimensions"
+                  ]
+                }
+              ]
+            },
+            "errors": [
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  0,
+                  "outline",
+                  "start"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  0,
+                  "outline",
+                  "segments",
+                  0,
+                  "to"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  0,
+                  "outline",
+                  "segments",
+                  1,
+                  "control1"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  0,
+                  "outline",
+                  "segments",
+                  1,
+                  "control2"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  0,
+                  "outline",
+                  "segments",
+                  1,
+                  "to"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  1,
+                  "outline",
+                  "start"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  1,
+                  "outline",
+                  "segments",
+                  0,
+                  "to"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  1,
+                  "outline",
+                  "segments",
+                  1,
+                  "control1"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  1,
+                  "outline",
+                  "segments",
+                  1,
+                  "control2"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              },
+              {
+                "code": "invalid_type",
+                "path": [
+                  "technical",
+                  "patternPieces",
+                  1,
+                  "outline",
+                  "segments",
+                  1,
+                  "to"
+                ],
+                "message": "Invalid input: expected tuple, received object"
+              }
+            ]
+          }
+        },
+        {
+          "phase": "repair",
+          "usage": null
+        }
+      ],
+      "automated": {
+        "validJson": true,
+        "schemaValid": false,
+        "referencesValid": null,
+        "scrapStockValid": null,
+        "categoryMatchesBrief": true,
+        "limitationsRecorded": 1,
+        "declaredPartial": [
+          {
+            "id": "limitation-1",
+            "featureId": "feature-2",
+            "status": "PARTIAL",
+            "reason": "No specific dimensions provided for the opening",
+            "missingInformation": [
+              "opening dimensions"
+            ]
+          }
+        ],
+        "declaredUnsupported": [],
+        "proposal": {
+          "schemaVersion": "borsal.design/0.1",
+          "id": "simple-shoulder",
+          "name": "Simple Shoulder Bag",
+          "category": "SHOULDER_BAG",
+          "creative": {
+            "description": "An original women's small asymmetrical shoulder bag",
+            "aesthetic": [
+              "asymmetrical",
+              "small",
+              "original"
+            ],
+            "intendedUse": "women's shoulder bag"
+          },
+          "technical": {
+            "dimensionUnit": "cm",
+            "evidence": "ILLUSTRATIVE_ONLY",
+            "overallDimensions": {
+              "width": 30,
+              "height": 20,
+              "depth": 10
+            },
+            "scrapSources": [
+              {
+                "id": "scrap-1"
+              }
+            ],
+            "bom": [
+              {
+                "id": "scrap-1",
+                "source": {
+                  "kind": "SCRAP",
+                  "scrapId": "scrap-1"
+                },
+                "material": {
+                  "type": "WOVEN_FABRIC",
+                  "specs": {
+                    "fiber": "COTTON",
+                    "weave": "PLAIN",
+                    "weightGsm": 250
+                  }
+                },
+                "quantity": {
+                  "value": 1,
+                  "unit": "cm2"
+                }
+              }
+            ],
+            "components": [
+              {
+                "id": "component-1",
+                "role": "BODY",
+                "pieceIds": [
+                  "piece-1",
+                  "piece-2"
+                ]
+              }
+            ],
+            "patternPieces": [
+              {
+                "id": "piece-1",
+                "bomId": "scrap-1",
+                "cutCount": 1,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "segments": [
+                    {
+                      "id": "segment-1",
+                      "type": "LINE",
+                      "to": {
+                        "x": 10,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "id": "segment-2",
+                      "type": "CUBIC_BEZIER",
+                      "control1": {
+                        "x": 5,
+                        "y": 5
+                      },
+                      "control2": {
+                        "x": 15,
+                        "y": 5
+                      },
+                      "to": {
+                        "x": 20,
+                        "y": 0
+                      }
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 90,
+                "folds": []
+              },
+              {
+                "id": "piece-2",
+                "bomId": "scrap-1",
+                "cutCount": 1,
+                "outlineBasis": "SEAM_LINE",
+                "outline": {
+                  "start": {
+                    "x": 0,
+                    "y": 10
+                  },
+                  "segments": [
+                    {
+                      "id": "segment-3",
+                      "type": "LINE",
+                      "to": {
+                        "x": 10,
+                        "y": 10
+                      }
+                    },
+                    {
+                      "id": "segment-4",
+                      "type": "CUBIC_BEZIER",
+                      "control1": {
+                        "x": 5,
+                        "y": 15
+                      },
+                      "control2": {
+                        "x": 15,
+                        "y": 15
+                      },
+                      "to": {
+                        "x": 20,
+                        "y": 10
+                      }
+                    }
+                  ]
+                },
+                "seamAllowanceCm": 0,
+                "grainDirectionDeg": 90,
+                "folds": []
+              }
+            ],
+            "assembly": [],
+            "features": [
+              {
+                "id": "feature-1",
+                "kind": "BODY",
+                "intent": "An original women's small asymmetrical shoulder bag",
+                "componentIds": [
+                  "component-1"
+                ],
+                "bomIds": [
+                  "scrap-1"
+                ]
+              },
+              {
+                "id": "feature-2",
+                "kind": "FOLD",
+                "intent": "Asymmetric sloping opening",
+                "componentIds": [],
+                "bomIds": []
+              },
+              {
+                "id": "feature-3",
+                "kind": "CLOSURE",
+                "intent": "Wooden button closure",
+                "componentIds": [],
+                "bomIds": []
+              }
+            ]
+          },
+          "limitations": [
+            {
+              "id": "limitation-1",
+              "featureId": "feature-2",
+              "status": "PARTIAL",
+              "reason": "No specific dimensions provided for the opening",
+              "missingInformation": [
+                "opening dimensions"
+              ]
+            }
+          ]
+        },
+        "errors": [
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              0,
+              "outline",
+              "start"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              0,
+              "outline",
+              "segments",
+              0,
+              "to"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              0,
+              "outline",
+              "segments",
+              1,
+              "control1"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              0,
+              "outline",
+              "segments",
+              1,
+              "control2"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              0,
+              "outline",
+              "segments",
+              1,
+              "to"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              1,
+              "outline",
+              "start"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              1,
+              "outline",
+              "segments",
+              0,
+              "to"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              1,
+              "outline",
+              "segments",
+              1,
+              "control1"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              1,
+              "outline",
+              "segments",
+              1,
+              "control2"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          },
+          {
+            "code": "invalid_type",
+            "path": [
+              "technical",
+              "patternPieces",
+              1,
+              "outline",
+              "segments",
+              1,
+              "to"
+            ],
+            "message": "Invalid input: expected tuple, received object"
+          }
+        ]
+      },
+      "humanReview": {
+        "status": "PENDING",
+        "creativeIntentPreserved": null,
+        "missingSimplifiedOrHallucinatedFeatures": null,
+        "diversityAssessment": null,
+        "reviewer": null,
+        "notes": null
+      }
+    }
+  ],
+  "humanDiversityReview": {
+    "status": "PENDING",
+    "assessment": null
+  },
+  "manufacturingVerified": false,
+  "campaignId": "phase2b-simple-shoulder-002",
+  "requestsDispatched": 1
+}

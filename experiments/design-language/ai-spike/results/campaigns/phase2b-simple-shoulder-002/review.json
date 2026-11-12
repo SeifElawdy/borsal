@@ -1,0 +1,167 @@
+{
+  "campaignId": "phase2b-simple-shoulder-002",
+  "reviewerType": "AI_ASSISTANT_OBSERVATIONS_NOT_HUMAN_APPROVAL",
+  "humanReviewStatus": "PENDING",
+  "initial": {
+    "validJson": true,
+    "zodPassed": false,
+    "zodErrors": 10,
+    "errorPaths": [
+      [
+        "technical",
+        "patternPieces",
+        0,
+        "outline",
+        "start"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        0,
+        "outline",
+        "segments",
+        0,
+        "to"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        0,
+        "outline",
+        "segments",
+        1,
+        "control1"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        0,
+        "outline",
+        "segments",
+        1,
+        "control2"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        0,
+        "outline",
+        "segments",
+        1,
+        "to"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        1,
+        "outline",
+        "start"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        1,
+        "outline",
+        "segments",
+        0,
+        "to"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        1,
+        "outline",
+        "segments",
+        1,
+        "control1"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        1,
+        "outline",
+        "segments",
+        1,
+        "control2"
+      ],
+      [
+        "technical",
+        "patternPieces",
+        1,
+        "outline",
+        "segments",
+        1,
+        "to"
+      ]
+    ],
+    "rootCause": "Coordinates are objects {x,y}, expected two-element arrays [x,y]."
+  },
+  "final": {
+    "validJson": false,
+    "zodPassed": false,
+    "zodValidationReached": false,
+    "parseErrors": [
+      {
+        "code": "invalid_json",
+        "path": [],
+        "message": "Return exactly one valid JSON object; no fences or commentary"
+      }
+    ],
+    "finishReason": "length",
+    "truncated": true,
+    "trailingWhitespace": 14653,
+    "unclosedRootObject": true
+  },
+  "observedGeometryAndReferences": [
+    "Initial outlines are unclosed and use invalid coordinate types.",
+    "Initial assembly is empty: there are no seam, external strap, or closure installation relationships.",
+    "Existing piece/material/component IDs refer to declared objects where present, but full refinements did not run after tuple errors.",
+    "The repair fragment still visibly uses object coordinates; it is not a parseable complete proposal and was not corrected locally."
+  ],
+  "creativeRequirements": [
+    {
+      "requirement": "Asymmetric sloping opening",
+      "assessment": "NOT_TECHNICALLY_ESTABLISHED",
+      "evidence": "Only a FOLD feature with empty componentIds/bomIds and a PARTIAL limitation; no valid closed silhouette/opening."
+    },
+    {
+      "requirement": "External webbing shoulder strap",
+      "assessment": "OMITTED",
+      "evidence": "No WEBBING material, strap feature, strap/handle component, or mount assembly."
+    },
+    {
+      "requirement": "Visible wooden button closure",
+      "assessment": "PROSE_ONLY",
+      "evidence": "CLOSURE feature has empty references; no BUTTON material/specs or INSTALL relationship."
+    },
+    {
+      "requirement": "One outer fabric scrap",
+      "assessment": "DECLARED",
+      "evidence": "One woven-fabric SCRAP source with correct cm2 units; no stock entry assumes availability. Quantity adequacy is unverified."
+    }
+  ],
+  "limitationsAssessment": "Initial root ledger is structurally placed and nonempty, but missing opening dimensions is not demonstrated language incapability. The unparsed repair fragment claims closure requirements were unspecified despite the wooden-button brief; that unsupported claim is not accepted as honest evidence.",
+  "promptMeasurements": {
+    "oldInitialCharacters": 10063,
+    "newInitialCharacters": 5618,
+    "oldSystemCharacters": 9669,
+    "newSystemCharacters": 5224,
+    "oldEquivalentRepairCharacters": 16241,
+    "newEquivalentRepairCharacters": 10978,
+    "actualNewRepairCharacters": 8683,
+    "newErrorGroups": 1
+  },
+  "totals": {
+    "prompt_tokens": 4189,
+    "completion_tokens": 7213,
+    "total_tokens": 11402,
+    "neurons": 268.7542953491211
+  },
+  "globalUsed": 5,
+  "protectedHistoricalFilesUnchanged": 31,
+  "manufacturingVerified": false,
+  "recommendations": [
+    "Do not loosen schema: tuple arrays and closed geometry are already expressible.",
+    "Next authorized review can consider explicit [x,y]-versus-object wording, structured output constraints or a stronger text model. No further change or inference was attempted here."
+  ]
+}

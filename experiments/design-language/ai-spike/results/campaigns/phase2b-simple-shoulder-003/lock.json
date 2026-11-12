@@ -1,0 +1,8 @@
+{
+  "campaignId": "phase2b-simple-shoulder-003",
+  "briefId": "simple-shoulder",
+  "mode": "LIVE",
+  "maxRequests": 2,
+  "maxRepairs": 1,
+  "startedAt": "2026-11-12T01:53:46.136Z"
+}
