@@ -16,6 +16,10 @@ Registration creates a DRAFT/AVAILABLE FabricPiece only after successful photo a
 Phase 1b: photo/analysis traceability - completed. The final npm test run passed 76 tests across 6 files (64 existing unchanged + 12 new).
 Each new analysis has an analysisId. Confirmed geometry keeps a detached basis snapshot of the selected current/historical analysis; reanalysis preserves that geometry and its original photo. Derived response flags distinguish the current photo from the basis photograph. Legacy analyses remain valid without IDs.
 
+## Completed design experiment (pending review)
+Phase 2A: Design Language Experiment 1 - completed as an experiment, not permanent architecture acceptance. Version borsal.design/0.1 and eight manual women's bag examples are isolated under experiments/design-language/. All eight are schema-valid; 35 declared feature intents were assessed as 12 expressed, 15 partial and 8 unsupported. No sample is manufacturing-verified. No numerical expressiveness threshold was applied.
+Focused tests: 51 passed. Full suite: 127 passed across 7 files, including all 76 previous tests unchanged. See [the factual comparison and limitations](DESIGN_LANGUAGE_SPIKE_1.md). Stop for review; Phase 2B has not started.
+
 ## Known limitations
 - Read-modify-save operations have no concurrency protection yet. They must become conditional atomic updates before reservations; simultaneous requests can affect geometry version numbering and lose updates/history.
 - [TS-001](TEMPORARY_SHORTCUTS.md#ts-001-developer-supplied-marker-calibration): marker corners and marker size remain developer-only temporary inputs pending automatic Borsal marker detection.

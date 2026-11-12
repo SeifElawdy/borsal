@@ -1,0 +1,414 @@
+{
+  "schemaVersion": "borsal.design/0.1",
+  "id": "shoulder-04",
+  "name": "Arc Flap Shoulder",
+  "category": "SHOULDER_BAG",
+  "creative": {
+    "description": "A clean shoulder bag with a rounded flap and a central brass magnetic snap, carried on an external webbing strap.",
+    "aesthetic": [
+      "rounded shield flap",
+      "brass center point",
+      "understated body"
+    ],
+    "intendedUse": "Original women's everyday handbag concept; illustrative dimensions only, not verified manufacturing instructions."
+  },
+  "technical": {
+    "dimensionUnit": "cm",
+    "evidence": "ILLUSTRATIVE_ONLY",
+    "overallDimensions": {
+      "width": 24,
+      "height": 18,
+      "depth": 4
+    },
+    "scrapSources": [
+      {
+        "id": "scrap-one"
+      }
+    ],
+    "bom": [
+      {
+        "id": "outer-fabric",
+        "source": {
+          "kind": "SCRAP",
+          "scrapId": "scrap-one"
+        },
+        "material": {
+          "type": "WOVEN_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weave": "TWILL",
+            "weightGsm": 240
+          }
+        },
+        "quantity": {
+          "value": 1900,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "thread",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "THREAD",
+          "specs": {
+            "fiber": "POLYESTER",
+            "tex": 40
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "strap-webbing",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "WEBBING",
+          "specs": {
+            "fiber": "COTTON",
+            "widthCm": 3
+          }
+        },
+        "quantity": {
+          "value": 110,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "snap",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "HARDWARE",
+          "specs": {
+            "kind": "MAGNETIC_SNAP",
+            "finish": "BRASS",
+            "sizeCm": 1.8
+          }
+        },
+        "quantity": {
+          "value": 1,
+          "unit": "piece"
+        }
+      }
+    ],
+    "components": [
+      {
+        "id": "shell",
+        "role": "BODY",
+        "pieceIds": [
+          "body-panel"
+        ]
+      },
+      {
+        "id": "cover",
+        "role": "FLAP",
+        "pieceIds": [
+          "flap-panel"
+        ]
+      }
+    ],
+    "patternPieces": [
+      {
+        "id": "body-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                24,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                24,
+                18
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                18
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "flap-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 1,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            14
+          ],
+          "segments": [
+            {
+              "id": "hinge",
+              "type": "LINE",
+              "to": [
+                24,
+                14
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                24,
+                5
+              ]
+            },
+            {
+              "id": "rounded-tip",
+              "type": "CUBIC_BEZIER",
+              "control1": [
+                20,
+                -1
+              ],
+              "control2": [
+                4,
+                -1
+              ],
+              "to": [
+                0,
+                5
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                14
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      }
+    ],
+    "assembly": [
+      {
+        "id": "shell-seam",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left",
+              "bottom",
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right",
+              "bottom",
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "flap-hinge",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "flap-panel",
+            "copy": 1,
+            "edgeIds": [
+              "hinge"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "snap-position",
+        "type": "INSTALL",
+        "bomId": "snap",
+        "anchors": [
+          {
+            "pieceId": "flap-panel",
+            "copy": 1,
+            "point": [
+              12,
+              4
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              12,
+              12
+            ]
+          }
+        ]
+      },
+      {
+        "id": "strap-position",
+        "type": "INSTALL",
+        "bomId": "strap-webbing",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              1,
+              17
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              23,
+              17
+            ]
+          }
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "shell-form",
+        "kind": "BODY",
+        "intent": "Two flat shell panels.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "round-flap",
+        "kind": "FLAP",
+        "intent": "Rounded overhanging flap sewn at the back opening.",
+        "componentIds": [
+          "cover",
+          "shell"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "magnetic-closure",
+        "kind": "CLOSURE",
+        "intent": "Paired snap positions on flap and front.",
+        "componentIds": [
+          "cover",
+          "shell"
+        ],
+        "bomIds": [
+          "snap"
+        ]
+      },
+      {
+        "id": "shoulder-strap",
+        "kind": "STRAP",
+        "intent": "External cotton webbing.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "strap-webbing"
+        ]
+      },
+      {
+        "id": "snap-recess",
+        "kind": "STRUCTURE",
+        "intent": "Snap backs lie flush without distorting the curved flap.",
+        "componentIds": [
+          "cover"
+        ],
+        "bomIds": [
+          "snap"
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "id": "round-flap-limit",
+      "featureId": "round-flap",
+      "status": "PARTIAL",
+      "reason": "Planar flap and hinge are expressible; overhang, facing and edge finishing remain unspecified.",
+      "missingInformation": [
+        "Turn-of-cloth correction",
+        "Facing/lining choice and edge finish"
+      ]
+    },
+    {
+      "id": "magnetic-closure-limit",
+      "featureId": "magnetic-closure",
+      "status": "PARTIAL",
+      "reason": "Snap type, size and two anchors are specified; tooling holes and reinforcement are absent.",
+      "missingInformation": [
+        "Cutout and prong geometry",
+        "Reinforcement pattern and tolerance"
+      ]
+    },
+    {
+      "id": "snap-recess-limit",
+      "featureId": "snap-recess",
+      "status": "UNSUPPORTED",
+      "reason": "No thickness, compressibility or three-dimensional hardware recess model exists.",
+      "missingInformation": [
+        "Stack compression model",
+        "Snap backing clearance"
+      ]
+    }
+  ]
+}

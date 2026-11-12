@@ -1,0 +1,841 @@
+{
+  "schemaVersion": "borsal.design/0.1",
+  "id": "tote-08",
+  "name": "Architect Hardware Tote",
+  "category": "TOTE_BAG",
+  "creative": {
+    "description": "An upright structured tote with sew-in interfacing, a separate reinforced base, riveted webbing handles and four brass feet.",
+    "aesthetic": [
+      "architectural stance",
+      "visible brass feet",
+      "reinforced handle mounts"
+    ],
+    "intendedUse": "Original women's everyday handbag concept; illustrative dimensions only, not verified manufacturing instructions."
+  },
+  "technical": {
+    "dimensionUnit": "cm",
+    "evidence": "ILLUSTRATIVE_ONLY",
+    "overallDimensions": {
+      "width": 32,
+      "height": 30,
+      "depth": 10
+    },
+    "scrapSources": [
+      {
+        "id": "scrap-one"
+      }
+    ],
+    "bom": [
+      {
+        "id": "outer-fabric",
+        "source": {
+          "kind": "SCRAP",
+          "scrapId": "scrap-one"
+        },
+        "material": {
+          "type": "WOVEN_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weave": "TWILL",
+            "weightGsm": 300
+          }
+        },
+        "quantity": {
+          "value": 3600,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "thread",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "THREAD",
+          "specs": {
+            "fiber": "POLYESTER",
+            "tex": 40
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "strap-webbing",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "WEBBING",
+          "specs": {
+            "fiber": "COTTON",
+            "widthCm": 3
+          }
+        },
+        "quantity": {
+          "value": 140,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "stiffener",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "INTERFACING",
+          "specs": {
+            "weightGsm": 200,
+            "bond": "SEW_IN"
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "feet",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "HARDWARE",
+          "specs": {
+            "kind": "BAG_FOOT",
+            "finish": "BRASS",
+            "sizeCm": 1.2
+          }
+        },
+        "quantity": {
+          "value": 4,
+          "unit": "piece"
+        }
+      },
+      {
+        "id": "rivets",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "HARDWARE",
+          "specs": {
+            "kind": "RIVET",
+            "finish": "BRASS",
+            "sizeCm": 0.8
+          }
+        },
+        "quantity": {
+          "value": 8,
+          "unit": "piece"
+        }
+      }
+    ],
+    "components": [
+      {
+        "id": "shell",
+        "role": "BODY",
+        "pieceIds": [
+          "body-panel"
+        ]
+      },
+      {
+        "id": "sides",
+        "role": "GUSSET",
+        "pieceIds": [
+          "side-panel"
+        ]
+      },
+      {
+        "id": "floor",
+        "role": "BASE",
+        "pieceIds": [
+          "base-panel"
+        ]
+      },
+      {
+        "id": "reinforcing",
+        "role": "REINFORCEMENT",
+        "pieceIds": [
+          "body-stiffener",
+          "base-stiffener"
+        ]
+      }
+    ],
+    "patternPieces": [
+      {
+        "id": "body-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                32,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                32,
+                30
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                30
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "side-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                10,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                10,
+                30
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                30
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "base-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 1,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                32,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                32,
+                10
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                10
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "body-stiffener",
+        "bomId": "stiffener",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                30,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                30,
+                28
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                28
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "base-stiffener",
+        "bomId": "stiffener",
+        "cutCount": 1,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                30,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                30,
+                8
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                8
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      }
+    ],
+    "assembly": [
+      {
+        "id": "front-base",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-base",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "front-side-left",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-side-left",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "front-side-right",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 2,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-side-right",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "front-stiffener",
+        "type": "ATTACH",
+        "from": {
+          "pieceId": "body-stiffener",
+          "copy": 1,
+          "point": [
+            0,
+            0
+          ]
+        },
+        "to": {
+          "pieceId": "body-panel",
+          "copy": 1,
+          "point": [
+            1,
+            1
+          ]
+        },
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-stiffener",
+        "type": "ATTACH",
+        "from": {
+          "pieceId": "body-stiffener",
+          "copy": 2,
+          "point": [
+            0,
+            0
+          ]
+        },
+        "to": {
+          "pieceId": "body-panel",
+          "copy": 2,
+          "point": [
+            1,
+            1
+          ]
+        },
+        "threadBomId": "thread"
+      },
+      {
+        "id": "base-stiffener-mount",
+        "type": "ATTACH",
+        "from": {
+          "pieceId": "base-stiffener",
+          "copy": 1,
+          "point": [
+            0,
+            0
+          ]
+        },
+        "to": {
+          "pieceId": "base-panel",
+          "copy": 1,
+          "point": [
+            1,
+            1
+          ]
+        },
+        "threadBomId": "thread"
+      },
+      {
+        "id": "foot-mounts",
+        "type": "INSTALL",
+        "bomId": "feet",
+        "anchors": [
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "point": [
+              3,
+              3
+            ]
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "point": [
+              29,
+              3
+            ]
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "point": [
+              3,
+              7
+            ]
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "point": [
+              29,
+              7
+            ]
+          }
+        ]
+      },
+      {
+        "id": "handle-mounts",
+        "type": "INSTALL",
+        "bomId": "strap-webbing",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              7,
+              28
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              25,
+              28
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              7,
+              28
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              25,
+              28
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rivet-mounts",
+        "type": "INSTALL",
+        "bomId": "rivets",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              7,
+              28
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              25,
+              28
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              7,
+              28
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              25,
+              28
+            ]
+          }
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "shell-form",
+        "kind": "BODY",
+        "intent": "Scrap body, base and separate sides.",
+        "componentIds": [
+          "shell",
+          "sides",
+          "floor"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "sewn-reinforcement",
+        "kind": "STRUCTURE",
+        "intent": "Stock sew-in reinforcement on shell and base.",
+        "componentIds": [
+          "reinforcing",
+          "shell",
+          "floor"
+        ],
+        "bomIds": [
+          "stiffener"
+        ]
+      },
+      {
+        "id": "riveted-handles",
+        "kind": "HANDLE",
+        "intent": "Webbing handles with paired rivets per mount.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "strap-webbing",
+          "rivets"
+        ]
+      },
+      {
+        "id": "metal-feet",
+        "kind": "STRUCTURE",
+        "intent": "Four brass feet at base anchors.",
+        "componentIds": [
+          "floor"
+        ],
+        "bomIds": [
+          "feet"
+        ]
+      },
+      {
+        "id": "upright-load-shape",
+        "kind": "STRUCTURE",
+        "intent": "The empty and loaded tote retains its upright architectural stance.",
+        "componentIds": [
+          "shell",
+          "reinforcing"
+        ],
+        "bomIds": []
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "id": "sewn-reinforcement-limit",
+      "featureId": "sewn-reinforcement",
+      "status": "PARTIAL",
+      "reason": "Reinforcement pieces and anchors are explicit; full attachment paths and material stiffness are missing.",
+      "missingInformation": [
+        "Layer placement transforms and seam paths",
+        "Interfacing modulus and thickness"
+      ]
+    },
+    {
+      "id": "riveted-handles-limit",
+      "featureId": "riveted-handles",
+      "status": "PARTIAL",
+      "reason": "Eight rivets and four mounts are required; paired hole positions and grip-stack checks are not encoded.",
+      "missingInformation": [
+        "Two hole coordinates per mount",
+        "Rivet grip length and stack thickness"
+      ]
+    },
+    {
+      "id": "metal-feet-limit",
+      "featureId": "metal-feet",
+      "status": "PARTIAL",
+      "reason": "Feet and mount anchors exist; hole outlines and backing washers are unspecified.",
+      "missingInformation": [
+        "Hardware cutouts and backing requirements",
+        "Base-edge clearances"
+      ]
+    },
+    {
+      "id": "upright-load-shape-limit",
+      "featureId": "upright-load-shape",
+      "status": "UNSUPPORTED",
+      "reason": "No structural solver or three-dimensional material model represents load-bearing shape retention.",
+      "missingInformation": [
+        "Load cases and stiffness model",
+        "Foot stability and seam strength checks"
+      ]
+    }
+  ]
+}

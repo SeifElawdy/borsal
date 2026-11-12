@@ -1,0 +1,571 @@
+{
+  "schemaVersion": "borsal.design/0.1",
+  "id": "tote-06",
+  "name": "Accordion Base Tote",
+  "category": "TOTE_BAG",
+  "creative": {
+    "description": "A broad flat-bottom tote with paired inward-folding side gussets and long webbing handles, designed to collapse neatly when empty.",
+    "aesthetic": [
+      "wide stable floor",
+      "accordion sides",
+      "clean rectangular stance"
+    ],
+    "intendedUse": "Original women's everyday handbag concept; illustrative dimensions only, not verified manufacturing instructions."
+  },
+  "technical": {
+    "dimensionUnit": "cm",
+    "evidence": "ILLUSTRATIVE_ONLY",
+    "overallDimensions": {
+      "width": 38,
+      "height": 32,
+      "depth": 12
+    },
+    "scrapSources": [
+      {
+        "id": "scrap-one"
+      }
+    ],
+    "bom": [
+      {
+        "id": "outer-fabric",
+        "source": {
+          "kind": "SCRAP",
+          "scrapId": "scrap-one"
+        },
+        "material": {
+          "type": "WOVEN_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weave": "TWILL",
+            "weightGsm": 240
+          }
+        },
+        "quantity": {
+          "value": 4500,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "thread",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "THREAD",
+          "specs": {
+            "fiber": "POLYESTER",
+            "tex": 40
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "strap-webbing",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "WEBBING",
+          "specs": {
+            "fiber": "COTTON",
+            "widthCm": 3
+          }
+        },
+        "quantity": {
+          "value": 140,
+          "unit": "cm"
+        }
+      }
+    ],
+    "components": [
+      {
+        "id": "shell",
+        "role": "BODY",
+        "pieceIds": [
+          "body-panel"
+        ]
+      },
+      {
+        "id": "sides",
+        "role": "GUSSET",
+        "pieceIds": [
+          "side-panel"
+        ]
+      },
+      {
+        "id": "floor",
+        "role": "BASE",
+        "pieceIds": [
+          "base-panel"
+        ]
+      }
+    ],
+    "patternPieces": [
+      {
+        "id": "body-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                38,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                38,
+                32
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                32
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "side-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [
+          {
+            "id": "side-box-fold",
+            "type": "BOX",
+            "from": [
+              6,
+              0
+            ],
+            "to": [
+              6,
+              32
+            ],
+            "allowanceCm": 6
+          }
+        ],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                12,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                12,
+                32
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                32
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "base-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 1,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                38,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                38,
+                12
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                12
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      }
+    ],
+    "assembly": [
+      {
+        "id": "front-floor",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-floor",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "left-front",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "left-back",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "right-front",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 2,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "right-back",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "left-floor",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "side-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "right-floor",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "side-panel",
+            "copy": 2,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "handle-mounts",
+        "type": "INSTALL",
+        "bomId": "strap-webbing",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              9,
+              30
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              29,
+              30
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              9,
+              30
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              29,
+              30
+            ]
+          }
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "flat-base",
+        "kind": "BODY",
+        "intent": "Separate wide flat floor panel.",
+        "componentIds": [
+          "floor",
+          "shell"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "folding-gussets",
+        "kind": "GUSSET",
+        "intent": "Side panels with central box fold indications.",
+        "componentIds": [
+          "sides"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "webbing-handles",
+        "kind": "HANDLE",
+        "intent": "Two lengths of webbing with four body mounts.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "strap-webbing"
+        ]
+      },
+      {
+        "id": "collapsing-corners",
+        "kind": "STRUCTURE",
+        "intent": "Bottom corners fold inward without twisting the side gussets.",
+        "componentIds": [
+          "floor",
+          "sides"
+        ],
+        "bomIds": []
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "id": "folding-gussets-limit",
+      "featureId": "folding-gussets",
+      "status": "PARTIAL",
+      "reason": "Gusset widths, edges and fold axes exist; fold angle and fold direction are absent.",
+      "missingInformation": [
+        "Mountain/valley orientation",
+        "Box-fold sequence and finished depth"
+      ]
+    },
+    {
+      "id": "webbing-handles-limit",
+      "featureId": "webbing-handles",
+      "status": "PARTIAL",
+      "reason": "Total webbing and mounts are encoded, but split lengths and reinforcement are not.",
+      "missingInformation": [
+        "Per-handle lengths",
+        "Reinforced attachment program"
+      ]
+    },
+    {
+      "id": "collapsing-corners-limit",
+      "featureId": "collapsing-corners",
+      "status": "UNSUPPORTED",
+      "reason": "No spatial fold/corner constraint model can express twist-free collapse.",
+      "missingInformation": [
+        "Three-dimensional fold kinematics",
+        "Base corner clipping and seam stack"
+      ]
+    }
+  ]
+}

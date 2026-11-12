@@ -1,0 +1,267 @@
+{
+  "schemaVersion": "borsal.design/0.1",
+  "id": "shoulder-01",
+  "name": "Ochre Ribbon Shoulder",
+  "category": "SHOULDER_BAG",
+  "creative": {
+    "description": "A softly collapsed ochre shoulder bag with an exposed contrasting webbing strap and an open top; the strap is mounted outside the shell.",
+    "aesthetic": [
+      "soft silhouette",
+      "contrast external strap",
+      "minimal exposed topstitching"
+    ],
+    "intendedUse": "Original women's everyday handbag concept; illustrative dimensions only, not verified manufacturing instructions."
+  },
+  "technical": {
+    "dimensionUnit": "cm",
+    "evidence": "ILLUSTRATIVE_ONLY",
+    "overallDimensions": {
+      "width": 28,
+      "height": 22,
+      "depth": 3
+    },
+    "scrapSources": [
+      {
+        "id": "scrap-one"
+      }
+    ],
+    "bom": [
+      {
+        "id": "outer-fabric",
+        "source": {
+          "kind": "SCRAP",
+          "scrapId": "scrap-one"
+        },
+        "material": {
+          "type": "WOVEN_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weave": "TWILL",
+            "weightGsm": 240
+          }
+        },
+        "quantity": {
+          "value": 1800,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "thread",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "THREAD",
+          "specs": {
+            "fiber": "POLYESTER",
+            "tex": 40
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "strap-webbing",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "WEBBING",
+          "specs": {
+            "fiber": "COTTON",
+            "widthCm": 3
+          }
+        },
+        "quantity": {
+          "value": 110,
+          "unit": "cm"
+        }
+      }
+    ],
+    "components": [
+      {
+        "id": "shell",
+        "role": "BODY",
+        "pieceIds": [
+          "body-panel"
+        ]
+      }
+    ],
+    "patternPieces": [
+      {
+        "id": "body-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [
+          {
+            "id": "top-hem",
+            "type": "HEM",
+            "from": [
+              0,
+              20
+            ],
+            "to": [
+              28,
+              20
+            ],
+            "allowanceCm": 2
+          }
+        ],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                28,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                28,
+                22
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                22
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      }
+    ],
+    "assembly": [
+      {
+        "id": "join-sides-bottom",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left",
+              "bottom",
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right",
+              "bottom",
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "mount-strap",
+        "type": "INSTALL",
+        "bomId": "strap-webbing",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              1,
+              20
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              27,
+              20
+            ]
+          }
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "shell-form",
+        "kind": "BODY",
+        "intent": "Two matching shell panels from the same scrap.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "outer-fabric"
+        ]
+      },
+      {
+        "id": "external-strap",
+        "kind": "STRAP",
+        "intent": "External contrasting webbing with reinforced end mounts.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "strap-webbing"
+        ]
+      },
+      {
+        "id": "soft-drape",
+        "kind": "STRUCTURE",
+        "intent": "The empty bag gently collapses rather than retaining a box shape.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": []
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "id": "external-strap-limit",
+      "featureId": "external-strap",
+      "status": "PARTIAL",
+      "reason": "Length, width and mount anchors are encoded; reinforcement stitch paths are not.",
+      "missingInformation": [
+        "Bar-tack footprint and stitch specification",
+        "Mount load and reinforcement area"
+      ]
+    },
+    {
+      "id": "soft-drape-limit",
+      "featureId": "soft-drape",
+      "status": "UNSUPPORTED",
+      "reason": "Planar pieces cannot encode the intended loaded or unloaded three-dimensional drape.",
+      "missingInformation": [
+        "Fabric bending and stretch properties",
+        "Load-dependent shape model"
+      ]
+    }
+  ]
+}

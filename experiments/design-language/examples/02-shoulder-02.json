@@ -1,0 +1,592 @@
+{
+  "schemaVersion": "borsal.design/0.1",
+  "id": "shoulder-02",
+  "name": "Boxline Zip Shoulder",
+  "category": "SHOULDER_BAG",
+  "creative": {
+    "description": "A compact rectangular shoulder bag with separate side gussets, a base, a full top zipper and brass strap rings.",
+    "aesthetic": [
+      "crisp small box",
+      "exposed brass accents",
+      "full-width zip"
+    ],
+    "intendedUse": "Original women's everyday handbag concept; illustrative dimensions only, not verified manufacturing instructions."
+  },
+  "technical": {
+    "dimensionUnit": "cm",
+    "evidence": "ILLUSTRATIVE_ONLY",
+    "overallDimensions": {
+      "width": 26,
+      "height": 20,
+      "depth": 8
+    },
+    "scrapSources": [
+      {
+        "id": "scrap-one"
+      }
+    ],
+    "bom": [
+      {
+        "id": "outer-fabric",
+        "source": {
+          "kind": "SCRAP",
+          "scrapId": "scrap-one"
+        },
+        "material": {
+          "type": "WOVEN_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weave": "TWILL",
+            "weightGsm": 240
+          }
+        },
+        "quantity": {
+          "value": 2300,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "thread",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "THREAD",
+          "specs": {
+            "fiber": "POLYESTER",
+            "tex": 40
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "strap-webbing",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "WEBBING",
+          "specs": {
+            "fiber": "COTTON",
+            "widthCm": 3
+          }
+        },
+        "quantity": {
+          "value": 115,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "top-zip",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "ZIPPER",
+          "specs": {
+            "lengthCm": 26,
+            "toothType": "METAL",
+            "endType": "CLOSED"
+          }
+        },
+        "quantity": {
+          "value": 1,
+          "unit": "piece"
+        }
+      },
+      {
+        "id": "strap-rings",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "HARDWARE",
+          "specs": {
+            "kind": "D_RING",
+            "finish": "BRASS",
+            "sizeCm": 2.5
+          }
+        },
+        "quantity": {
+          "value": 2,
+          "unit": "piece"
+        }
+      }
+    ],
+    "components": [
+      {
+        "id": "shell",
+        "role": "BODY",
+        "pieceIds": [
+          "body-panel"
+        ]
+      },
+      {
+        "id": "side-panels",
+        "role": "GUSSET",
+        "pieceIds": [
+          "side-gusset"
+        ]
+      },
+      {
+        "id": "floor",
+        "role": "BASE",
+        "pieceIds": [
+          "base-panel"
+        ]
+      }
+    ],
+    "patternPieces": [
+      {
+        "id": "body-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                26,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                26,
+                20
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                20
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "side-gusset",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                8,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                8,
+                20
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                20
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "base-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 1,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                26,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                26,
+                8
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                8
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      }
+    ],
+    "assembly": [
+      {
+        "id": "front-base",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-base",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "bottom"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "base-panel",
+            "copy": 1,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "front-left",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-gusset",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-left",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-gusset",
+            "copy": 1,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "front-right",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-gusset",
+            "copy": 2,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-right",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "left"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "side-gusset",
+            "copy": 2,
+            "edgeIds": [
+              "right"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "install-zip",
+        "type": "INSTALL",
+        "bomId": "top-zip",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              13,
+              20
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              13,
+              20
+            ]
+          }
+        ]
+      },
+      {
+        "id": "install-rings",
+        "type": "INSTALL",
+        "bomId": "strap-rings",
+        "anchors": [
+          {
+            "pieceId": "side-gusset",
+            "copy": 1,
+            "point": [
+              4,
+              19
+            ]
+          },
+          {
+            "pieceId": "side-gusset",
+            "copy": 2,
+            "point": [
+              4,
+              19
+            ]
+          }
+        ]
+      },
+      {
+        "id": "install-strap",
+        "type": "INSTALL",
+        "bomId": "strap-webbing",
+        "anchors": [
+          {
+            "pieceId": "side-gusset",
+            "copy": 1,
+            "point": [
+              4,
+              19
+            ]
+          },
+          {
+            "pieceId": "side-gusset",
+            "copy": 2,
+            "point": [
+              4,
+              19
+            ]
+          }
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "shell-form",
+        "kind": "BODY",
+        "intent": "Front, back and separate floor.",
+        "componentIds": [
+          "shell",
+          "floor"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "side-depth",
+        "kind": "GUSSET",
+        "intent": "Paired side panels give the bag its depth.",
+        "componentIds": [
+          "side-panels"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "zip-closure",
+        "kind": "CLOSURE",
+        "intent": "Full-width closed-end zipper between upper edges.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "top-zip"
+        ]
+      },
+      {
+        "id": "ring-strap",
+        "kind": "STRAP",
+        "intent": "External webbing supported by two brass rings.",
+        "componentIds": [
+          "side-panels"
+        ],
+        "bomIds": [
+          "strap-webbing",
+          "strap-rings"
+        ]
+      },
+      {
+        "id": "corner-volume",
+        "kind": "STRUCTURE",
+        "intent": "Clean three-way gusset/base/body corner junctions.",
+        "componentIds": [
+          "shell",
+          "side-panels",
+          "floor"
+        ],
+        "bomIds": []
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "id": "zip-closure-limit",
+      "featureId": "zip-closure",
+      "status": "PARTIAL",
+      "reason": "Zipper specification and target anchors exist, but end stops, tape clearances and stitch lines are absent.",
+      "missingInformation": [
+        "Zipper insertion seam offsets",
+        "End-tab pieces and stop clearances"
+      ]
+    },
+    {
+      "id": "ring-strap-limit",
+      "featureId": "ring-strap",
+      "status": "PARTIAL",
+      "reason": "Ring and webbing requirements are recorded; loop turnbacks and reinforcement are unspecified.",
+      "missingInformation": [
+        "Loop lengths and folded stack thickness",
+        "Attachment stitch footprints"
+      ]
+    },
+    {
+      "id": "corner-volume-limit",
+      "featureId": "corner-volume",
+      "status": "UNSUPPORTED",
+      "reason": "Edge references do not encode three-dimensional corner stacking or clipping.",
+      "missingInformation": [
+        "Three-way junction topology",
+        "Clipping and turn-of-cloth rules"
+      ]
+    }
+  ]
+}
