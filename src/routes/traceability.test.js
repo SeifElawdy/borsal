@@ -55,7 +55,7 @@ async function upload(endpoint = '/api/fabrics/from-photo', real = false) {
 }
 async function confirm(fabric, extra = {}) {
   const res = await request(app).post('/api/fabrics/' + fabric._id + '/confirm-geometry')
-    .send({ polygonCm: fabric.analysis?.suggestedPolygonCm || rectangle, source: 'suggested', ...extra });
+    .send({ polygonCm: fabric.analysis?.suggestedPolygonCm || rectangle, source: 'suggested', basedOnAnalysisId: fabric.analysis?.analysisId, ...extra });
   expect(res.status, JSON.stringify(res.body)).toBe(200);
   return res;
 }
@@ -114,17 +114,20 @@ describe('Phase 1b photo and geometry traceability', () => {
     expect(reconfirmed.body.geometryBasedOnCurrentAnalysis).toBe(true);
     expect((await get(fabric._id)).geometryBasedOnCurrentAnalysis).toBe(true);
   });
-  it('accepts historical analysis IDs and stores a detached snapshot of all basis values', async () => {
+  it('rejects historical analysis IDs and keeps the current confirmation snapshot detached', async () => {
     const fabric = (await upload()).body.fabric;
     await upload('/api/fabrics/' + fabric._id + '/analyze-photo');
-    const res = await confirm(fabric, { basedOnAnalysisId: fabric.analysis.analysisId });
-    expect(res.body.fabric.geometry.basis).toEqual(expectedBasis(fabric.analysis));
-    expect(res.body.geometryBasedOnCurrentAnalysis).toBe(false);
-    expect((await get(fabric._id)).geometryBasedOnCurrentAnalysis).toBe(false);
+    const current = await get(fabric._id);
+    const rejected = await request(app).post('/api/fabrics/' + fabric._id + '/confirm-geometry')
+      .send({ polygonCm: fabric.analysis.suggestedPolygonCm, source: 'suggested', basedOnAnalysisId: fabric.analysis.analysisId });
+    expect(rejected.status).toBe(409);
+    expect(rejected.body.code).toBe('STALE_ANALYSIS');
+    const res = await confirm(current);
+    expect(res.body.fabric.geometry.basis).toEqual(expectedBasis(current.analysis));
+    expect(res.body.geometryBasedOnCurrentAnalysis).toBe(true);
     const snapshot = res.body.fabric.geometry.basis;
-    // Changing the original analysis data must not mutate the persisted basis.
     await FabricPiece.collection.updateOne({ _id: new mongoose.Types.ObjectId(fabric._id) }, {
-      $set: { 'analysisHistory.0.markerCornersPx': [[1, 2]], 'analysisHistory.0.scale.pxPerCmApprox': 999, 'analysisHistory.0.suggestedPolygonCm': rectangle },
+      $set: { 'analysis.markerCornersPx': [[1, 2]], 'analysis.scale.pxPerCmApprox': 999, 'analysis.suggestedPolygonCm': rectangle },
     });
     expect((await get(fabric._id)).geometry.basis).toEqual(snapshot);
     expect(fs.existsSync(snapshot.photoPath)).toBe(true);
@@ -192,7 +195,7 @@ describe('Phase 1b photo and geometry traceability', () => {
     expect((await confirm(fabric, { polygonCm: within })).body.fabric.geometry.basis.matchesSuggestion).toBe(true);
     const outside = structuredClone(normalized);
     outside[0][0] += 0.000002;
-    expect((await confirm(fabric, { polygonCm: outside })).body.fabric.geometry.basis.matchesSuggestion).toBe(false);
+    expect((await confirm(fabric, { polygonCm: outside, expectedGeometryVersion: 1 })).body.fabric.geometry.basis.matchesSuggestion).toBe(false);
   });
   it('returns null before confirmation and never stores or adds the derived flag to the list', async () => {
     const fabric = (await upload()).body.fabric;
