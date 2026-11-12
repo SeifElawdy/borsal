@@ -4,7 +4,7 @@ const { parseOptions } = require('./run');
 const { runExperiment } = require('./harness');
 const { initialMessages } = require('./prompt');
 const briefs = require('./briefs.json');
-const previous = require('./results/campaigns/phase2b-simple-shoulder-003/prompt-snapshot.json');
+const previous = require('./fixtures/prompt-003.json');
 const firstBrief = briefs.find((b) => b.id === 'simple-shoulder');
 const response = () => new Response(JSON.stringify({ success: true, result: { response: '{}', finish_reason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 1, total_tokens: 11, neurons: 1 } } }), { status: 200 });
 beforeEach(() => { vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network forbidden')); });

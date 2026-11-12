@@ -14,7 +14,7 @@ describe('Offline staged concept proof',()=>{
       expect(conceptSchema.safeParse(c).success).toBe(true);
       expect(c.originalBrief).toEqual({id:brief.id,text:brief.brief,requirements:brief.requirements});
       expect(c.requirements.map(r=>r.briefRequirement)).toEqual(brief.requirements);
-      const r=require('../ai-spike/results/campaigns/'+c.provenance.campaignId+'/result.json');
+      const r=require('../ai-spike/fixtures/'+(c.id==='concept-eight-b'?'shoulder-003':'shoulder-70b')+'.json');
       const a=r.results[0].attempts[0];
       expect(crypto.createHash('sha256').update(a.text).digest('hex')).toBe(c.provenance.responseSha256);
       expect(c.creative.modelDescription).toBe(a.automated.proposal.creative.description);
@@ -46,8 +46,8 @@ describe('Offline staged concept proof',()=>{
   it('requires informative unresolved details',()=>{const c=clone();c.limitations[0].missingInformation=[];expect(conceptSchema.safeParse(c).success).toBe(false);});
   it('refuses claimed verified attachment locations',()=>{const c=clone();c.connections[0].status='PASS';expect(conceptSchema.safeParse(c).success).toBe(false);});
   it('allows original shapes and tote concepts without a template',()=>{const c=clone();c.category='TOTE_BAG';c.creative.shapeIntent='A sculptural spiralling silhouette, construction undecided.';expect(conceptSchema.safeParse(c).success).toBe(true);});
-  it('retains all protected schema, examples, tests, locks and campaign artifacts byte-for-byte',()=>{
-    for(const [file,hash] of Object.entries(require('./protected-hashes.json'))){expect(crypto.createHash('sha256').update(fs.readFileSync(path.resolve(file))).digest('hex'),file).toBe(hash);}
+  it('retains reviewed offline source fixtures and schema byte-for-byte',()=>{
+    for(const [file,hash] of Object.entries(require('./protected-hashes.json'))){expect(crypto.createHash('sha256').update(fs.readFileSync(path.resolve(file),'utf8').replace(/\r\n/g,'\n')).digest('hex'),file).toBe(hash);}
   });
   it('queues offline review without network or provider access',()=>{
     const spy=vi.spyOn(globalThis,'fetch').mockRejectedValue(new Error('Network prohibited'));

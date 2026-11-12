@@ -1,3 +1,6 @@
 .env
 data/
 node_modules/
+
+# Local inference evidence and operational locks: never publish by accident.
+experiments/design-language/ai-spike/results/

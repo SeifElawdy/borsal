@@ -3,7 +3,7 @@ const { z } = require('zod');
 const { designSchema, VERSION } = require('../schema');
 const { initialMessages, repairMessages, contractText, groupErrors } = require('./prompt');
 const briefs = require('./briefs.json');
-const oldCampaign = require('./results/campaigns/phase2b-simple-shoulder-001/result.json');
+const oldCampaign = require('./fixtures/shoulder-001.json');
 const source = z.toJSONSchema(designSchema, { target: 'draft-7' });
 const contract = contractText();
 const definition = (name) => contract.split('\n').find((line) => line.startsWith(name + '='));

@@ -18,7 +18,7 @@ Each new analysis has an analysisId. Confirmed geometry keeps a detached basis s
 
 ## Completed design experiment (pending review)
 Phase 2A: Design Language Experiment 1 - completed as an experiment, not permanent architecture acceptance. Version borsal.design/0.1 and eight manual women's bag examples are isolated under experiments/design-language/. All eight are schema-valid; 35 declared feature intents were assessed as 12 expressed, 15 partial and 8 unsupported. No sample is manufacturing-verified. No numerical expressiveness threshold was applied.
-Focused tests: 51 passed. Full suite: 127 passed across 7 files, including all 76 previous tests unchanged. See [the factual comparison and limitations](DESIGN_LANGUAGE_SPIKE_1.md). Stop for review; Phase 2B has not started.
+Focused tests: 51 passed. Full suite: 127 passed across 7 files, including all 76 previous tests unchanged. See [the factual comparison and limitations](DESIGN_LANGUAGE_SPIKE_1.md). Phase 2B research is now closed; see AI_STRUCTURAL_SPIKE_2.md.
 
 ## Known limitations
 - Read-modify-save operations have no concurrency protection yet. They must become conditional atomic updates before reservations; simultaneous requests can affect geometry version numbering and lose updates/history.
@@ -38,3 +38,6 @@ Focused tests: 51 passed. Full suite: 127 passed across 7 files, including all 7
 9. Visualization.
 10. Approval + inventory + reservations.
 11. Hardening.
+
+## Phase 2B closeout
+Research complete: both text models produced unapproved technical proposals. Offline staged concept proof and two local photorealistic previews do not establish manufacturing feasibility or use actual fabric imagery. Live artifacts, counters and preview images remain local; only reviewed regression fixtures are versioned. Next: Phase 3A offline physical-mat calibration prototype, without API integration.

@@ -1,9 +1,0 @@
-{
-  "maxRequests": 12,
-  "maxInitialRequests": 6,
-  "maxRepairsPerBrief": 1,
-  "scope": "ONE_APPROVED_LIVE_SMOKE_TEST",
-  "approvedRequests": 1,
-  "requestsAttempted": 1,
-  "repairs": 0
-}
