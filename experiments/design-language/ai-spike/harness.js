@@ -94,7 +94,7 @@ async function runExperiment({ provider, briefs, maxRequests = 12, onCheckpoint 
         result.status = 'INVALID_OUTPUT';
         if (attempt === 0) messages = repairMessages(messages, response.text, record.automated.errors);
       } catch (error) {
-        record.failure = { code: typeof error.code === 'string' ? error.code : 'PROVIDER_FAILURE', status: error.status || null, providerCodes: error.providerCodes || [] };
+        record.failure = { code: typeof error.code === 'string' ? error.code : 'PROVIDER_FAILURE', status: error.status || null, providerCodes: error.providerCodes || [], ...(error.diagnostics ? { diagnostics: error.diagnostics } : {}) };
         result.status = 'PROVIDER_FAILED';
         report.status = 'STOPPED_PROVIDER_ERROR';
         // Stop on ALL provider failures, including authentication/quota; never auto-retry.
