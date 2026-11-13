@@ -15,6 +15,7 @@ function renderPreview(report){
 <g transform="translate(${fixed(tx)} ${fixed(ty)})">
 <polygon points="${p.polygonCm.map(v=>v.join(',')).join(' ')}" fill="#f4e6eb" stroke="#7b233e" stroke-width="0.035"/>
 <path d="${path}" fill="none" stroke="#1f618d" stroke-width="0.025" stroke-dasharray="0.15 0.1"/>
+${(p.folds||[]).map(f=>`<line data-fold-id="${escape(f.id)}" x1="${f.from[0]}" y1="${f.from[1]}" x2="${f.to[0]}" y2="${f.to[1]}" stroke="#227744" stroke-width="0.025" stroke-dasharray="0.08 0.08"><title>${escape(f.id)}: ${escape(f.type)}; allowance ${f.allowanceCm} cm; physical fold UNVERIFIED</title></line>`).join('\n')}
 </g>
 <text x="1" y="${fixed(y+box.maxY-box.minY+0.8)}">Grain ${p.grainDirectionDeg}°; tolerance ${p.grainToleranceDeg===null?'UNRESOLVED':p.grainToleranceDeg+'°'}; declared seam allowance ${p.seamAllowanceCm} cm</text>
 <text x="1" y="${fixed(y+box.maxY-box.minY+1.5)}">Stitch edges: ${escape(outline.segments.map(s=>s.id).join(', '))}</text>`;
@@ -27,7 +28,7 @@ function renderPreview(report){
 <rect width="100%" height="100%" fill="white"/>
 <g font-family="sans-serif" font-size="0.38" fill="#222">
 <text x="1" y="0.8">MANUALLY AUTHORED DRAFT — ${escape(report.status)} / ${escape(report.verdict)}</text>
-<text x="1" y="1.6">Solid: cutting; dashed: stitching. Dimensions in cm; individual local outlines.</text>
+<text x="1" y="1.6">Solid: cutting; blue dashed: stitching; green dotted: fold axes. Unit cm.</text>
 <text x="1" y="2.4">Illustrative preview only — NOT manufacturing approval or verified print scale.</text>
 <text x="1" y="3.2">Creative fidelity and physical construction remain UNVERIFIED.</text>
 ${sections}

@@ -38,7 +38,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT}={}){
   if(live){
     if(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed)throw fail(403,'LIVE_GENERATION_DISABLED');
     provider=cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
-    budget=openBudget(ROOT);if(budget.used()>=12)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
+    budget=openBudget(ROOT);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
     secrets=[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI];
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
   const prompt=messages(run,concept),promptBytes=Buffer.byteLength(JSON.stringify(prompt));

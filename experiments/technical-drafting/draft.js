@@ -60,7 +60,7 @@ function draft(input){
     if(!p||!validation.valid)continue;
     out.cuttingPieces.push({id:instance.id,sourcePieceId:p.id,sourceCopy:instance.copy,unit:'cm',
       polygonCm:structuredClone(instance.cuttingPolygonCm),dimensions:dimensions(instance.cuttingPolygonCm),areaCm2:area(instance.cuttingPolygonCm),
-      stitchingOutline:structuredClone(p.outline),seamAllowanceCm:p.seamAllowanceCm,
+      stitchingOutline:structuredClone(p.outline),seamAllowanceCm:p.seamAllowanceCm,folds:structuredClone(p.folds),
       allowanceBasis:'EXPLICIT_CUTTING_POLYGON; SCALAR_WIDTH_NOT_INDEPENDENTLY_VERIFIED',
       grainDirectionDeg:p.grainDirectionDeg,grainToleranceDeg:instance.grainToleranceDeg??null});
   }

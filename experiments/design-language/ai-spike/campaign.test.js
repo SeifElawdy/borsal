@@ -58,10 +58,10 @@ describe('Named experiment campaigns and shared budget', () => {
     fs.writeFileSync(path.join(root, 'live-campaign.json'), JSON.stringify({ maxRequests: 12 }));
     expect(openBudget(root).used()).toBe(12);
   });
-  it('enforces the shared twelve-slot cap across campaign IDs and process restarts', () => {
+  it('enforces the owner-approved twenty-slot cap across campaign IDs and process restarts', () => {
     seedSmoke();
-    for (let i = 0; i < 11; i++) openBudget(root).reserve('campaign-' + i, 1);
-    expect(openBudget(root).used()).toBe(12);
+    for (let i = 0; i < 19; i++) openBudget(root).reserve('campaign-' + i, 1);
+    expect(openBudget(root).used()).toBe(20);
     expect(() => openBudget(root).reserve('new-name', 1)).toThrow('GLOBAL_REQUEST_LIMIT_REACHED');
   });
   it('counts a crash-created empty reservation file and refuses to reset it', () => {
@@ -112,23 +112,31 @@ describe('Named experiment campaigns and shared budget', () => {
   });
   it('allows concurrent campaigns only within the shared remaining budget', async () => {
     fs.writeFileSync(path.join(root, 'live-run.json'), JSON.stringify({ mode: 'LIVE', requests: 11 }));
+    for(let i=11;i<19;i++)openBudget(root).reserve('existing-'+i,1);
     const fake = provider([JSON.stringify(fixture)]);
     const outcomes = await Promise.allSettled([run('concurrent-a', fake), run('concurrent-b', fake)]);
     expect(outcomes.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(fake.generate).toHaveBeenCalledTimes(1);
-    expect(openBudget(root).used()).toBe(12);
+    expect(openBudget(root).used()).toBe(20);
   });
   it('protects shared slots across actual worker threads', async () => {
     const modulePath = require.resolve('./campaign');
     const tasks = Array.from({ length: 3 }, (_, worker) => new Promise((resolve, reject) => {
       const child = new Worker(
-        "const {parentPort,workerData}=require('worker_threads'); const {openBudget}=require(workerData.modulePath); let reserved=0; for(let i=0;i<12;i++){try{openBudget(workerData.root).reserve('worker-'+workerData.worker,i+1);reserved++;}catch{break;}} parentPort.postMessage(reserved);",
+        "const {parentPort,workerData}=require('worker_threads'); const {openBudget}=require(workerData.modulePath); let reserved=0; for(let i=0;i<20;i++){try{openBudget(workerData.root).reserve('worker-'+workerData.worker,i+1);reserved++;}catch{break;}} parentPort.postMessage(reserved);",
         { eval: true, workerData: { modulePath, root, worker } });
       child.once('message', resolve); child.once('error', reject);
     }));
     const counts = await Promise.all(tasks);
-    expect(counts.reduce((n, c) => n + c, 0)).toBe(12);
-    expect(openBudget(root).used()).toBe(12);
+    expect(counts.reduce((n, c) => n + c, 0)).toBe(20);
+    expect(openBudget(root).used()).toBe(20);
+  });
+  it('extends an existing twelve-slot ledger without resetting baseline, reservations or artifacts',()=>{
+    seedSmoke();const budget=openBudget(root);for(let i=1;i<12;i++)budget.reserve('old-'+i,1);
+    const directory=path.join(root,'request-budget'),before=Object.fromEntries(fs.readdirSync(directory).map(f=>[f,fs.readFileSync(path.join(directory,f),'utf8')]));
+    const reopened=openBudget(root);expect(reopened.limit).toBe(20);expect(reopened.used()).toBe(12);expect(reopened.reserve('explicit-future-authorization-needed',1)).toBe(13);
+    for(const [f,bytes]of Object.entries(before))expect(fs.readFileSync(path.join(directory,f),'utf8')).toBe(bytes);
+    expect(JSON.parse(before['baseline.json']).maxRequests).toBe(12);expect(reopened.used()).toBe(13);
   });
   it('rejects unnamed live CLI calls and any reset option before network access', async () => {
     await expect(main(['--live', '--free-tier-confirmed'])).rejects.toThrow();

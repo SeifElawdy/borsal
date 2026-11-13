@@ -19,7 +19,7 @@ async function execute({root,campaignId,provider,freeTierConfirmed=false,secrets
   if(fs.lstatSync(parent).isSymbolicLink())throw Error('INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,campaignId);if(fs.existsSync(directory))throw Error('CAMPAIGN_ALREADY_EXISTS');
   const budget=provider.mode==='LIVE'?openBudget(root):null;
-  if(budget&&budget.used()>=12)throw Error('GLOBAL_REQUEST_LIMIT_REACHED');
+  if(budget&&budget.used()>=budget.limit)throw Error('GLOBAL_REQUEST_LIMIT_REACHED');
   fs.mkdirSync(directory);
   writeNew(path.join(directory,'lock.json'),{campaignId,mode:provider.mode,maxRequests:1,maxRepairs:0,model:provider.model,startedAt:new Date().toISOString()},secrets);
   writeNew(path.join(directory,'request.json'),{messages:prompt,promptBytes,conservativeMaxNeurons,generationParameters:provider.generationParameters??GENERATION_PARAMETERS,fabric:fabric(),sourceConcept:sourceConcept(),physicalAccuracy:'UNVERIFIED'},secrets);

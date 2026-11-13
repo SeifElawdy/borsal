@@ -64,7 +64,7 @@ describe('One-request live pattern experiment: offline safety',()=>{
     const p=fake();await run('same',p);const file=path.join(root,'campaigns/same/result.json'),before=fs.readFileSync(file,'utf8');await expect(run('same',p)).rejects.toThrow('CAMPAIGN_ALREADY_EXISTS');expect(p.generate).toHaveBeenCalledTimes(1);expect(fs.readFileSync(file,'utf8')).toBe(before);
   });
   it('refuses a full shared budget and protects it across concurrent campaigns',async()=>{
-    seed(11);const p=fake('{}','LIVE'),outcomes=await Promise.allSettled([run('last-a',p),run('last-b',p)]);expect(outcomes.filter(x=>x.status==='fulfilled')).toHaveLength(1);expect(p.generate).toHaveBeenCalledTimes(1);expect(openBudget(root).used()).toBe(12);
+    seed(19);const p=fake('{}','LIVE'),outcomes=await Promise.allSettled([run('last-a',p),run('last-b',p)]);expect(outcomes.filter(x=>x.status==='fulfilled')).toHaveLength(1);expect(p.generate).toHaveBeenCalledTimes(1);expect(openBudget(root).used()).toBe(20);
     await expect(run('over-cap',p)).rejects.toThrow('GLOBAL_REQUEST_LIMIT_REACHED');expect(p.generate).toHaveBeenCalledTimes(1);
   });
   it('keeps crash-reserved slots consumed and all old smoke locks unchanged',async()=>{

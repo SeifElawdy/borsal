@@ -4,7 +4,11 @@ const path = require('path');
 const { createHash } = require('crypto');
 const { runExperiment, redact } = require('./harness');
 const briefs = require('./briefs.json');
-const LIMIT = 12;
+// Owner-approved project cap. This is a ceiling, not inference authorization.
+// Raising it beyond 20 requires another explicit owner decision.
+const LIMIT = 20;
+// Historical accounting is immutable: never rewrite an existing 12-slot baseline.
+const LEGACY_LIMIT = 12;
 
 function validateCampaignId(id) {
   if (typeof id !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(id) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(id)) throw new Error('INVALID_CAMPAIGN_ID');
@@ -25,18 +29,18 @@ function legacyAccounting(root) {
   }
   const counter = (value) => {
     if (value === undefined) return 0;
-    if (!Number.isInteger(value) || value < 0 || value > LIMIT) throw new Error('INVALID_LEGACY_COUNTER');
+    if (!Number.isInteger(value) || value < 0 || value > LEGACY_LIMIT) throw new Error('INVALID_LEGACY_COUNTER');
     return value;
   };
   const lock = data['live-campaign.json'];
   const run = data['live-run.json'];
-  const design = run?.mode === 'LIVE' ? (run.requests === undefined ? LIMIT : counter(run.requests)) : 0;
+  const design = run?.mode === 'LIVE' ? (run.requests === undefined ? LEGACY_LIMIT : counter(run.requests)) : 0;
   const smoke = counter(data['live-smoke.json']?.requestsAttempted);
   // Smoke lock/result refer to the same request: count it once, conservatively inside the cap.
   let requests = Math.max(smoke + design, counter(lock?.requestsAttempted));
-  if (lock && lock.requestsAttempted === undefined && run?.mode !== 'LIVE') requests = LIMIT;
-  if (requests > LIMIT) throw new Error('LEGACY_BUDGET_EXCEEDED');
-  return { maxRequests: LIMIT, legacyRequests: requests, hashes };
+  if (lock && lock.requestsAttempted === undefined && run?.mode !== 'LIVE') requests = LEGACY_LIMIT;
+  if (requests > LEGACY_LIMIT) throw new Error('LEGACY_BUDGET_EXCEEDED');
+  return { maxRequests: LEGACY_LIMIT, legacyRequests: requests, hashes };
 }
 function openBudget(root) {
   const directory = path.join(root, 'request-budget');
@@ -50,6 +54,7 @@ function openBudget(root) {
   const used = () => baseline.legacyRequests + Array.from({ length: LIMIT - baseline.legacyRequests }, (_, i) => i + baseline.legacyRequests + 1)
     .filter((slot) => fs.existsSync(path.join(directory, 'request-' + slot + '.json'))).length;
   return {
+    limit: LIMIT,
     used,
     reserve(campaignId, sequence) {
       // Each exclusive file consumes one slot, even if a process crashes leaving it empty.
@@ -99,4 +104,4 @@ async function executeCampaign({ root, campaignId, briefId, provider, maxRequest
     throw error;
   }
 }
-module.exports = { validateCampaignId, legacyAccounting, openBudget, executeCampaign };
+module.exports = { LIMIT, validateCampaignId, legacyAccounting, openBudget, executeCampaign };
