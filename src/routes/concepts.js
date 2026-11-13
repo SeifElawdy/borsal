@@ -8,6 +8,7 @@ const {requestSchema:draftSchema}=require('../../experiments/technical-drafting/
 const service=require('../services/conceptFlow');
 const technical=require('../services/technicalFlow');
 const TechnicalProposal=require('../models/TechnicalProposal');
+const technicalGeneration=require('../services/technicalGeneration');
 const router=express.Router();
 router.use((req,res,next)=>{
   if(process.env.BORSAL_MVP_DESIGN_FLOW!=='1')return res.status(404).json({error:'Not found'});
@@ -36,6 +37,10 @@ router.post('/concept-runs/:id/concepts/:conceptId/handoff',wrap(async(req,res)=
   const actualFabric=technical.technicalFabric(f,run);
   const result=handoff(concept.rawText,latest.review,{sources:run.sources,...(body.design?{design:body.design}:{}),context:{...(body.context||{}),fabric:actualFabric}});
   concept.handoffs.push({reviewVersion:concept.reviewVersion,result,createdAt:new Date()});run.markModified('concepts');await run.save();res.json({runId:run.id,result,manufacturingVerified:false});
+}));
+router.post('/concept-runs/:id/concepts/:conceptId/technical-proposals/generate',wrap(async(req,res)=>{
+  const result=await technicalGeneration.generate(id(req.params.id),req.params.conceptId,req.body,{mockProvider:req.app.locals.technicalMockProvider,...(req.body.mode==='MOCK'&&req.app.locals.technicalGenerationRoot?{root:req.app.locals.technicalGenerationRoot}:{})});
+  res.status(result.failure?502:201).json(result);
 }));
 router.post('/concept-runs/:id/concepts/:conceptId/technical-proposals',wrap(async(req,res)=>{
   const proposal=await technical.create(id(req.params.id),req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});

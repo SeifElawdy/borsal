@@ -29,7 +29,7 @@ function evaluate(input,run,concept,f,review){
   if(raw.design&&raw.design.data===undefined)return {status:'CONCEPT_ONLY',verdict:'UNVERIFIED',errors:[],unresolved:[{code:'EXPLICIT_DESIGN_DATA_REQUIRED'}],manufacturingVerified:false};
   return handoff(concept.rawText,review,{sources:run.sources,...(raw.design?{design:raw.design}:{}),context:{...(raw.context||{}),fabric:technicalFabric(f,run,raw.fabricMaterialDeclaration)}});
 }
-async function create(runId,conceptId,body){
+async function create(runId,conceptId,body,generation=null){
   const input=inputSchema.parse(body);let saved;
   // All proposal/history writes commit together. Driver retries do not call any AI.
   await mongoose.connection.transaction(async session=>{
@@ -45,7 +45,7 @@ async function create(runId,conceptId,body){
     const provenance={fabricId:String(run.fabricId),fabricScrapId:run.sources[0].id,fabricSourceHash:run.sourceSnapshot.hash,
       sourceSnapshot:run.sourceSnapshot,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),reviewVersion:concept.reviewVersion,
       inputSha256:fingerprint(body),rawProposalSha256:input.rawProposalText?bytesHash(input.rawProposalText):null,
-      materialEvidence:'Explicit declarations only; never verified source properties',origin:input.origin,authorship:'DECLARED_NOT_AUTHENTICATED',physicalAccuracy:'UNVERIFIED'};
+      materialEvidence:'Explicit declarations only; never verified source properties',origin:input.origin,authorship:'DECLARED_NOT_AUTHENTICATED',physicalAccuracy:'UNVERIFIED',...(generation?{generation}: {})};
     let svg=assessment.handoff?.drafting.previewSvg||null;
     if(svg){if(input.origin==='MODEL_OUTPUT')svg=svg.replace('MANUALLY AUTHORED DRAFT','IMPORTED MODEL-PROPOSED DRAFT');
       const metadata={proposalId:String(_id),version,...provenance,sourceSnapshot:undefined};

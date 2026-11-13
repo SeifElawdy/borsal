@@ -73,3 +73,49 @@ describe('Complete local technical proposal API: zero Cloudflare',()=>{
     delete process.env.BORSAL_MVP_DESIGN_FLOW;try{expect((await request(app).get('/api/technical-proposals/'+new mongoose.Types.ObjectId())).status).toBe(404);}finally{process.env.BORSAL_MVP_DESIGN_FLOW='1';}
   });
 });
+
+describe('Single-request technical generation through the existing API',()=>{
+  const root=path.join(uploads,'mock-generation-evidence');
+  async function setup(approve=true){const r=await approved(approve);app.locals.technicalGenerationRoot=root;return {...r,endpoint:r.url+'/generate',input:{mode:'MOCK',campaignId:'offline-'+randomUUID(),expectedReviewVersion:1,expectedTechnicalVersion:0}};}
+  it('generates once, persists unchanged raw bytes/usage and reuses nesting/SVG',async()=>{
+    const r=await setup(),raw=JSON.stringify(fixture.proposal(r.run.sources[0].id),null,2)+'\n',generate=vi.fn(async()=>({text:raw,httpStatus:200,usage:{total_tokens:100},finishReason:'stop',truncated:false}));
+    app.locals.technicalMockProvider={mode:'MOCK',model:'offline-not-live',generate};
+    const result=await request(app).post(r.endpoint).send(r.input);expect(result.status).toBe(201);expect(generate).toHaveBeenCalledTimes(1);
+    const p=result.body.proposal;expect(p.status).toBe('CHECKED');expect(p.feasibility.evidence.nesting.status).toBe('LAYOUT_FOUND');expect(p.previewSvg).toContain('IMPORTED MODEL-PROPOSED DRAFT');expect(p.originalInput.rawProposalText).toBe(raw);expect(p.provenance.generation.usage.total_tokens).toBe(100);expect(p.provenance.generation.reviewSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(fs.readFileSync(path.join(root,'campaigns',r.input.campaignId,'raw-response.txt'),'utf8')).toBe(raw);expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('retains invalid output as a rejected version with no repair',async()=>{
+    const r=await setup(),generate=vi.fn(async()=>({text:'{"design":',httpStatus:200,truncated:true,finishReason:'length'}));app.locals.technicalMockProvider={mode:'MOCK',model:'offline',generate};
+    const result=await request(app).post(r.endpoint).send(r.input);expect(result.status).toBe(201);expect(result.body.proposal.status).toBe('REJECTED');expect(result.body.proposal.assessment.errors[0].code).toBe('INVALID_JSON');expect(result.body.generation.truncated).toBe(true);expect(generate).toHaveBeenCalledTimes(1);
+  });
+  it('keeps incomplete generated proposals concept-only without fabricating data',async()=>{
+    const r=await setup();app.locals.technicalMockProvider={mode:'MOCK',model:'offline',generate:async()=>({text:'{}',httpStatus:200})};const result=await request(app).post(r.endpoint).send(r.input);expect(result.body.proposal.status).toBe('CONCEPT_ONLY');expect(result.body.proposal.previewSvg).toBe(null);expect(result.body.proposal.feasibility).toBe(null);
+  });
+  it('requires approval and a reviewer-authored brief before calling any provider',async()=>{
+    const r=await setup(false),generate=vi.fn();app.locals.technicalMockProvider={mode:'MOCK',generate};expect((await request(app).post(r.endpoint).send(r.input)).status).toBe(409);expect(generate).not.toHaveBeenCalled();
+    const review={...r.review};delete review.draftingBrief;expect((await request(app).post('/api/concept-runs/'+r.run._id+'/concepts/'+r.c.id+'/review').send({expectedVersion:0,review})).status).toBe(200);expect((await request(app).post(r.endpoint).send(r.input)).body.error).toBe('DRAFTING_BRIEF_REQUIRED');expect(generate).not.toHaveBeenCalled();
+  });
+  it('rejects duplicate or unsafe campaign IDs without another request',async()=>{
+    const r=await setup(),generate=vi.fn(async()=>({text:'{}'}));app.locals.technicalMockProvider={mode:'MOCK',generate};expect((await request(app).post(r.endpoint).send(r.input)).status).toBe(201);
+    expect((await request(app).post(r.endpoint).send({...r.input,expectedTechnicalVersion:1})).body.error).toBe('CAMPAIGN_ALREADY_EXISTS');expect((await request(app).post(r.endpoint).send({...r.input,campaignId:'../escape'})).status).toBe(400);expect(generate).toHaveBeenCalledTimes(1);
+  });
+  it('preserves safe timeout diagnostics with no retry or invented usage',async()=>{
+    const r=await setup(),generate=vi.fn(async()=>{throw Object.assign(Error('private'),{code:'NETWORK_OR_TIMEOUT',diagnostics:{kind:'TIMEOUT',elapsedMs:120002,cloudflareExecution:'UNKNOWN'}})});app.locals.technicalMockProvider={mode:'MOCK',generate};
+    const result=await request(app).post(r.endpoint).send(r.input);expect(result.status).toBe(502);expect(result.body.failure.diagnostics.kind).toBe('TIMEOUT');expect(result.body.failure.httpStatus).toBe(null);expect(result.body.failure).not.toHaveProperty('usage');expect(generate).toHaveBeenCalledTimes(1);expect(await Proposal.countDocuments({runId:r.run._id})).toBe(0);
+  });
+  it('rechecks source after inference and preserves output if it became stale',async()=>{
+    const r=await setup(),generate=vi.fn(async()=>{await Fabric.updateOne({_id:r.f},{$set:{'analysis.analysisId':randomUUID()}});return {text:'{}',httpStatus:200}});app.locals.technicalMockProvider={mode:'MOCK',generate};
+    const result=await request(app).post(r.endpoint).send(r.input);expect(result.status).toBe(409);expect(result.body.error).toBe('FABRIC_SOURCE_CHANGED');expect(generate).toHaveBeenCalledTimes(1);expect(fs.readFileSync(path.join(root,'campaigns',r.input.campaignId,'raw-response.txt'),'utf8')).toBe('{}');expect(await Proposal.countDocuments({runId:r.run._id})).toBe(0);
+  });
+  it('uses the compact contract, exact approved brief/source, and keeps live disabled by default',async()=>{
+    const r=await setup(),run=await Run.findById(r.run._id),c=run.concepts[0],prompt=require('../services/technicalGeneration').messages(run,c),user=JSON.parse(prompt[1].content);
+    expect(user.reviewerBrief).toEqual(r.review.draftingBrief);expect(user.sources[0].id).toBe(r.run.sources[0].id);expect(prompt[0].content).toContain('"data":Root');expect(prompt[0].content).toContain('P=[N,N]');expect(prompt[0].content).toContain('context.fabric');expect(prompt[0].content).not.toContain('z.object');expect(prompt[1].content).not.toContain(r.run.sourceSnapshot.selectedPhoto.photoPath);
+    delete process.env.BORSAL_TECHNICAL_LIVE;expect((await request(app).post(r.endpoint).send({...r.input,mode:'LIVE',freeTierConfirmed:true})).status).toBe(403);expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('allows only one dispatch for concurrent starts of the same campaign',async()=>{
+    const r=await setup(),generate=vi.fn(async()=>({text:'{}'}));app.locals.technicalMockProvider={mode:'MOCK',generate};const results=await Promise.all([request(app).post(r.endpoint).send(r.input),request(app).post(r.endpoint).send(r.input)]);expect(results.map(r=>r.status).sort()).toEqual([201,409]);expect(generate).toHaveBeenCalledTimes(1);
+  });
+  it('preserves the explicit human keychain brief without inventing measurements or stock',()=>{
+    const brief=require('../../experiments/mvp-design-flow/keychain-live').draftingBrief();expect(require('../../experiments/technical-drafting/draft').manualConceptSchema.safeParse(brief).success).toBe(true);expect(brief.brief.requirements).toContain('Accessory: one metal key ring');expect(brief.brief.requirements).toContain('If required information is still missing, preserve that uncertainty instead of fabricating it');expect(brief.authorship).toBe('HUMAN');expect(brief).not.toHaveProperty('technical');
+  });
+});

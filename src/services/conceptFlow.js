@@ -86,4 +86,4 @@ async function generate(fabricId,options,override){
   }
 }
 async function ensureCurrent(run){const f=await Fabric.findById(run.fabricId).lean();if(!f)throw fail(409,'FABRIC_SOURCE_CHANGED');let source;try{source=sourceFor(f);}catch{throw fail(409,'FABRIC_SOURCE_CHANGED');}if(source.snapshot.hash!==run.sourceSnapshot.hash)throw fail(409,'FABRIC_SOURCE_CHANGED');return f;}
-module.exports={generate,sourceFor,batchMessages,assessBatch,ensureCurrent,fail};
+module.exports={generate,sourceFor,batchMessages,assessBatch,ensureCurrent,fail,writeNew};
