@@ -6,6 +6,8 @@ const {reviewConcept,handoff}=require('../../experiments/staged-concept/workflow
 const {requestSchema:bridgeSchema}=require('../../experiments/design-feasibility/bridge');
 const {requestSchema:draftSchema}=require('../../experiments/technical-drafting/draft');
 const service=require('../services/conceptFlow');
+const technical=require('../services/technicalFlow');
+const TechnicalProposal=require('../models/TechnicalProposal');
 const router=express.Router();
 router.use((req,res,next)=>{
   if(process.env.BORSAL_MVP_DESIGN_FLOW!=='1')return res.status(404).json({error:'Not found'});
@@ -31,8 +33,23 @@ router.post('/concept-runs/:id/concepts/:conceptId/handoff',wrap(async(req,res)=
   const body=handoffInput.parse(req.body),{run,concept}=await selected(req),f=await service.ensureCurrent(run);
   if(body.expectedVersion!==concept.reviewVersion)throw service.fail(409,'CONCEPT_VERSION_CONFLICT');
   const latest=concept.reviews.at(-1);if(latest?.review.decision!=='APPROVED_FOR_DRAFTING')throw service.fail(409,'CONCEPT_APPROVAL_REQUIRED');
-  const g=f.geometry,actualFabric={id:String(f._id),geometry:{polygonCm:run.sourceSnapshot.polygonCm,holes:run.sourceSnapshot.holes,...(g?.confirmed?{confirmed:true,version:g.version}:{})},...(f.grainDirectionDeg!==undefined?{grainDirectionDeg:f.grainDirectionDeg}:{})};
+  const actualFabric=technical.technicalFabric(f,run);
   const result=handoff(concept.rawText,latest.review,{sources:run.sources,...(body.design?{design:body.design}:{}),context:{...(body.context||{}),fabric:actualFabric}});
   concept.handoffs.push({reviewVersion:concept.reviewVersion,result,createdAt:new Date()});run.markModified('concepts');await run.save();res.json({runId:run.id,result,manufacturingVerified:false});
+}));
+router.post('/concept-runs/:id/concepts/:conceptId/technical-proposals',wrap(async(req,res)=>{
+  const proposal=await technical.create(id(req.params.id),req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});
+}));
+router.get('/concept-runs/:id/concepts/:conceptId/technical-proposals',wrap(async(req,res)=>{
+  const {run,concept}=await selected(req);res.json({proposals:await TechnicalProposal.find({runId:run._id,conceptId:concept.id}).sort({version:1}).lean(),manufacturingVerified:false});
+}));
+async function technicalById(req){const p=await TechnicalProposal.findById(id(req.params.proposalId)).lean();if(!p)throw service.fail(404,'TECHNICAL_PROPOSAL_NOT_FOUND');return p;}
+router.get('/technical-proposals/:proposalId',wrap(async(req,res)=>{
+  const proposal=await technicalById(req),run=await ConceptRun.findById(proposal.runId);let sourceStale=false;try{await service.ensureCurrent(run);}catch{sourceStale=true;}
+  res.json({proposal,sourceStale,manufacturingVerified:false});
+}));
+router.get('/technical-proposals/:proposalId/preview.svg',wrap(async(req,res)=>{
+  const proposal=await technicalById(req);if(!proposal.previewSvg)throw service.fail(404,'PREVIEW_NOT_AVAILABLE');
+  res.set({'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'X-Content-Type-Options':'nosniff','Cache-Control':'no-store','Content-Disposition':'inline; filename="technical-proposal-v'+proposal.version+'.svg"'}).type('image/svg+xml').send(proposal.previewSvg);
 }));
 module.exports=router;
