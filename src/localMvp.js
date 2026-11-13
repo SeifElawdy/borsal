@@ -28,6 +28,25 @@ function createLocalMvp({origins=['http://127.0.0.1:5173','http://localhost:5173
       capabilities:{operator:!!operatorToken,conceptGeneration:false,conceptReason:'TEXT_INFERENCE_NOT_AUTHORIZED',imagePreview:false,imageReason:process.env.BORSAL_WORKERS_FREE_CONFIRMED==='1'?'LIVE_PREVIEW_NOT_CONFIGURED':'FREE_TIER_NOT_VERIFIED',imageModel:'@cf/black-forest-labs/flux-2-klein-4b'},budget:{used:budget.used(),limit:budget.limit},manufacturingVerified:false});
   }));
   app.get('/ui/authored-draft',wrap(async(req,res)=>res.json(JSON.parse(fs.readFileSync(path.resolve(__dirname,'../experiments/mvp-design-flow/keychain-draft.json'),'utf8')))));
+  // Explicit offline testing only: same concept service, never a live provider or budget slot.
+  app.post('/ui/test-fixture/fabrics/:id/concepts',wrap(async(req,res)=>{
+    if(process.env.BORSAL_INVENTORY_TEST_FIXTURES!=='1')return res.status(403).json({error:'TEST_FIXTURE_DISABLED'});
+    if(!mongoose.isObjectIdOrHexString(req.params.id)||Object.keys(req.body||{}).length)return res.status(400).json({error:'INVALID_INPUT'});
+    const fabric=await Fabric.findById(req.params.id).lean();if(!fabric?.geometry?.confirmed)return res.status(409).json({error:'CONFIRMED_FABRIC_REQUIRED'});
+    const run=await require('./services/conceptFlow').generate(req.params.id,{mode:'MOCK'});
+    res.status(run.state==='FAILED'?502:201).json({run,label:'TEST_FIXTURE / OFFLINE MOCK',manufacturingVerified:false});
+  }));
+  app.get('/ui/test-fixture/fabrics/:id/authored-draft',wrap(async(req,res)=>{
+    if(process.env.BORSAL_INVENTORY_TEST_FIXTURES!=='1')return res.status(403).json({error:'TEST_FIXTURE_DISABLED'});
+    if(!mongoose.isObjectIdOrHexString(req.params.id))return res.status(400).json({error:'INVALID_INPUT'});
+    const fabric=await Fabric.findById(req.params.id).lean();if(!fabric?.geometry?.confirmed)return res.status(409).json({error:'CONFIRMED_FABRIC_REQUIRED'});
+    // A user-requested fixture binding, not a geometric correction or a stock mutation.
+    const proposal=require('../experiments/mvp-design-flow/keychain-feasibility-demo').fixtureProposal();
+    proposal.design.data.limitations.push({id:'creative-coverage-test-only',featureId:'strip-body',status:'PARTIAL',reason:'This unchanged key-fob reference exercises the pipeline only; it is not a technical implementation of arbitrary selected concept features.',missingInformation:['Independent human review of every selected concept feature and unresolved requirement; a valid layout alone cannot establish creative fidelity']});
+    proposal.design.data.technical.scrapSources[0].id='fabric-'+fabric._id;
+    for(const item of proposal.design.data.technical.bom)if(item.source.kind==='SCRAP')item.source.scrapId='fabric-'+fabric._id;
+    res.json({proposal,label:'EXPLICIT_TEST_FIXTURE',assumptions:['Unchanged authored 14 × 4 cm key-fob geometry; not AI-generated or tailored to the selected concept','Only the scrap references were explicitly bound to the selected confirmed fabric','Synthetic material and stock snapshot only; no inventory written','Physical construction and creative-intent coverage remain UNVERIFIED'],manufacturingVerified:false});
+  }));
   app.get('/ui/fabrics/:id/photo',wrap(async(req,res)=>{
     if(!mongoose.isObjectIdOrHexString(req.params.id))return res.status(400).end();const f=await Fabric.findById(req.params.id).lean();
     const file=f?.geometry?.basis?.photoPath||f?.analysis?.photoPath;if(!file||!fs.existsSync(file))return res.status(404).json({error:'PHOTO_NOT_AVAILABLE'});

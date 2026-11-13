@@ -14,4 +14,16 @@ describe('Local React adapter and existing API contract security',()=>{
   it('blocks both live and mock generation, including trailing-slash/case variants',async()=>{const id=new mongoose.Types.ObjectId();for(const url of [`/api/fabrics/${id}/concepts`,`/api/Fabrics/${id}/Concepts/`,`/api/concept-runs/${id}/concepts/x/technical-proposals/generate/`])expect((await post(url).send({mode:'LIVE'})).status).toBe(403);expect(globalThis.fetch).not.toHaveBeenCalled();});
   it('delegates only allowlisted fixture actions server-side and never relaxes production evidenceId',async()=>{const body={scope:'TEST_FIXTURE',sku:'ui-'+randomUUID(),material:{type:'THREAD',specs:{fiber:'POLYESTER',tex:40}},quantity:{value:5,unit:'cm'},availability:'AVAILABLE',receipt:{reference:'TEST_FIXTURE/UI-NOT-REAL',sha256:'1'.repeat(64)}};const r=await post('/ui/operator/accessory-stock').send(body);expect(r.status).toBe(201);expect(r.body.stock.attestation.id).toBe('TEST_UI_OPERATOR');expect(r.text).not.toContain(token);expect(await Stock.countDocuments()).toBe(1);expect((await post('/ui/operator/arbitrary-route').send({})).status).toBe(403);const id=new mongoose.Types.ObjectId();const bad=await post('/ui/operator/technical-proposals/'+id+'/approve-production').send({scope:'REAL'});expect(bad.status).toBe(400);expect(bad.body.issues.some(i=>i.path.includes('evidenceId'))).toBe(true);});
   it('does not serve stored paths outside the workspace data directory',async()=>{const f=await Fabric.create({name:'TEST_FIXTURE corrupt path',analysis:{photoPath:path.resolve('package.json')}});expect((await get('/ui/fabrics/'+f._id+'/photo')).status).toBe(403);});
+  it('allows explicit offline concepts only for confirmed isolated sources and never calls Cloudflare',async()=>{
+    const draft=await Fabric.create({name:'TEST_FIXTURE not confirmed'});
+    expect((await post('/ui/test-fixture/fabrics/'+draft.id+'/concepts').send({})).status).toBe(409);
+    const f=await Fabric.findOne({status:'CONFIRMED'}),url='/ui/test-fixture/fabrics/'+f.id+'/concepts';
+    expect((await post(url).send({mode:'LIVE'})).status).toBe(400);
+    const before=await Run.countDocuments(),r=await post(url).send({});expect(r.status).toBe(201);expect(r.body.run.mode).toBe('MOCK');expect(r.body.label).toContain('TEST_FIXTURE');expect(r.body.run.concepts).toHaveLength(2);expect(r.body.run.sourceSnapshot.fabricId).toBe(f.id);expect(await Run.countDocuments()).toBe(before+1);expect(globalThis.fetch).not.toHaveBeenCalled();
+    delete process.env.BORSAL_INVENTORY_TEST_FIXTURES;expect((await post(url).send({})).status).toBe(403);process.env.BORSAL_INVENTORY_TEST_FIXTURES='1';
+  });
+  it('returns only explicitly requested bound test drafts without creating stock or changing source data',async()=>{
+    const f=await Fabric.findOne({status:'CONFIRMED'}).lean(),stock=await Stock.countDocuments(),original=JSON.stringify(f);
+    const r=await get('/ui/test-fixture/fabrics/'+f._id+'/authored-draft');expect(r.status).toBe(200);expect(r.body.label).toBe('EXPLICIT_TEST_FIXTURE');expect(r.body.proposal.design.data.technical.scrapSources[0].id).toBe('fabric-'+f._id);expect(r.body.assumptions.join(' ')).toContain('UNVERIFIED');expect(await Stock.countDocuments()).toBe(stock);expect(JSON.stringify(await Fabric.findById(f._id).lean())).toBe(original);
+  });
 });
