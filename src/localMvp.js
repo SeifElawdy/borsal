@@ -1,0 +1,51 @@
+// Local React/Vite adapter only. Existing API handlers remain the write authorities.
+const express=require('express'),mongoose=require('mongoose'),fs=require('fs'),path=require('path'),{randomBytes,timingSafeEqual}=require('crypto');
+const Fabric=require('./models/FabricPiece'),Run=require('./models/ConceptRun'),Proposal=require('./models/TechnicalProposal');
+const {AccessoryStock,InventoryItem,DesignReview}=require('./models/ApprovalInventory');
+const DATA=path.resolve(__dirname,'../data');
+const {dimensions,validateWithHoles}=require('./geometry/polygon');
+function createLocalMvp({origins=['http://127.0.0.1:5173','http://localhost:5173'],operatorToken,referenceDatabase,preferredRunId,preferredProposalId}={}){
+  const app=express(),session=randomBytes(32).toString('hex'),hosts=origins.map(o=>new URL(o).host);
+  const validCookie=req=>{const value=/(?:^|;\s*)borsal_local=([a-f0-9]+)(?:;|$)/.exec(req.headers.cookie||'')?.[1];return value&&value.length===session.length&&timingSafeEqual(Buffer.from(value),Buffer.from(session));};
+  app.use((req,res,next)=>{
+    res.set({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin'});
+    if(!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||!hosts.includes(req.headers.host))return res.status(403).json({error:'LOCAL_HOST_REQUIRED'});
+    if(!/^borsal-[a-z0-9-]+-test$/.test(mongoose.connection.name||''))return res.status(503).json({error:'ISOLATED_TEST_DATABASE_REQUIRED'});
+    if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!origins.includes(req.get('origin'))||!validCookie(req)))return res.status(403).json({error:'LOCAL_SESSION_AND_ORIGIN_REQUIRED'});
+    next();
+  });
+  app.use(express.json({limit:'100kb'}));
+  const wrap=fn=>async(req,res)=>{try{await fn(req,res);}catch{return res.status(500).json({error:'LOCAL_WORKSPACE_UNAVAILABLE'});}};
+  const archive=()=>referenceDatabase&&/^borsal-mvp-demo-[a-f0-9-]{36}-test$/.test(referenceDatabase)?mongoose.connection.client.db(referenceDatabase):null;
+  app.get('/ui/bootstrap',wrap(async(req,res)=>{
+    if(!validCookie(req))res.cookie('borsal_local',session,{httpOnly:true,sameSite:'strict',path:'/',maxAge:8*60*60*1000});
+    const [fabrics,runs,proposals,stock,inventory,reviews]=await Promise.all([Fabric.find().lean(),Run.find().sort({createdAt:-1}).lean(),Proposal.find().sort({createdAt:-1}).lean(),AccessoryStock.find().lean(),InventoryItem.find().lean(),DesignReview.find().lean()]);
+    for(const f of fabrics){const polygon=f.geometry?.polygonCm||f.analysis?.suggestedPolygonCm,holes=f.geometry?.polygonCm?f.geometry.holes||[]:[];if(polygon){const v=validateWithHoles(polygon,holes);if(v.valid)f.measurements={...dimensions(polygon),areaCm2:v.netAreaCm2,basis:'COMPUTED_CM_GEOMETRY_PHYSICAL_ACCURACY_UNVERIFIED'};}}
+    const db=archive();const referenceInventory=db?await db.collection(InventoryItem.collection.name).find().toArray():[],referenceStock=db?await db.collection(AccessoryStock.collection.name).find().toArray():[];
+    const budget=require('../experiments/design-language/ai-spike/campaign').openBudget(path.resolve(__dirname,'../experiments/design-language/ai-spike/results'));
+    res.json({mode:'DEMO / TEST_FIXTURE',databaseName:mongoose.connection.name,preferredRunId,preferredProposalId,fabrics,runs,proposals,stock,inventory,reviews,
+      archive:{readOnly:true,databaseName:referenceDatabase||null,inventory:referenceInventory,stock:referenceStock},
+      capabilities:{operator:!!operatorToken,conceptGeneration:false,conceptReason:'TEXT_INFERENCE_NOT_AUTHORIZED',imagePreview:false,imageReason:process.env.BORSAL_WORKERS_FREE_CONFIRMED==='1'?'LIVE_PREVIEW_NOT_CONFIGURED':'FREE_TIER_NOT_VERIFIED',imageModel:'@cf/black-forest-labs/flux-2-klein-4b'},budget:{used:budget.used(),limit:budget.limit},manufacturingVerified:false});
+  }));
+  app.get('/ui/authored-draft',wrap(async(req,res)=>res.json(JSON.parse(fs.readFileSync(path.resolve(__dirname,'../experiments/mvp-design-flow/keychain-draft.json'),'utf8')))));
+  app.get('/ui/fabrics/:id/photo',wrap(async(req,res)=>{
+    if(!mongoose.isObjectIdOrHexString(req.params.id))return res.status(400).end();const f=await Fabric.findById(req.params.id).lean();
+    const file=f?.geometry?.basis?.photoPath||f?.analysis?.photoPath;if(!file||!fs.existsSync(file))return res.status(404).json({error:'PHOTO_NOT_AVAILABLE'});
+    const resolved=fs.realpathSync(file),root=fs.realpathSync(DATA);if(!resolved.toLowerCase().startsWith((root+path.sep).toLowerCase()))return res.status(403).end();res.sendFile(resolved);
+  }));
+  app.get('/ui/archive/:id/:kind.svg',wrap(async(req,res)=>{
+    const db=archive();if(!db||!mongoose.isObjectIdOrHexString(req.params.id)||!['pattern','nesting'].includes(req.params.kind))return res.status(404).end();
+    const p=await db.collection(Proposal.collection.name).findOne({_id:new mongoose.Types.ObjectId(req.params.id)}),svg=p?.[req.params.kind==='pattern'?'previewSvg':'nestingSvg'];
+    if(!svg)return res.status(404).end();res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'").type('image/svg+xml').send(svg);
+  }));
+  // No model calls, fake concept generation or provider retries are exposed by this UI.
+  app.post(/^\/api\/(fabrics\/[^/]+\/concepts|concept-runs\/.+\/technical-proposals\/generate)\/?$/i,(_req,res)=>res.status(403).json({error:'LIVE_GENERATION_DISABLED_FOR_THIS_PHASE'}));
+  app.use('/ui/operator',(req,res,next)=>{
+    if(!operatorToken||req.method!=='POST'||!/^\/(accessory-stock|technical-proposals\/[a-f0-9]{24}\/(design-review|approve-production|verification-evidence))$/.test(req.path))return res.status(403).json({error:'LOCAL_OPERATOR_ACTION_NOT_ALLOWED'});
+    // The capability exists only in server memory; it is never sent to React/storage.
+    req.headers.authorization='Bearer '+operatorToken;next();
+  },require('./routes/approvalInventory'));
+  app.use(require('./app'));
+  return app;
+}
+module.exports={createLocalMvp};
