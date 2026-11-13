@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
  */
 async function startServer() {
   await connectDB();
-  app.listen(PORT, () => {
+  app.listen(PORT, process.env.BORSAL_MVP_DESIGN_FLOW === '1' ? '127.0.0.1' : undefined, () => {
     console.log(`Server listening on port ${PORT}`);
   });
 }
