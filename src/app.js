@@ -19,6 +19,7 @@ app.get('/health', (req, res) => {
 app.use('/api/fabrics', fabricsRouter);
 // Explicitly enabled, loopback-only MVP concept flow; disabled by default.
 app.use('/api', require('./routes/concepts'));
+app.use('/api', require('./routes/approvalInventory'));
 
 module.exports = app;
 
