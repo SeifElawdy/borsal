@@ -6,6 +6,7 @@ const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter');
 const {requestSchema:bridgeSchema}=require('../../experiments/design-feasibility/bridge');
 const {requestSchema:draftSchema}=require('../../experiments/technical-drafting/draft');
 const {requestSchema:precheckSchema}=require('../../experiments/pattern-feasibility/precheck');
+const {geometrySvg}=require('../../experiments/live-pattern-generation/evaluate');
 const object=shape=>z.object(shape).strict();
 const proposalSchema=object({design:draftSchema.shape.design,context:bridgeSchema.shape.context.unwrap().omit({fabric:true}).optional(),
   fabricMaterialDeclaration:object({basis:z.enum(['SYNTHETIC_FIXTURE','USER_DECLARED_UNVERIFIED']),material:precheckSchema.shape.fabric.shape.material.unwrap()}).optional()});
@@ -45,13 +46,18 @@ async function create(runId,conceptId,body,generation=null){
     const provenance={fabricId:String(run.fabricId),fabricScrapId:run.sources[0].id,fabricSourceHash:run.sourceSnapshot.hash,
       sourceSnapshot:run.sourceSnapshot,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),reviewVersion:concept.reviewVersion,
       inputSha256:fingerprint(body),rawProposalSha256:input.rawProposalText?bytesHash(input.rawProposalText):null,
-      materialEvidence:'Explicit declarations only; never verified source properties',origin:input.origin,authorship:'DECLARED_NOT_AUTHENTICATED',physicalAccuracy:'UNVERIFIED',...(generation?{generation}: {})};
+      materialEvidence:'Explicit declarations only; never verified source properties',origin:input.origin,authorship:'DECLARED_NOT_AUTHENTICATED',physicalAccuracy:'UNVERIFIED',sourceRefresh:run.sourceRefresh??null,...(generation?{generation}: {})};
     let svg=assessment.handoff?.drafting.previewSvg||null;
     if(svg){if(input.origin==='MODEL_OUTPUT')svg=svg.replace('MANUALLY AUTHORED DRAFT','IMPORTED MODEL-PROPOSED DRAFT');
       const metadata={proposalId:String(_id),version,...provenance,sourceSnapshot:undefined};
       svg=svg.replace(/(<svg\b[^>]*>)/,match=>match+'\n<metadata id="borsal-proposal-provenance">'+escape(JSON.stringify(metadata))+'</metadata>');}
+    const feasibility=assessment.handoff?.drafting.bridge?.pipeline||null;
+    const evidence=feasibility?.evidence?.independentValidation;
+    let nestingSvg=evidence&&feasibility.evidence.nesting.status==='LAYOUT_FOUND'?geometrySvg(evidence):null;
+    if(nestingSvg){nestingSvg=nestingSvg.replace('Geometry screening ONLY','Nested layout ONLY - physically UNVERIFIED');
+      nestingSvg=nestingSvg.replace(/(<svg\b[^>]*>)/,m=>m+'<metadata>'+escape(JSON.stringify({proposalId:String(_id),version,fabricSourceHash:provenance.fabricSourceHash,reportSha256:fingerprint(feasibility),manufacturingVerified:false}))+'</metadata>');}
     const data={_id,runId:run._id,conceptId,fabricId:run.fabricId,version,reviewVersion:concept.reviewVersion,origin:input.origin,sourceLabel:input.sourceLabel,originalInput:body,provenance,
-      status:assessment.status,verdict:assessment.verdict,assessment,feasibility:assessment.handoff?.drafting.bridge?.pipeline||null,previewSvg:svg,svgSha256:svg?bytesHash(svg):null,manufacturingVerified:false};
+      status:assessment.status,verdict:assessment.verdict,assessment,feasibility,previewSvg:svg,svgSha256:svg?bytesHash(svg):null,nestingSvg,nestingSvgSha256:nestingSvg?bytesHash(nestingSvg):null,manufacturingVerified:false};
     [saved]=await Proposal.create([data],{session});
     concept.technicalVersion=version;concept.technicalHistory=concept.technicalHistory||[];concept.technicalHistory.push({version,proposalId:_id,reviewVersion:concept.reviewVersion,inputSha256:provenance.inputSha256});
     run.markModified('concepts');await run.save({session});

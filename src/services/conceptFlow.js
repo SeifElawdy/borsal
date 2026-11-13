@@ -1,5 +1,6 @@
 const fs=require('fs'),path=require('path');
 const {randomUUID}=require('crypto');
+const mongoose=require('mongoose');
 const {z}=require('zod');
 const Fabric=require('../models/FabricPiece');
 const ConceptRun=require('../models/ConceptRun');
@@ -86,4 +87,36 @@ async function generate(fabricId,options,override){
   }
 }
 async function ensureCurrent(run){const f=await Fabric.findById(run.fabricId).lean();if(!f)throw fail(409,'FABRIC_SOURCE_CHANGED');let source;try{source=sourceFor(f);}catch{throw fail(409,'FABRIC_SOURCE_CHANGED');}if(source.snapshot.hash!==run.sourceSnapshot.hash)throw fail(409,'FABRIC_SOURCE_CHANGED');return f;}
-module.exports={generate,sourceFor,batchMessages,assessBatch,ensureCurrent,fail,writeNew};
+const hash=z.string().regex(/^[a-f0-9]{64}$/);
+const refreshSchema=z.object({expectedRunVersion:z.number().int().min(0),fromSourceHash:hash,toSourceHash:hash,reviewer:z.string().trim().min(1),rationale:z.string().trim().min(1)}).strict();
+async function sourceComparison(run){
+  const f=await Fabric.findById(run.fabricId).lean();if(!f)throw fail(409,'FABRIC_SOURCE_CHANGED');const current=sourceFor(f);
+  return {runId:String(run._id),runVersion:run.__v,fromSourceHash:run.sourceSnapshot.hash,toSourceHash:current.snapshot.hash,
+    previous:run.sourceSnapshot,current:current.snapshot,refreshRequired:run.sourceSnapshot.hash!==current.snapshot.hash};
+}
+async function refreshSource(runId,body){
+  const input=refreshSchema.parse(body);let created;
+  // A refresh is a new source-bound run, NEVER an edit to immutable source evidence
+  // or inherited approval. Parent linkage and the new run commit atomically.
+  await mongoose.connection.transaction(async session=>{
+    const parent=await ConceptRun.findById(runId).session(session);if(!parent)throw fail(404,'CONCEPT_RUN_NOT_FOUND');
+    if(parent.__v!==input.expectedRunVersion||parent.sourceSnapshot.hash!==input.fromSourceHash)throw fail(409,'SOURCE_REFRESH_VERSION_CONFLICT');
+    const fabric=await Fabric.findById(parent.fabricId).session(session).lean();if(!fabric)throw fail(409,'FABRIC_SOURCE_CHANGED');
+    const current=sourceFor(fabric);
+    if(current.snapshot.hash!==input.toSourceHash)throw fail(409,'FABRIC_SOURCE_CHANGED');
+    if(current.snapshot.hash===parent.sourceSnapshot.hash)throw fail(409,'SOURCE_UNCHANGED');
+    if(parent.sourceRefreshes?.some(e=>e.toSourceHash===input.toSourceHash))throw fail(409,'SOURCE_REFRESH_ALREADY_EXISTS');
+    const concepts=parent.concepts.map(c=>({id:c.id,rawText:c.rawText,assessment:assess(c.rawText,{sources:current.sources}),reviewVersion:0,reviews:[],handoffs:[],technicalVersion:0,
+      refreshedFrom:{runId:String(parent._id),reviewVersion:c.reviewVersion,technicalVersion:c.technicalVersion||0}}));
+    const sourceRefresh={parentRunId:String(parent._id),parentRunVersion:parent.__v,fromSourceHash:input.fromSourceHash,toSourceHash:input.toSourceHash,
+      reviewer:input.reviewer,rationale:input.rationale,reviewerIdentity:'DECLARED_NOT_AUTHENTICATED',reviewRequired:true,inferenceRequests:0};
+    [created]=await ConceptRun.create([{fabricId:parent.fabricId,campaignId:'source-refresh-'+randomUUID(),mode:parent.mode,
+      sourceSnapshot:current.snapshot,sources:current.sources,rawText:parent.rawText,sourceRefresh,
+      response:{operation:'EXPLICIT_SOURCE_REFRESH',inferenceRequests:0,originalGenerationRunId:String(parent._id)},
+      concepts,state:concepts.some(c=>!c.assessment.schemaValid)?'INVALID_OUTPUT':'RECEIVED'}],{session});
+    parent.sourceRefreshes=[...(parent.sourceRefreshes||[]),{runId:String(created._id),...sourceRefresh,createdAt:new Date()}];
+    parent.markModified('sourceRefreshes');await parent.save({session});
+  });
+  return created;
+}
+module.exports={generate,sourceFor,batchMessages,assessBatch,ensureCurrent,fail,writeNew,refreshSource,sourceComparison};

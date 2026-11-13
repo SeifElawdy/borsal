@@ -37,3 +37,43 @@ describe('Authored folded keychain API without source confirmation or invented s
   });
   it('keeps explicit concept approval mandatory',async()=>{const r=await setup(false),out=await request(app).post(r.url).send(r.input);expect(out.status).toBe(409);expect(await Proposal.countDocuments({runId:r.runId})).toBe(0);expect(globalThis.fetch).not.toHaveBeenCalled();});
 });
+
+async function changedFixture(r){
+  const f=await Fabric.findById(r.fabricId).lean();await Fabric.updateOne({_id:f._id,__v:f.__v},{$set:{grainDirectionDeg:90},$inc:{__v:1}});
+  const confirmed=await request(app).post('/api/fabrics/'+f._id+'/confirm-geometry').send({polygonCm:f.analysis.suggestedPolygonCm,source:'suggested',basedOnAnalysisId:f.analysis.analysisId,expectedGeometryVersion:f.geometry?.version||0});expect(confirmed.status).toBe(200);
+  const comparison=await request(app).get('/api/concept-runs/'+r.runId+'/source-comparison');expect(comparison.status).toBe(200);return {expectedRunVersion:comparison.body.runVersion,fromSourceHash:comparison.body.fromSourceHash,toSourceHash:comparison.body.toSourceHash,reviewer:'TEST_FIXTURE',rationale:'Synthetic confirmation/grain evidence only; new review is required'};
+}
+describe('Explicit source refresh and TEST_FIXTURE feasibility',()=>{
+  it('nests the unchanged draft on the original polygon without promoting physical readiness',()=>{
+    const polygon=require('../../experiments/pattern-feasibility/synthetic-fabric.json').polygonCm,result=require('../../experiments/mvp-design-flow/keychain-feasibility-demo').preliminary(polygon);
+    expect(result.status).toBe('LAYOUT_FOUND');expect(result.validatorEvidence.geometryStatus).toBe('PASS');expect(result.areaSummary.requestedPieceAreaCm2).toBe(56);expect(result.manufacturingVerified).toBe(false);expect(result.globalImpossibilityClaimed).toBe(false);expect(result.attemptedCandidates).toBeLessThanOrEqual(2000);
+  });
+  it('requires explicit changed-source hashes, preserves raw/old reviews and blocks inherited approval',async()=>{
+    const r=await setup(),before=await Run.findById(r.runId).lean(),input=await changedFixture(r);
+    expect((await request(app).post(r.url).send(r.input)).body.error).toBe('FABRIC_SOURCE_CHANGED');
+    const response=await request(app).post('/api/concept-runs/'+r.runId+'/refresh-source').send(input);expect(response.status).toBe(201);const run=response.body.run,c=run.concepts[0];expect(c.rawText).toBe(before.concepts[0].rawText);expect(c.id).toBe(before.concepts[0].id);expect(c.reviewVersion).toBe(0);expect(c.reviews).toEqual([]);expect(c.assessment.reviewGate).toBe('PENDING_REVIEW');expect(run.sourceRefresh.parentRunId).toBe(r.runId);expect(run.sourceRefresh.inferenceRequests).toBe(0);
+    const old=await Run.findById(r.runId).lean();expect(old.sourceSnapshot).toEqual(before.sourceSnapshot);expect(old.concepts).toEqual(before.concepts);expect(old.sourceRefreshes).toHaveLength(1);
+    const blocked=await request(app).post('/api/concept-runs/'+run._id+'/concepts/'+c.id+'/technical-proposals').send(r.input);expect(blocked.status).toBe(409);expect(await Proposal.countDocuments({runId:run._id})).toBe(0);expect(globalThis.fetch).not.toHaveBeenCalled();
+    const staleReview=await request(app).post('/api/concept-runs/'+run._id+'/concepts/'+c.id+'/review').send({expectedVersion:0,review:before.concepts[0].reviews.at(-1).review});expect(staleReview.status).toBe(400);expect(staleReview.body.error).toBe('REVIEW_BLOCKED');expect((await Run.findById(run._id)).concepts[0].reviewVersion).toBe(0);
+  });
+  it('runs the complete existing pipeline only after fresh explicit review and fixture declarations',async()=>{
+    const r=await setup(),input=await changedFixture(r),refreshed=await request(app).post('/api/concept-runs/'+r.runId+'/refresh-source').send(input),run=refreshed.body.run,c=run.concepts[0],prefix='/api/concept-runs/'+run._id+'/concepts/'+c.id;
+    const review={decision:'APPROVED_FOR_DRAFTING',reviewer:'TEST_FIXTURE',rationale:'Synthetic re-review; not physical approval',proposalSha256:c.assessment.provenance.proposalSha256,sourceHashes:Object.fromEntries(c.assessment.provenance.sources.map(s=>[s.id,s.sha256])),draftingBrief:require('../../experiments/mvp-design-flow/keychain-live').draftingBrief()};expect((await request(app).post(prefix+'/review').send({expectedVersion:0,review})).status).toBe(200);
+    const p=require('../../experiments/mvp-design-flow/keychain-feasibility-demo').fixtureProposal();p.design.data.technical.scrapSources[0].id=run.sources[0].id;p.design.data.technical.bom[0].source.scrapId=run.sources[0].id;
+    const body={expectedReviewVersion:1,expectedTechnicalVersion:0,origin:'AUTHORED',sourceLabel:'TEST_FIXTURE: synthetic source/grain/material/stock',proposal:p};
+    const result=await request(app).post(prefix+'/technical-proposals').send(body);expect(result.status,JSON.stringify(result.body)).toBe(201);const out=result.body.proposal;expect(out.status).toBe('CHECKED');expect(out.verdict).toBe('UNVERIFIED');expect(out.feasibility.layers.geometry.status).toBe('PASS');expect(out.feasibility.layers.materials.status).toBe('PASS');expect(out.feasibility.layers.physicalEvidence.status).toBe('UNVERIFIED');expect(out.feasibility.evidence.nesting.status).toBe('LAYOUT_FOUND');expect(out.feasibility.evidence.independentValidation.geometryStatus).toBe('PASS');expect(out.provenance.sourceRefresh.parentRunId).toBe(r.runId);expect(out.manufacturingVerified).toBe(false);
+    const svg=await request(app).get('/api/technical-proposals/'+out._id+'/nesting.svg');expect(svg.status).toBe(200);expect((await require('sharp')(svg.body).metadata()).format).toBe('svg');expect(out.nestingSvg).toContain(out._id);expect(out.nestingSvgSha256).toMatch(/^[a-f0-9]{64}$/);
+    body.expectedTechnicalVersion=1;body.proposal.context.stock.items.find(s=>s.id==='test-ring').quantity.value=0;const short=await request(app).post(prefix+'/technical-proposals').send(body);expect(short.body.proposal.verdict).toBe('FAIL');expect(short.body.proposal.feasibility.layers.materials.status).toBe('FAIL');
+  });
+  it('rejects stale run/source hashes, same-source refresh and forbidden approval fields',async()=>{
+    const r=await setup(),unchanged=await request(app).get('/api/concept-runs/'+r.runId+'/source-comparison');const b={expectedRunVersion:unchanged.body.runVersion,fromSourceHash:unchanged.body.fromSourceHash,toSourceHash:unchanged.body.toSourceHash,reviewer:'TEST_FIXTURE',rationale:'Not a real refresh'};
+    expect((await request(app).post('/api/concept-runs/'+r.runId+'/refresh-source').send(b)).body.error).toBe('SOURCE_UNCHANGED');const changed=await changedFixture(r);
+    expect((await request(app).post('/api/concept-runs/'+r.runId+'/refresh-source').send({...changed,toSourceHash:'0'.repeat(64)})).body.error).toBe('FABRIC_SOURCE_CHANGED');expect((await request(app).post('/api/concept-runs/'+r.runId+'/refresh-source').send({...changed,expectedRunVersion:99})).status).toBe(409);expect((await request(app).post('/api/concept-runs/'+r.runId+'/refresh-source').send({...changed,decision:'APPROVED_FOR_DRAFTING'})).status).toBe(400);expect(await Run.countDocuments({fabricId:r.fabricId})).toBe(1);
+  });
+  it('creates one refresh atomically under concurrent starts and rolls back failed saves',async()=>{
+    const r=await setup(),input=await changedFixture(r),url='/api/concept-runs/'+r.runId+'/refresh-source';const responses=await Promise.all([request(app).post(url).send(input),request(app).post(url).send(input)]);expect(responses.map(v=>v.status).sort()).toEqual([201,409]);expect(await Run.countDocuments({fabricId:r.fabricId})).toBe(2);expect((await Run.findById(r.runId)).sourceRefreshes).toHaveLength(1);
+    const second=await setup(),another=await changedFixture(second),save=Run.prototype.save;
+    const spy=vi.spyOn(Run.prototype,'save').mockImplementation(function(...args){if(String(this._id)===second.runId)throw Error('private failed parent save after child insertion');return save.apply(this,args);});
+    try{expect((await request(app).post('/api/concept-runs/'+second.runId+'/refresh-source').send(another)).status).toBe(500);expect(await Run.countDocuments({fabricId:second.fabricId})).toBe(1);expect((await Run.findById(second.runId)).sourceRefreshes).toBeUndefined();}finally{spy.mockRestore();}
+  });
+});

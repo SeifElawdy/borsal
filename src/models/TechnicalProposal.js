@@ -10,6 +10,7 @@ const schema=new mongoose.Schema({
   verdict:{type:String,enum:['PASS','FAIL','UNVERIFIED'],required:true,immutable:true},
   assessment:{type:mongoose.Schema.Types.Mixed,immutable:true},feasibility:{type:mongoose.Schema.Types.Mixed,default:null,immutable:true},
   previewSvg:{type:String,default:null,immutable:true},svgSha256:{type:String,default:null,immutable:true},
+  nestingSvg:{type:String,default:null,immutable:true},nestingSvgSha256:{type:String,default:null,immutable:true},
   manufacturingVerified:{type:Boolean,default:false,immutable:true},
 },{timestamps:true});
 schema.index({runId:1,conceptId:1,version:1},{unique:true});

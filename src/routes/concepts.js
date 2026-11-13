@@ -21,6 +21,12 @@ const generation=z.object({mode:z.enum(['MOCK','LIVE']).default('MOCK'),campaign
 router.post('/fabrics/:fabricId/concepts',wrap(async(req,res)=>{const body=generation.parse(req.body);const run=await service.generate(id(req.params.fabricId),body,req.app.locals.conceptMockProvider);res.status(run.state==='FAILED'?502:201).json({run,manufacturingVerified:false});}));
 router.get('/fabrics/:fabricId/concepts',wrap(async(req,res)=>res.json({runs:await ConceptRun.find({fabricId:id(req.params.fabricId)}).sort({createdAt:-1}).lean(),manufacturingVerified:false})));
 router.get('/concept-runs/:id',wrap(async(req,res)=>{const run=await ConceptRun.findById(id(req.params.id)).lean();if(!run)throw service.fail(404,'CONCEPT_RUN_NOT_FOUND');res.json({run,manufacturingVerified:false});}));
+router.post('/concept-runs/:id/refresh-source',wrap(async(req,res)=>{
+  const run=await service.refreshSource(id(req.params.id),req.body);res.status(201).json({run,reviewRequired:true,manufacturingVerified:false});
+}));
+router.get('/concept-runs/:id/source-comparison',wrap(async(req,res)=>{
+  const run=await ConceptRun.findById(id(req.params.id));if(!run)throw service.fail(404,'CONCEPT_RUN_NOT_FOUND');res.json(await service.sourceComparison(run));
+}));
 async function selected(req){const run=await ConceptRun.findById(id(req.params.id));if(!run)throw service.fail(404,'CONCEPT_RUN_NOT_FOUND');const concept=run.concepts.find(c=>c.id===req.params.conceptId);if(!concept)throw service.fail(404,'CONCEPT_NOT_FOUND');return {run,concept};}
 const reviewInput=z.object({expectedVersion:z.number().int().min(0),review:reviewSchema}).strict();
 router.post('/concept-runs/:id/concepts/:conceptId/review',wrap(async(req,res)=>{
@@ -56,5 +62,9 @@ router.get('/technical-proposals/:proposalId',wrap(async(req,res)=>{
 router.get('/technical-proposals/:proposalId/preview.svg',wrap(async(req,res)=>{
   const proposal=await technicalById(req);if(!proposal.previewSvg)throw service.fail(404,'PREVIEW_NOT_AVAILABLE');
   res.set({'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'X-Content-Type-Options':'nosniff','Cache-Control':'no-store','Content-Disposition':'inline; filename="technical-proposal-v'+proposal.version+'.svg"'}).type('image/svg+xml').send(proposal.previewSvg);
+}));
+router.get('/technical-proposals/:proposalId/nesting.svg',wrap(async(req,res)=>{
+  const proposal=await technicalById(req);if(!proposal.nestingSvg)throw service.fail(404,'NESTING_PREVIEW_NOT_AVAILABLE');
+  res.set({'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'}).type('image/svg+xml').send(proposal.nestingSvg);
 }));
 module.exports=router;

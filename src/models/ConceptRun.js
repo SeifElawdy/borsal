@@ -6,6 +6,8 @@ const schema=new mongoose.Schema({
   state:{type:String,enum:['REQUESTED','RECEIVED','INVALID_OUTPUT','FAILED'],default:'REQUESTED'},
   sourceSnapshot:{type:mongoose.Schema.Types.Mixed,required:true,immutable:true},
   sources:{type:mongoose.Schema.Types.Mixed,required:true,immutable:true},
+  sourceRefresh:{type:mongoose.Schema.Types.Mixed,immutable:true,default:undefined},
+  sourceRefreshes:{type:mongoose.Schema.Types.Mixed,default:undefined},
   rawText:String,response:mongoose.Schema.Types.Mixed,validationErrors:{type:mongoose.Schema.Types.Mixed,default:[]},
   concepts:{type:mongoose.Schema.Types.Mixed,default:[]},failure:mongoose.Schema.Types.Mixed,
 },{timestamps:true,optimisticConcurrency:true});
