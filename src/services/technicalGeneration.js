@@ -57,7 +57,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   const slot=budget?budget.reserve(input.campaignId,1):null;
   save('attempt-1.json',{state:'RESERVED_BEFORE_INFERENCE',globalSlot:slot,requestsDispatched:1});
   let response;
-  try{response=await provider.generate(prompt);}catch(error){
+  try{response=await provider.generate(prompt,{captureEnvelope:envelope=>save('provider-envelope.json',envelope)});}catch(error){
     const failure={...provenance,status:'PROVIDER_FAILED',requestsDispatched:1,globalUsed:budget?.used()??null,code:typeof error.code==='string'?error.code:'PROVIDER_FAILURE',httpStatus:Number.isInteger(error.status)?error.status:null,...(error.diagnostics?{diagnostics:error.diagnostics}:{})};
     save('failure.json',failure);return {failure,manufacturingVerified:false};
   }

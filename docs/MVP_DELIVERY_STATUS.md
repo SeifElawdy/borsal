@@ -58,8 +58,52 @@ The new sleeve is a **different product**, requiring an explicit human checkbox/
 
 ## Verification and demonstration
 
-Completed focused verification before resumption: 44 budget/API tests; then 71 construction/provider/API/campaign tests. Full regression, production build, browser demonstration and actual live outcome are pending at this checkpoint and must not be described as completed yet.
+Completed verification milestones: 44 budget/API tests; 71 construction/provider/API/campaign tests; 26 corrected-boundary/construction tests; then **788/788 full regression**. The first full run found one old concurrency test still seeding 19/20 used slots: it now seeds 29/30 and retains exactly the same one-winner assertion. No geometric tolerance or engineering validation was weakened. Subsequent diagnostic/readability/schematic checks passed 40, 20 and 23 focused tests in their respective runs; final regression/build results are recorded below after completion.
+
+Final checks: **791/791 tests, 56/56 files**, `npm test` (201.92s), log `data/emergency-delivery-regression.log`. React production build **passed** (`data/emergency-delivery-build.log`, 1.38s); existing >500 kB chunk warning remains nonblocking. `git diff --check` and known-credential/private-key scans passed; no dependency changes. Existing Mongoose deprecation warnings were not turned into unrelated refactoring. Automated tests used isolated databases/mocked external providers and made no Cloudflare requests.
 
 Launch: `npm run mvp` → **http://127.0.0.1:5173** (MongoDB replica set required). Safe fixture launch: `node scripts/local-mvp.js --mock --geometry-first`; it creates a fresh isolated test workspace, never resets a user project, and disables network inference.
 
-Final demonstration evidence, screenshots, usage and remaining steps will be appended after execution.
+## Actual live evaluation — no retry
+
+- Local construction checkpoint: `31c7fc4` (`feat: add bounded construction-aware product planning`).
+- Exactly **one** new inference request: `mvp-technical-6e342eec-5867-4662-8050-9d6064a76224`, model `@cf/openai/gpt-oss-120b`, JSON Mode, temperature **0.3**, `max_tokens=1536`, timeout **120s**.
+- Cloudflare **HTTP 200**, but the existing adapter rejected the response as **INVALID_PROVIDER_ENVELOPE** during `VALIDATING_RESPONSE`, after **10,427 ms**. Local API returned **502** and saved a FAILED operation (`6af89f9d7166748be46f5cd2`). This was not a timeout.
+- No technical proposal was created. JSON/schema validity, construction quality, finish reason, tokens and actual Neurons **could not be established**. The prior adapter did not retain this unexpected envelope, so its exact shape/content cannot be reconstructed. Do not infer that GPT-OSS produced a bad design or was superior to Llama.
+- Follow-up offline fix: future technical calls privately capture a secret-redacted provider envelope before validation, including failure cases. Mock tests prove capture-before-rejection; this is **not** a successful live retest or a speculative envelope-parser fix.
+- Campaign artifacts: `experiments/design-language/ai-spike/results/campaigns/mvp-technical-6e342eec-5867-4662-8050-9d6064a76224/` (lock, request, attempt and failure). Additional receipt/preservation evidence: `data/emergency-live-construction-20261114/{dispatch.json,api-result.json,summary.json}`. These private files are ignored by Git.
+- Shared ledger now **19/30**; the failed/unknown result remains consumed. The 300-Neuron hold is not refunded: local conservative balance **50**, not a claim about exact dashboard usage. No additional model/image request, fallback or repair was made. Qwen evaluation was not affordable under the verified conservative headroom.
+- Existing user fabric records, stock, inventory, reviews and every historical proposal were hashed before/after and matched. The selected Woven Wrap project/approval/proposal was not replaced or reselected.
+
+## Actual isolated end-to-end demonstration
+
+The browser used a fresh **TEST_FIXTURE** database and replayed the saved Woven concept/failed candidate without inference. The original irregular polygon was used unchanged. A simulated explicit human chose the new sewn sleeve; this does **not** record an alternative choice for the real user project.
+
+1. Current concept approval/source checks passed through the actual protected API.
+2. `Create Product Design · 0 AI calls` explored bounded constructions without engineering data entry.
+3. Explicit checkbox/selection saved ENGINE_DERIVED proposal `6af8a2d60415d5a85447e57b`, retaining parent/source/review hashes and immutable rejected history.
+4. Two **5 × 7 cm** cutting panels: **70 cm²** demand, **43.1976344%** utilization, **92.0459105 cm²** remaining geometric area. Existing independent geometry validator: **PASS**.
+5. Actual placements: panel 1 rotation **0°**, translation **[21.0516667, 16.5794444] cm**; panel 2 rotation **90°**, translation **[26.0516667, 24.5794444] cm**. A rotation is not proof of compatible physical grain.
+6. Existing assembly-reference precheck: **PASS**. Double-turn opening hems, matched side/base seam and proposed internal-edge overcasting are documented. Required thread estimate: **142.8 cm**, polyester/tex30 target, availability **NOT_CHECKED**. Required SCRAP area is exactly both physical cuts including allowances.
+7. Status **CONCEPT_ONLY / UNVERIFIED**. Missing source grain/material/stock, incomplete finished-dimension targets and physical construction remain unresolved. The legacy bag category is retained only as the existing experimental transport contract; the explicitly selected product function is a sleeve, not a shoulder bag or wearable weave.
+8. Browser recorded **APPROVED_FOR_PROTOTYPE**, scope **TEST_FIXTURE**, then confirmed REAL production readiness **false** with independent-measurement/material/construction blockers. Inventory and stock were unchanged. No manufacturing approval or reservation occurred.
+9. Reload/resume and backward navigation passed; no console errors, no raw technical entry, 20 desktop visual audits at **1440/1920 px** passed. The technical stage remains UNVERIFIED while completed geometric nesting is shown separately. The pattern canvas is primary; construction instructions/schematic follow it.
+
+### Reviewable files
+
+- Exact export directory: `data/emergency-demo-results/1794679568267/`.
+- `cutting-pattern.svg`, `nesting-layout.svg`, `proposed-assembly.svg`, `construction-evidence.svg`.
+- `proposal.json`, `source.json`, `bom.json`, `assembly-instructions.json`, `construction-report.json`, `demo-summary.json`.
+- Screenshots/report: `data/local-mvp/real-creation-check-1794679486085/`, including `1440-` and `1920-` variants of `geometry-options`, `geometry-selection`, `engine-cutting-pattern`, `engine-nesting`, `construction-summary`, `prototype-readiness`, `prototype-reviewed`, `review-inventory` (PNG), plus `report.json`.
+- Cutting, nesting and construction-summary screenshots were opened and visually inspected. The schematic is explicitly proposed construction, **not a generated product image**. No new image was generated and the original illustration remains unchanged.
+
+## Final demonstration steps and limits
+
+1. Start MongoDB's existing replica set, then `npm run mvp`; open **http://127.0.0.1:5173**. This reopens the preserved USER workspace, not the fixture database.
+2. Open the saved Woven Wrap project → Technical draft → **Create Product Design · 0 AI calls**. Review the open-sleeve alternative and explicitly select it **only if you accept the different product/function**. This appends a version; it does not modify the original Woven Wrap or rejected AI data.
+3. Inspect cutting/nesting, proposed assembly schematic, BOM and instructions. Record a prototype decision if desired. This can be demonstrated without spending more AI budget or entering engineering coordinates.
+4. To reproduce the isolated demonstration: `node scripts/local-mvp.js --mock --geometry-first --construction`, then `node scripts/check-real-creation.cjs --geometry-first --construction`, then `node scripts/export-construction-demo.cjs`. Stop an existing local launcher first. No database/ledger reset is performed; exports use new timestamped paths.
+5. For new live generation, first manually check the current Workers Free dashboard and save truthful current remaining allocation in the UI. **Do not reset the shared 19/30 ledger.** The GPT-OSS response compatibility/outcome remains a live blocker; inspect a separately authorized captured-envelope attempt before relying on it. No superiority or success claim is justified by this failed evaluation.
+6. Before physical making or final production: verify printed-mat scale and actual fabric dimensions, material and grain; verify suitable thread/stock independently; test hems, fraying, seam/turning bulk, function and strength on a physical sample; record genuine evidence and human technical approval. Existing transactional production/reservation gates remain authoritative and disabled without that evidence.
+
+**Readiness:** usable local, explicitly limited construction-and-nesting prototype with a coherent authored/engine-derived sleeve alternative. Fully autonomous LIVE AI-to-manufactured-product readiness is **not established**. Woven wearability/interlacing remains unengineered, no sleeve product photograph exists, and no physical manufacturing evidence has been invented.

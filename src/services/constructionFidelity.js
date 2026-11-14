@@ -29,6 +29,7 @@ function build(proposal,concept,previews){
   const assemblyValid=report.precheck?.layers.assembly.status==='PASS';
   const intent=proposal.provenance?.derivation?.constructionIntent;
   if(intent){report.proposedProduct={name:intent.name,function:intent.function,method:intent.method,creativeChanges:intent.creativeChanges,unresolved:intent.unresolved,classification:'EXPLICITLY_SELECTED_ALTERNATIVE',authorship:'ENGINE_DERIVED_CONSTRUCTION_HYPOTHESIS'};
+    report.proposedProduct.schematicSvg=require('./constructionPlanner').schematic(intent);
     report.proposedAssembly=(proposal.assessment?.constructionPlan?.instructions||[]).map((text,index)=>({step:index+1,text,basis:'SOURCE_LINKED_PROPOSED_CONSTRUCTION',physicalStatus:'UNVERIFIED'}));}
   for(const [index,i]of instances.entries()){
     const p=patterns.get(i.pieceId),owners=t.components.filter(c=>c.pieceIds.includes(i.pieceId)),seed=proposal.provenance?.derivation?.candidate?.pieces?.[t.patternPieces.findIndex(p=>p.id===i.pieceId)],label=seed?.name?.replaceAll('-',' ')||'Piece '+(index+1);

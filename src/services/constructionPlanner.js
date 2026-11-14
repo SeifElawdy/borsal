@@ -33,8 +33,8 @@ function compile(input){
    'Hem, overcasting, seam bulk, stitch tension, capacity and strength require physical trials. Finished dimensions are not measured or verified.']}};
 }
 function plan(_raw,source,concept,options={}){
- const intents=options.intent?[options.intent]:[6,5,4].map(w=>({schemaVersion:VERSION,name:'Burgundy keepsake sleeve — alternative product',function:'An open sleeve for a small keepsake; not a wearable wrap',method:'TWO_PANEL_OPEN_SLEEVE',cutWidthCm:w,cutHeightCm:w+2,seamAllowanceCm:.5,hemTurnCm:.5,
-  creativeChanges:['Preserves use of the selected burgundy scrap, but changes wearable wrap/weaving into a simple open sewn sleeve. Explicit alternative selection is required.'],unresolved:['Source material, grain, available thread and physical construction are not verified.']}));
+ const intents=options.intent?[options.intent]:[6,5,4].map(w=>({schemaVersion:VERSION,name:'Keepsake sleeve — alternative product',function:'An open sleeve for a small keepsake; not a wearable wrap',method:'TWO_PANEL_OPEN_SLEEVE',cutWidthCm:w,cutHeightCm:w+2,seamAllowanceCm:.5,hemTurnCm:.5,
+  creativeChanges:['Preserves use of the selected scrap, but changes wearable wrap/weaving into a simple open sewn sleeve. Explicit alternative selection is required.'],unresolved:['Source material, grain, available thread and physical construction are not verified.']}));
  const attempts=[],alternatives=[];for(const input of intents){const built=compile(input);if(!built.candidate){attempts.push({status:'UNVERIFIED',reason:built.reason});continue;}
   const result=candidate.construct(built.candidate,source,concept,{search:{maxCandidates:1500,maxBacktracks:50}}),screen=result.screening;
   attempts.push({status:screen?.status||result.status,reason:screen?.reason,errors:result.errors,demandCm2:screen?.areaSummary.requestedPieceAreaCm2,attemptedPlacements:screen?.attemptedCandidates||0});
@@ -47,4 +47,10 @@ function plan(_raw,source,concept,options={}){
  }
  return {policy:POLICY,status:alternatives.length?'ALTERNATIVES_FOUND':'NO_SUPPORTED_CONSTRUCTION',attempts,alternatives,limits:{maxAlternatives:2,maxCandidatesPerLayout:1500,maxBacktracks:50},manufacturingVerified:false,inventoryChecked:false,globalImpossibilityClaimed:false};
 }
-module.exports={POLICY,VERSION,intentSchema,messages,compile,plan};
+function schematic(raw){
+ const {intent,candidate:c}=compile(raw);if(!c)return null;
+ const w=intent.cutWidthCm,h=intent.cutHeightCm,k=180/Math.max(w,h),s=intent.seamAllowanceCm,t=intent.hemTurnCm;
+ const panel=(x,paired=false)=>`<g transform="translate(${x},95)">${paired?`<rect x="8" y="-8" width="${w*k}" height="${h*k}" fill="none" stroke="#bfa7da" stroke-dasharray="5 4"/>`:''}<rect width="${w*k}" height="${h*k}" fill="#49354f" stroke="#f2eaf7" stroke-width="2"/><path d="M0 ${t*k}H${w*k}M0 ${2*t*k}H${w*k}" stroke="#bfa7da" stroke-dasharray="6 4" fill="none"/><path d="M${s*k} ${(2*t+.1)*k}V${(h-s)*k}H${(w-s)*k}V${(2*t+.1)*k}" fill="none" stroke="#d8ff51" stroke-width="3"/><text y="${h*k+28}" fill="#f2eaf7" font-size="16">${w} × ${h} cm cut</text></g>`;
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="360" viewBox="0 0 1000 360"><metadata>${JSON.stringify({policy:POLICY,intentSha256:fingerprint(intent),basis:'PROPOSED_CONSTRUCTION_SCHEMATIC',physicalAssembly:'UNVERIFIED'})}</metadata><rect width="100%" height="100%" fill="#19151f"/><text x="24" y="30" fill="#f2eaf7" font-size="21">Proposed sleeve assembly — not a finished-product image</text><text x="24" y="60" fill="#cbb9d8" font-size="16">White: cut · purple dashes: top turn axes · lime: side/base seam</text>${panel(60)}${panel(330)}${panel(680,true)}<text x="60" y="325" fill="#f2eaf7" font-size="16">1. Hem both openings</text><text x="330" y="325" fill="#f2eaf7" font-size="16">2. Align right sides together</text><text x="680" y="325" fill="#f2eaf7" font-size="16">3. Sew sides/base; top stays open</text><text x="24" y="350" fill="#cbb9d8" font-size="15">Then overcast internal raw edges, turn and test. Material, seam strength and finished capacity remain UNVERIFIED.</text></svg>`;
+}
+module.exports={POLICY,VERSION,intentSchema,messages,compile,plan,schematic};

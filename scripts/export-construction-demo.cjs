@@ -10,7 +10,7 @@ async function main(){
  const out=path.resolve('data/emergency-demo-results/'+Date.now());fs.mkdirSync(out,{recursive:true});
  const files={'proposal.json':JSON.stringify(proposal,null,2),'source.json':JSON.stringify(source,null,2),'construction-report.json':JSON.stringify(report,null,2),
   'cutting-pattern.svg':proposal.previewSvg,'nesting-layout.svg':proposal.nestingSvg,'construction-evidence.svg':report.annotationSvg,
-  'bom.json':JSON.stringify(proposal.originalInput.proposal.design.data.technical.bom,null,2),'assembly-instructions.json':JSON.stringify(report.proposedAssembly,null,2)};
+  ...(report.proposedProduct?.schematicSvg?{'proposed-assembly.svg':report.proposedProduct.schematicSvg}:{}),'bom.json':JSON.stringify(proposal.originalInput.proposal.design.data.technical.bom,null,2),'assembly-instructions.json':JSON.stringify(report.proposedAssembly,null,2)};
  for(const [name,bytes]of Object.entries(files))fs.writeFileSync(path.join(out,name),bytes,{flag:'wx'});
  const evidence={out,execution:'TEST_FIXTURE / ENGINE_DERIVED',proposalId:proposal._id,sourceHash:proposal.provenance.fabricSourceHash,geometry:proposal.assessment.preliminaryGeometry.status,area:proposal.assessment.preliminaryGeometry.result.areaSummary,
   assemblyReferences:report.precheck?.layers.assembly.status,construction:report.construction,creativeCoverage:report.creativeCoverage,manufacturingVerified:false,inferenceRequests:0};

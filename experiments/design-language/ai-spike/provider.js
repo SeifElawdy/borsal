@@ -27,7 +27,7 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
   return {
     mode: 'LIVE', name: 'Cloudflare Workers AI', model,
     generationParameters: Object.freeze({ ...parameters, timeoutMs }),
-    async generate(messages) {
+    async generate(messages, {captureEnvelope} = {}) {
       const started = performance.now(), signal = AbortSignal.timeout(timeoutMs);
       let response, phase = 'AWAITING_RESPONSE_HEADERS';
       const diagnostics = (error, fallback) => {
@@ -54,6 +54,9 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
         throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(error, transport ? 'NETWORK_ERROR' : error?.name === 'SyntaxError' ? 'INVALID_RESPONSE_JSON' : 'UNKNOWN_BODY_ERROR'));
       }
       phase = 'VALIDATING_RESPONSE';
+      // Trusted server-only sink: retain unexpected model envelopes before rejecting
+      // them. The caller redacts secrets and never exposes this artifact as an API error.
+      if (typeof captureEnvelope === 'function') captureEnvelope({httpStatus:response.status,body});
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(null, 'INVALID_PROVIDER_ENVELOPE'));
       // Do not expose remote error strings, response headers, tokens or account identifiers.
       const codes = Array.isArray(body.errors) ? body.errors.map((item) => item.code).filter(Number.isFinite) : [];

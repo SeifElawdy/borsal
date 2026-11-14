@@ -11,3 +11,8 @@ it('does not retry planner transport or quota failures and never exposes credent
  const fetchImpl=vi.fn(async()=>{throw Object.assign(Error('secret request'),{code:'ECONNRESET'});}),p=cloudflareProvider({accountId:'TEST',apiToken:'DO_NOT_EXPOSE',freeTierConfirmed:true,model:CONSTRUCTION_MODEL,profile:'CONSTRUCTION',fetchImpl});
  try{await p.generate([]);throw Error('Expected failure');}catch(e){expect(e.code).toBe('NETWORK_OR_TIMEOUT');expect(JSON.stringify(e)).not.toContain('DO_NOT_EXPOSE');expect(e.diagnostics.cloudflareExecution).toBe('UNKNOWN');}expect(fetchImpl).toHaveBeenCalledTimes(1);
 });
+it('captures an unknown successful HTTP envelope privately before rejecting it without inventing model output',async()=>{
+ const captureEnvelope=vi.fn(),body={success:true,result:{unexpected:{text:'unchanged response'}}},fetchImpl=vi.fn(async()=>({ok:true,status:200,json:async()=>body}));
+ const p=cloudflareProvider({accountId:'TEST',apiToken:'TEST',freeTierConfirmed:true,model:CONSTRUCTION_MODEL,profile:'CONSTRUCTION',fetchImpl});
+ await expect(p.generate([],{captureEnvelope})).rejects.toMatchObject({code:'INVALID_PROVIDER_ENVELOPE',status:200});expect(captureEnvelope).toHaveBeenCalledWith({httpStatus:200,body});expect(fetchImpl).toHaveBeenCalledTimes(1);
+});
