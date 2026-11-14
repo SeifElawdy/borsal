@@ -7,7 +7,7 @@ const {fail,ensureCurrent}=require('./conceptFlow');
 const POLICY='borsal.geometry-planner/0.1';
 const limitsSchema=z.object({scales:z.array(z.number().finite().positive().max(1)).min(1).max(6).default([.6,.5,.4,.3]),maxAlternatives:z.number().int().min(1).max(3).default(2)}).strict();
 const inputSchema=z.object({parentProposalId:z.string().regex(/^[a-f0-9]{24}$/),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().nonnegative(),
-  action:z.enum(['EXPLORE','SELECT']),alternativeKey:z.string().regex(/^[a-f0-9]{64}$/).optional(),acceptCreativeLimitations:z.boolean().optional(),limits:limitsSchema.optional()}).strict();
+  action:z.enum(['EXPLORE','SELECT']),constructionMethod:z.enum(['SHAPE_STUDY','TWO_PANEL_SLEEVE']).default('SHAPE_STUDY'),alternativeKey:z.string().regex(/^[a-f0-9]{64}$/).optional(),acceptCreativeLimitations:z.boolean().optional(),limits:limitsSchema.optional()}).strict();
 function plan(raw,source,concept,options={}){
   const limits=limitsSchema.parse(options),parsed=candidate.candidateSchema.safeParse(candidate.normalizeCandidate(raw).candidate),attempts=[],alternatives=[];
   const out={policy:POLICY,attempts,alternatives,limits,manufacturingVerified:false,inventoryChecked:false,globalImpossibilityClaimed:false};
@@ -56,7 +56,8 @@ async function execute(runId,conceptId,body){
   if(!concept||!parent||String(parent.runId)!==run.id||parent.conceptId!==conceptId)throw fail(409,'DERIVATION_PARENT_MISMATCH');
   if(concept.reviewVersion!==input.expectedReviewVersion||parent.reviewVersion!==concept.reviewVersion||parent.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');
   if(concept.reviews.at(-1)?.review.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');
-  const keyBase={parentId:String(parent._id),sourceHash:run.sourceSnapshot.hash,reviewVersion:concept.reviewVersion,engine:POLICY,alternativeKey:input.alternativeKey};
+  const engine=input.constructionMethod==='TWO_PANEL_SLEEVE'?require('./constructionPlanner'):module.exports;
+  const keyBase={parentId:String(parent._id),sourceHash:run.sourceSnapshot.hash,reviewVersion:concept.reviewVersion,engine:engine.POLICY,alternativeKey:input.alternativeKey};
   if(input.action==='SELECT'){
     if(!input.alternativeKey||input.acceptCreativeLimitations!==true)throw fail(400,'EXPLICIT_ALTERNATIVE_SELECTION_REQUIRED');
     const existing=await Proposal.findOne({runId:run._id,conceptId,'provenance.derivation.key':fingerprint(keyBase)});if(existing)return {proposal:existing,replayed:true,manufacturingVerified:false};
@@ -64,12 +65,12 @@ async function execute(runId,conceptId,body){
   if((concept.technicalVersion||0)!==input.expectedTechnicalVersion)throw fail(409,'TECHNICAL_VERSION_CONFLICT');
   let raw;try{raw=parent.origin==='MODEL_OUTPUT'?JSON.parse(parent.originalInput.rawProposalText):parent.provenance.derivation?.candidate;}catch{throw fail(422,'CANDIDATE_INTENT_UNAVAILABLE');}
   if(!raw)throw fail(422,'CANDIDATE_INTENT_UNAVAILABLE');
-  const result=plan(raw,{id:run.sources[0].id,...run.sourceSnapshot},concept.assessment.proposal,input.limits);
+  const result=engine.plan(raw,{id:run.sources[0].id,...run.sourceSnapshot},concept.assessment.proposal,input.constructionMethod==='TWO_PANEL_SLEEVE'&&raw?.schemaVersion===require('./constructionPlanner').VERSION?{intent:raw}:input.limits);
   if(input.action==='EXPLORE')return {...result,parentProposalId:input.parentProposalId,sourceHash:run.sourceSnapshot.hash,reviewVersion:concept.reviewVersion};
   const selected=result.alternatives.find(a=>a.key===input.alternativeKey);if(!selected)throw fail(409,'ALTERNATIVE_NOT_CURRENT_OR_SUPPORTED');
   const derivation={...keyBase,key:fingerprint(keyBase),parentProposalId:String(parent._id),parentInputSha256:parent.provenance.inputSha256,parentRawProposalSha256:parent.provenance.rawProposalSha256,
-    engine:POLICY,policy:candidate.POLICY,candidate:selected.candidate,transformations:selected.result.transformations,assumptions:selected.assumptions,creativeCoverage:'PARTIAL',finishingPaths:selected.finishingPaths,explicitlySelected:true};
-  const proposal=await require('./technicalFlow').create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'ENGINE_DERIVED',sourceLabel:'ENGINE_DERIVED / EXPLICITLY_SELECTED_GEOMETRY_STUDY',proposal:selected.result.proposal},{derivation,construction:selected.result});
+    engine:engine.POLICY,policy:candidate.POLICY,candidate:selected.candidate,transformations:selected.result.transformations,assumptions:selected.assumptions,creativeCoverage:selected.creativeCoverage,finishingPaths:selected.finishingPaths,explicitlySelected:true,...(selected.intent?{constructionIntent:selected.intent}:{} )};
+  const proposal=await require('./technicalFlow').create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'ENGINE_DERIVED',sourceLabel:input.constructionMethod==='TWO_PANEL_SLEEVE'?'ENGINE_DERIVED / EXPLICITLY_SELECTED_CONSTRUCTION_ALTERNATIVE':'ENGINE_DERIVED / EXPLICITLY_SELECTED_GEOMETRY_STUDY',proposal:selected.result.proposal},{derivation,construction:selected.result});
   return {proposal,replayed:false,manufacturingVerified:false};
 }
 module.exports={plan,execute,POLICY,inputSchema};

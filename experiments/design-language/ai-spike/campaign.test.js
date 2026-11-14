@@ -27,6 +27,12 @@ afterEach(() => {
 });
 
 describe('Named experiment campaigns and shared budget', () => {
+  it('preserves all twenty previous reservations byte-for-byte when the authorized ceiling becomes thirty',()=>{
+    const old=openBudget(root);for(let i=0;i<20;i++)old.reserve('previous-'+i,1);
+    const dir=path.join(root,'request-budget'),before=Object.fromEntries(fs.readdirSync(dir).map(name=>[name,fs.readFileSync(path.join(dir,name),'utf8')]));
+    const resumed=openBudget(root);expect(resumed.used()).toBe(20);expect(resumed.limit).toBe(30);expect(resumed.reserve('new-authorized-slot',1)).toBe(21);
+    for(const [name,bytes]of Object.entries(before))expect(fs.readFileSync(path.join(dir,name),'utf8')).toBe(bytes);
+  });
   it('isolates named results and locks while preserving the smoke files unchanged', async () => {
     seedSmoke();
     const before = fs.readFileSync(path.join(root, 'live-campaign.json'), 'utf8');

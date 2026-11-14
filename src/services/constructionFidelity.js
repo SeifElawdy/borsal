@@ -27,6 +27,9 @@ function build(proposal,concept,previews){
   else if(checked.success){report.precheck=precheck(request);report.geometry=report.precheck.validatorEvidence?.geometryStatus==='PASS'?'GEOMETRY_PASS':report.precheck.layers.geometry.status==='FAIL'?'FAIL':'UNVERIFIED';if(report.precheck.layers.assembly.status==='FAIL'||report.precheck.layers.geometry.status==='FAIL')report.construction='INVALID_CONSTRUCTION';}
   else block('PRECHECK_INFORMATION_INCOMPLETE','The existing assembly precheck needs complete pattern, material and nesting declarations; missing values were not invented.');
   const assemblyValid=report.precheck?.layers.assembly.status==='PASS';
+  const intent=proposal.provenance?.derivation?.constructionIntent;
+  if(intent){report.proposedProduct={name:intent.name,function:intent.function,method:intent.method,creativeChanges:intent.creativeChanges,unresolved:intent.unresolved,classification:'EXPLICITLY_SELECTED_ALTERNATIVE',authorship:'ENGINE_DERIVED_CONSTRUCTION_HYPOTHESIS'};
+    report.proposedAssembly=(proposal.assessment?.constructionPlan?.instructions||[]).map((text,index)=>({step:index+1,text,basis:'SOURCE_LINKED_PROPOSED_CONSTRUCTION',physicalStatus:'UNVERIFIED'}));}
   for(const [index,i]of instances.entries()){
     const p=patterns.get(i.pieceId),owners=t.components.filter(c=>c.pieceIds.includes(i.pieceId)),seed=proposal.provenance?.derivation?.candidate?.pieces?.[t.patternPieces.findIndex(p=>p.id===i.pieceId)],label=seed?.name?.replaceAll('-',' ')||'Piece '+(index+1);
     const touched=assembly.filter(a=>(a.sides||a.anchors||[a.from,a.to]).filter(Boolean).some(r=>r.pieceId===i.id));

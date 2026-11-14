@@ -11,7 +11,7 @@ async function seed(){
   const parent=await require('../src/services/technicalFlow').create(run.id,concept.id,{expectedReviewVersion:1,expectedTechnicalVersion:0,origin:'MODEL_OUTPUT',sourceLabel:'TEST_FIXTURE replay of saved LIVE v7; zero inference',rawProposalText:fs.readFileSync(path.resolve('src/services/fixtures/woven-wrap-candidate-v7.json'),'utf8')});
   const failed=(await require('../src/services/designConstruction').create(run.id,concept.id,parent.id,{expectedReviewVersion:1,expectedTechnicalVersion:1,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:true})).proposal;
   const project=await Project.create({name:'TEST_FIXTURE Woven geometry-first',scope:'TEST_FIXTURE',fabricId:fabric._id,selection:{runId:run._id,conceptId:concept.id,proposalId:failed._id,stage:4}}),summary={execution:'TEST_FIXTURE',database:mongoose.connection.name,projectId:project.id,runId:run.id,conceptId:concept.id,parentId:parent.id,failedId:failed.id,manufacturingVerified:false};
-  const dir=path.resolve('data/phase6n-demo');fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'seed.json'),JSON.stringify(summary,null,2));return summary;
+  const dir=path.resolve(process.argv.includes('--construction')?'data/emergency-demo/'+Date.now():'data/phase6n-demo');fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'seed.json'),JSON.stringify(summary,null,2));return summary;
 }
 async function exportSelected(){
   const boot=await fetch('http://127.0.0.1:5173/ui/bootstrap').then(r=>r.json());if(boot.mode!=='USER / TEST_FIXTURE PROVIDERS')throw Error('Explicit isolated mock workspace required');

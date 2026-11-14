@@ -1,6 +1,7 @@
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 const COMPARISON_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-const APPROVED_MODELS = Object.freeze([MODEL, COMPARISON_MODEL]);
+const CONSTRUCTION_MODEL = '@cf/openai/gpt-oss-120b';
+const APPROVED_MODELS = Object.freeze([MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL]);
 const GENERATION_PARAMETERS = Object.freeze({ response_format: Object.freeze({ type: 'json_object' }), stream: false, temperature: 0.7, max_tokens: 6144 });
 const TIMEOUT_MS = 60000;
 // Only enumerated codes may leave the transport. Never retain messages, URLs,
@@ -15,15 +16,17 @@ class ProviderError extends Error {
     if (diagnostics) this.diagnostics = diagnostics;
   }
 }
-function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fetchImpl = globalThis.fetch, model = MODEL, timeoutMs = TIMEOUT_MS }) {
+function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fetchImpl = globalThis.fetch, model = MODEL, timeoutMs = TIMEOUT_MS, profile = 'DEFAULT' }) {
   if (!APPROVED_MODELS.includes(model)) throw new ProviderError('MODEL_NOT_APPROVED');
   if (![TIMEOUT_MS, 120000].includes(timeoutMs)) throw new ProviderError('TIMEOUT_NOT_APPROVED');
   if (!accountId || !apiToken) throw new ProviderError('LIVE_TEST_BLOCKED_MISSING_CREDENTIALS');
   // Presence of credentials or a prior image spike does not establish a free-only account.
   if (freeTierConfirmed !== true) throw new ProviderError('LIVE_TEST_BLOCKED_FREE_TIER_UNVERIFIED');
+  if (!['DEFAULT','CONSTRUCTION'].includes(profile) || profile === 'CONSTRUCTION' && model !== CONSTRUCTION_MODEL) throw new ProviderError('PROFILE_NOT_APPROVED');
+  const parameters=profile==='CONSTRUCTION'?Object.freeze({...GENERATION_PARAMETERS,max_tokens:1536,temperature:0.3}):GENERATION_PARAMETERS;
   return {
     mode: 'LIVE', name: 'Cloudflare Workers AI', model,
-    generationParameters: Object.freeze({ ...GENERATION_PARAMETERS, timeoutMs }),
+    generationParameters: Object.freeze({ ...parameters, timeoutMs }),
     async generate(messages) {
       const started = performance.now(), signal = AbortSignal.timeout(timeoutMs);
       let response, phase = 'AWAITING_RESPONSE_HEADERS';
@@ -40,7 +43,7 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       try {
         response = await fetchImpl('https://api.cloudflare.com/client/v4/accounts/' + encodeURIComponent(accountId) + '/ai/run/' + model, {
           method: 'POST', headers: { Authorization: 'Bearer ' + apiToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, ...GENERATION_PARAMETERS }),
+          body: JSON.stringify({ messages, ...parameters }),
           signal,
         });
       } catch (error) { throw new ProviderError('NETWORK_OR_TIMEOUT', null, [], diagnostics(error, 'NETWORK_ERROR')); }
@@ -66,12 +69,12 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       }
       const finishReason = result.finish_reason || result.choices?.[0]?.finish_reason || null;
       const truncated = finishReason === 'length' || result.truncated === true ||
-        (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= 6144) ? true : finishReason === 'stop' || result.truncated === false ? false : null;
+        (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= parameters.max_tokens) ? true : finishReason === 'stop' || result.truncated === false ? false : null;
       return { text: typeof result.response === 'string' ? result.response : JSON.stringify(result.response),
         usage: Object.keys(usage).length ? usage : null, httpStatus: response.status,
-        finishReason, outputTokenLimit: 6144, truncated,
+        finishReason, outputTokenLimit: parameters.max_tokens, truncated,
       };
     },
   };
 }
-module.exports = { MODEL, COMPARISON_MODEL, APPROVED_MODELS, GENERATION_PARAMETERS, ProviderError, cloudflareProvider };
+module.exports = { MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL, APPROVED_MODELS, GENERATION_PARAMETERS, ProviderError, cloudflareProvider };
