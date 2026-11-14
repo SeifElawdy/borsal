@@ -49,3 +49,11 @@ $tools = 'E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\tools\mon
 Choose a new target name that does not exist. **Do not use `--drop` or restore over original namespaces.** Reconfigure the restored copy's workspace metadata/URI explicitly, then compare it with the manifest before use. Absolute photo paths in historical evidence may need an explicitly documented relocation in the restored copy; the original files and hashes are preserved at their backup-relative paths. Never silently rewrite original provenance.
 
 Reinstall reproducible dependencies with `npm ci` and `npm --prefix client ci`; use the restored lockfiles. The backup contains the working frontend build as well. Keep live provider controls disabled while validating a restore. The snapshot's shared ledger is preserved as-is; do not reset it when restoring an active development workspace.
+
+## Verified delivery addendum
+
+`E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\delivery-addendum-20261114T181610136Z`
+
+This separate append-only backup contains Git bundle commit `d7da6df97898f71b629257f8e4608b178c337762`, current shared **19/30** request accounting, the new campaign/receipt, current user-workspace metadata, exported SVG/reports and final screenshots/logs (61 hashed copied files). The current user database (10 collections, 20 documents) was dumped with the same official tools and restored into `borsal-delivery-a325780b-fb5b-4e8a-93a3-1dcc3946b0eb-test`; document/index hashes matched and the source was rechecked unchanged. See its `VERIFIED-DELIVERY-ADDENDUM.json` and `RESTORE.txt`.
+
+Restore the original full artifact/configuration backup together with this addendum into NEW locations only. Prefer the delivery bundle/code and current user database archive, and overlay the latest ledger before enabling anything. Never replace an active ledger with the older 18-request checkpoint. Reproducible new fixture databases/browser caches are excluded from this addendum; their exported demonstration evidence is included. An earlier addendum attempt with an overlong temporary database name was preserved separately; it did not overwrite or delete original data.

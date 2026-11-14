@@ -11,6 +11,8 @@ Recovery was verified **before implementation**. See [PROJECT_RECOVERY_CHECKPOIN
 - Official MongoDB tools dumped 21 Borsal databases; all restored to separate test namespaces with matching document/index evidence. Source databases were rechecked unchanged. No original database was dropped or overwritten.
 - On resumption, all 21 database archives and the Git bundle were rehashed against `VERIFIED-CHECKPOINT.json`; all matched. No second backup or reset was performed.
 - Local checkpoint commits: `d110310` recovery instructions; `8297c0c` authorized shared cap increase. Current branch: `feature/emergency-construction-mvp`. No push/merge.
+- Construction checkpoint `31c7fc4`; completed diagnostic/prototype-flow checkpoint `d7da6df97898f71b629257f8e4608b178c337762`.
+- Verified append-only delivery backup: `E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\delivery-addendum-20261114T181610136Z`. Git bundle verified; current USER database restored separately with matching hashes (10 collections / 20 documents); 61 copied artifacts hashed, including current **19/30** ledger. Original full backup remains untouched. Recovery details are in the linked checkpoint document and private `RESTORE.txt`.
 
 ## Practical model decision
 
