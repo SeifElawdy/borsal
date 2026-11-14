@@ -5,8 +5,9 @@ const { createHash } = require('crypto');
 const { runExperiment, redact } = require('./harness');
 const briefs = require('./briefs.json');
 // Owner-approved project cap. This is a ceiling, not inference authorization.
-// Raising it beyond 20 requires another explicit owner decision.
-const LIMIT = 20;
+// Owner explicitly approved 30 total for emergency MVP delivery; never reset history.
+// Raising it beyond 30 requires another explicit owner decision.
+const LIMIT = 30;
 // Historical accounting is immutable: never rewrite an existing 12-slot baseline.
 const LEGACY_LIMIT = 12;
 
