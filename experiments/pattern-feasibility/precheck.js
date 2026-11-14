@@ -35,6 +35,12 @@ const requestSchema=object({
 const EPS=1e-6;
 const mod=(v,n)=>((v%n)+n)%n;
 const unitFor=type=>['WOVEN_FABRIC','LINING_FABRIC','INTERFACING'].includes(type)?'cm2':['WEBBING','THREAD'].includes(type)?'cm':'piece';
+// Shared intrinsic checks: missing product dimensions must not mask these errors.
+function seamChainIssues(edgeIds,refs,direction,n){
+  const issues=[];if(new Set(edgeIds).size!==edgeIds.length)issues.push('DUPLICATE_SEAM_EDGE');
+  if(refs.some(e=>e.basis!==refs[0].basis)||refs.some((e,i)=>i&&n&&e.segmentIndex!==mod(refs[i-1].segmentIndex+(direction==='FORWARD'?1:-1),n)))issues.push('DISCONNECTED_EDGE_CHAIN');
+  return issues;
+}
 const canonical=m=>JSON.stringify({type:m.type,specs:Object.fromEntries(Object.entries(m.specs).sort(([a],[b])=>a<b?-1:a>b?1:0))});
 function sameRing(a,b){if(a.length!==b.length)return false;const x=normalizeToCounterClockwise(a),y=normalizeToCounterClockwise(b);return y.some((_,offset)=>x.every((p,i)=>p.every((v,j)=>Math.abs(v-y[(i+offset)%y.length][j])<=EPS)));}
 function sameHoles(a,b){if(a.length!==b.length)return false;const used=new Set();return a.every(h=>{const i=b.findIndex((other,i)=>!used.has(i)&&sameRing(h,other));if(i<0)return false;used.add(i);return true;});}
@@ -46,6 +52,11 @@ function properCross(a,b,c,d){
   const side=(p,q,r)=>((q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]))/Math.hypot(q[0]-p[0],q[1]-p[1]);
   const opposite=(a,b)=>(a>EPS&&b<-EPS)||(a<-EPS&&b>EPS);
   return opposite(side(a,b,c),side(a,b,d))&&opposite(side(c,d,a),side(c,d,b));
+}
+function stitchingInsideCut(stitching,cutting){
+  const crosses=stitching.some((a,i)=>cutting.some((c,j)=>properCross(a,stitching[(i+1)%stitching.length],c,cutting[(j+1)%cutting.length])));
+  const samples=stitching.flatMap((a,i)=>{const b=stitching[(i+1)%stitching.length];return [a,[(a[0]+b[0])/2,(a[1]+b[1])/2]];});
+  return !crosses&&samples.every(v=>onOrInside(v,cutting));
 }
 const combine=layers=>layers.some(l=>l.status==='FAIL')?'FAIL':layers.some(l=>l.status==='UNVERIFIED')?'UNVERIFIED':'PASS';
 
@@ -137,9 +148,7 @@ function precheck(input){
     if(m.stitchingPolygonCm){
       if(!validatePolygon(m.stitchingPolygonCm).valid)mark('allowances','FAIL','INVALID_STITCHING_POLYGON',{pieceId:m.id});
       else if(p&&validatePolygon(p.polygonCm).valid){
-        const crosses=m.stitchingPolygonCm.some((a,i)=>p.polygonCm.some((c,j)=>properCross(a,m.stitchingPolygonCm[(i+1)%m.stitchingPolygonCm.length],c,p.polygonCm[(j+1)%p.polygonCm.length])));
-        const samples=m.stitchingPolygonCm.flatMap((a,i)=>{const b=m.stitchingPolygonCm[(i+1)%m.stitchingPolygonCm.length];return [a,[(a[0]+b[0])/2,(a[1]+b[1])/2]];});
-        if(crosses||samples.some(v=>!onOrInside(v,p.polygonCm)))mark('allowances','FAIL','STITCHING_LINE_OUTSIDE_CUTTING_OUTLINE',{pieceId:m.id});
+        if(!stitchingInsideCut(m.stitchingPolygonCm,p.polygonCm))mark('allowances','FAIL','STITCHING_LINE_OUTSIDE_CUTTING_OUTLINE',{pieceId:m.id});
         else{
           const check=evaluateLayout({schemaVersion:VERSION,unit:'cm',fabric:{polygonCm:p.polygonCm},pieces:[{id:m.id,polygonCm:m.stitchingPolygonCm,placement:{translationCm:[0,0],rotationDeg:0}}]});
           if(check.geometryStatus!=='PASS')mark('allowances','UNVERIFIED','STITCHING_CONTAINMENT_NOT_ESTABLISHED',{pieceId:m.id});
@@ -175,9 +184,8 @@ function precheck(input){
       const map=edgeMaps.get(side.pieceId),refs=side.edgeIds.map(k=>map?.get(k));
       if(refs.some(e=>!e))mark('assembly','FAIL','UNKNOWN_EDGE_REFERENCE',{operationId:op.id,pieceId:side.pieceId});
       else{
-        if(new Set(side.edgeIds).size!==side.edgeIds.length)mark('assembly','FAIL','DUPLICATE_SEAM_EDGE',{operationId:op.id});
         const basis=refs[0].basis,n=basis==='CUTTING'?pieces.get(side.pieceId)?.polygonCm.length:metas.get(side.pieceId)?.stitchingPolygonCm?.length;
-        if(refs.some(e=>e.basis!==basis)||refs.some((e,i)=>i&&n&&e.segmentIndex!==mod(refs[i-1].segmentIndex+(side.direction==='FORWARD'?1:-1),n)))mark('assembly','FAIL','DISCONNECTED_EDGE_CHAIN',{operationId:op.id});
+        for(const code of seamChainIssues(side.edgeIds,refs,side.direction,n))mark('assembly','FAIL',code,{operationId:op.id});
         if(basis==='CUTTING'||!n)mark('construction','UNVERIFIED','STITCHING_LINE_NOT_ESTABLISHED',{operationId:op.id});
       }
       for(const owner of owners.get(side.pieceId)||[])nodes.add(owner);
@@ -217,4 +225,4 @@ function precheck(input){
   if(!layers.construction.reasons.length)mark('construction','PASS','SUPPORTED_STRUCTURAL_CHECKS_ONLY');
   result.status=combine(Object.values(layers));return result;
 }
-module.exports={precheck,requestSchema,onOrInside,properCross};
+module.exports={precheck,requestSchema,onOrInside,properCross,stitchingInsideCut,unitFor,seamChainIssues};

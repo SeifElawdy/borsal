@@ -1,7 +1,7 @@
 const {boundingBox}=require('../../src/geometry/polygon');
 const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const fixed=n=>Number(n.toFixed(4));
-function renderPreview(report){
+function renderPreview(report,{friendlyLabels=false}={}){
   const pieces=report.cuttingPieces,boxes=pieces.map(p=>boundingBox([...p.polygonCm,...(p.stitchingOutline?[p.stitchingOutline.start,...p.stitchingOutline.segments.flatMap(s=>s.type==='LINE'?[s.to]:[s.control1,s.control2,s.to])]:[])]));
   const width=Math.max(26,...boxes.map(b=>b.maxX-b.minX+6));
   const height=6+boxes.reduce((sum,b)=>sum+b.maxY-b.minY+5,0);
@@ -10,7 +10,7 @@ function renderPreview(report){
     const box=boxes[i],tx=2-box.minX,ty=y-box.minY;
     const outline=p.stitchingOutline;
     const path=outline?'M '+outline.start.join(' ')+' '+outline.segments.map(s=>s.type==='LINE'?'L '+s.to.join(' '):'C '+s.control1.join(' ')+' '+s.control2.join(' ')+' '+s.to.join(' ')).join(' ')+' Z':null;
-    const group=`<text x="1" y="${fixed(y-1.2)}">${escape(p.id)} — source ${escape(p.sourcePieceId)} / copy ${p.sourceCopy}</text>
+    const group=`<text x="1" y="${fixed(y-1.2)}">${friendlyLabels?'Piece '+(i+1)+' / copy '+p.sourceCopy:escape(p.id)+' — source '+escape(p.sourcePieceId)+' / copy '+p.sourceCopy}</text>
 <text x="1" y="${fixed(y-0.5)}">Cut bbox ${fixed(p.dimensions.widthCm)} × ${fixed(p.dimensions.heightCm)} cm; area ${fixed(p.areaCm2)} cm²</text>
 <g transform="translate(${fixed(tx)} ${fixed(ty)})">
 <polygon points="${p.polygonCm.map(v=>v.join(',')).join(' ')}" fill="#f4e6eb" stroke="#7b233e" stroke-width="0.035"/>
@@ -18,7 +18,7 @@ ${path?`<path d="${path}" fill="none" stroke="#1f618d" stroke-width="0.025" stro
 ${(p.folds||[]).map(f=>`<line data-fold-id="${escape(f.id)}" x1="${f.from[0]}" y1="${f.from[1]}" x2="${f.to[0]}" y2="${f.to[1]}" stroke="#227744" stroke-width="0.025" stroke-dasharray="0.08 0.08"><title>${escape(f.id)}: ${escape(f.type)}; allowance ${f.allowanceCm} cm; physical fold UNVERIFIED</title></line>`).join('\n')}
 </g>
 <text x="1" y="${fixed(y+box.maxY-box.minY+0.8)}">Grain ${p.grainDirectionDeg}°; tolerance ${p.grainToleranceDeg===null?'UNRESOLVED':p.grainToleranceDeg+'°'}; declared seam allowance ${p.seamAllowanceCm} cm</text>
-<text x="1" y="${fixed(y+box.maxY-box.minY+1.5)}">Stitch edges: ${escape(outline?outline.segments.map(s=>s.id).join(', '):'UNRESOLVED ? no stitching geometry inferred')}</text>`;
+<text x="1" y="${fixed(y+box.maxY-box.minY+1.5)}">${friendlyLabels?'Stitching':'Stitch edges'}: ${escape(friendlyLabels?(outline?'Supplied stitching outline':'Unresolved; no stitching geometry inferred'):outline?outline.segments.map(s=>s.id).join(', '):'UNRESOLVED ? no stitching geometry inferred')}</text>`;
     y+=box.maxY-box.minY+5;return group;
   }).join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fixed(width)}cm" height="${fixed(height)}cm" viewBox="0 0 ${fixed(width)} ${fixed(height)}">

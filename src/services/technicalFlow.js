@@ -51,7 +51,7 @@ async function create(runId,conceptId,body,generation=null){
       inputSha256:fingerprint(body),rawProposalSha256:input.rawProposalText?bytesHash(input.rawProposalText):null,
       materialEvidence:'Explicit declarations only; never verified source properties',origin:input.origin,authorship:input.origin==='DERIVED'?'SYSTEM_DETERMINISTIC_TRANSFORM':'DECLARED_NOT_AUTHENTICATED',physicalAccuracy:'UNVERIFIED',sourceRefresh:run.sourceRefresh??null,...(generation&&!generation.construction?{generation}: {})};
     if(generation?.construction){assessment.constructionPlan={instructions:generation.construction.instructions,unresolved:generation.construction.unresolved,transformations:generation.construction.transformations,manufacturingVerified:false};}
-    let svg=assessment.handoff?.drafting.previewSvg||generation?.construction?.previewSvg||null;
+    let svg=generation?.construction?.previewSvg||assessment.handoff?.drafting.previewSvg||null;
     if(svg){if(input.origin==='DERIVED')svg=svg.replaceAll('MANUALLY AUTHORED DRAFT','SYSTEM-DERIVED DESIGN PROPOSAL').replace('Authored technical pattern','System-derived technical pattern');if(input.origin==='MODEL_OUTPUT')svg=svg.replace('MANUALLY AUTHORED DRAFT','IMPORTED MODEL-PROPOSED DRAFT');
       const metadata={proposalId:String(_id),version,...provenance,sourceSnapshot:undefined};
       svg=svg.replace(/(<svg\b[^>]*>)/,match=>match+'\n<metadata id="borsal-proposal-provenance">'+escape(JSON.stringify(metadata))+'</metadata>');}
@@ -60,7 +60,7 @@ async function create(runId,conceptId,body,generation=null){
     let nestingSvg=evidence&&feasibility.evidence.nesting.status==='LAYOUT_FOUND'?geometrySvg(evidence):null;
     // Geometry can be screened independently while source material/stock remain unknown.
     // This never upgrades bridge readiness or the aggregate feasibility verdict.
-    if(generation?.construction?.screening){assessment.preliminaryGeometry={label:'PRELIMINARY GEOMETRY ONLY',status:generation.construction.screening.validatorEvidence?.geometryStatus||(generation.construction.screening.reason==='AREA_PRECHECK_FAILED'?'FAIL':'UNVERIFIED'),result:generation.construction.screening,fullReadinessUpgraded:false,manufacturingVerified:false};if(generation.construction.screening.reason==='AREA_PRECHECK_FAILED')assessment.verdict='FAIL';if(generation.construction.screening.status==='LAYOUT_FOUND')nestingSvg=geometrySvg(generation.construction.screening.validatorEvidence).replace('Geometry screening ONLY','PRELIMINARY GEOMETRY ONLY');}
+    if(generation?.construction?.screening){assessment.preliminaryGeometry={label:'PRELIMINARY GEOMETRY ONLY',status:generation.construction.screening.validatorEvidence?.geometryStatus||(generation.construction.screening.reason==='AREA_PRECHECK_FAILED'?'FAIL':'UNVERIFIED'),result:generation.construction.screening,fullReadinessUpgraded:false,manufacturingVerified:false};if(generation.construction.screening.reason==='AREA_PRECHECK_FAILED')assessment.verdict='FAIL';if(generation.construction.screening.status==='LAYOUT_FOUND')nestingSvg=geometrySvg(generation.construction.screening.validatorEvidence,{friendlyLabels:true}).replace('Geometry screening ONLY','PRELIMINARY GEOMETRY ONLY');}
     const cutting=assessment.handoff?.drafting?.cuttingPieces;
     if(!feasibility&&!generation?.construction?.screening&&assessment.status!=='REJECTED'&&cutting?.length){
       const result=require('../../experiments/pattern-feasibility/nesting').nest({schemaVersion:'borsal.nesting/0.1',unit:'cm',
