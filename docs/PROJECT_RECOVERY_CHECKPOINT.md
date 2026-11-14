@@ -57,3 +57,23 @@ Reinstall reproducible dependencies with `npm ci` and `npm --prefix client ci`; 
 This separate append-only backup contains Git bundle commit `d7da6df97898f71b629257f8e4608b178c337762`, current shared **19/30** request accounting, the new campaign/receipt, current user-workspace metadata, exported SVG/reports and final screenshots/logs (61 hashed copied files). The current user database (10 collections, 20 documents) was dumped with the same official tools and restored into `borsal-delivery-a325780b-fb5b-4e8a-93a3-1dcc3946b0eb-test`; document/index hashes matched and the source was rechecked unchanged. See its `VERIFIED-DELIVERY-ADDENDUM.json` and `RESTORE.txt`.
 
 Restore the original full artifact/configuration backup together with this addendum into NEW locations only. Prefer the delivery bundle/code and current user database archive, and overlay the latest ledger before enabling anything. Never replace an active ledger with the older 18-request checkpoint. Reproducible new fixture databases/browser caches are excluded from this addendum; their exported demonstration evidence is included. An earlier addendum attempt with an overlong temporary database name was preserved separately; it did not overwrite or delete original data.
+
+## Verified simple-studio checkpoints
+
+Before implementation: tag `borsal-pre-simple-studio-20261114T195235Z`, commit `3123cbd51ae84ce0ca4399e9f2aea851d2eaeb21`; private backup `E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\pre-simple-studio-20261114T195239198Z`. Git bundle verified; 10 collections / 35 documents restored into a unique isolated database with matching document/index hashes; 251 copied files hashed.
+
+After successful verification: code commit **0b5dd73ede23cd6d4fe5f76a1ee828659eb6801f**, tag **borsal-simple-studio-20261114**, branch `feature/simple-product-journey`.
+
+Final private addendum: **E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\simple-studio-verified-20261114T204426021Z**. Its `borsal-delivery.bundle` passes `git bundle verify`. Official MongoDB dump/restore completed: **35 documents restored, 0 failed**, 10 collections; independent restore `borsal-delivery-8a2787a2-887b-4b55-a2d8-095412780d03-test` matches source document/index hashes. All 260 copied artifacts match their hashes. Evidence: `VERIFIED-DELIVERY-ADDENDUM.json`, `RESTORE.txt`.
+
+Original user records, photos, previews, raw proposals and ledger remained unchanged; current shared usage is **29/30**. The verified submission ZIP remains untouched (SHA-256 `c475ef9e859e33de0bdd78cdbe0cff67ebcd5ca2349a3d54b87eedbb3c168f19`). Original full backups and encrypted configuration remain at their earlier paths; this addendum does not replace them.
+
+Recovery commands (use NEW directories/databases; never overwrite the active ledger):
+
+```powershell
+git bundle verify "E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\simple-studio-verified-20261114T204426021Z\borsal-delivery.bundle"
+git clone "E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\simple-studio-verified-20261114T204426021Z\borsal-delivery.bundle" NEW_BORSAL_DIRECTORY
+git -C NEW_BORSAL_DIRECTORY switch --detach borsal-simple-studio-20261114
+```
+
+Use the exact `mongorestore` namespace-remapping command in the private addendum's `RESTORE.txt`, supplying protected local MongoDB configuration. Never use `--drop`. Reinstall dependencies and reconfigure only the restored copy. Code-only rollback: stop the launcher, `git switch --detach 3123cbd51ae84ce0ca4399e9f2aea851d2eaeb21`; preserve the current database/29-request ledger, then run `npm run mvp`.

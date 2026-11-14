@@ -40,6 +40,8 @@ Frontend context resolution now refuses invalid explicitly selected run/concept/
 
 Evidence: `data/simple-studio/focused-final.log`, `regression.log`, `build-final.log`, `preservation.json`; browser `data/local-mvp/real-creation-check-1794688820145/report.json`.
 
+The original **Fabric Keychain** project was also reopened through the normal user server in a read-only Edge inspection at both desktop widths. Its old stage-5 selection now renders the correct incomplete-design screen; no Woven Wrap name or undefined-object error appears. Bootstrap project/source/proposal/review/inventory/operation records match before and after; no request was dispatched. Evidence: `data/local-mvp/real-creation-check-1794689298059/report.json` and `{1440,1920}-real-saved-keychain-recovery.png`.
+
 ## Before / after screenshots
 
 Before: `data/local-mvp/real-creation-check-1794684624786/{1440,1920}-technical-generation.png` (retained actual pre-change baseline).
