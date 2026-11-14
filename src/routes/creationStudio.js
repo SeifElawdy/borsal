@@ -85,6 +85,15 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     const result=await require('../services/designConstruction').create(req.params.id,req.params.conceptId,id.parse(req.params.proposalId),req.body);
     res.status(result.replayed?200:201).json({...result,manufacturingVerified:false});
   }));
+  router.get('/ui/projects/:projectId/runs/:id/concepts/:conceptId/proposals/:proposalId/construction',wrap(async(req,res)=>{
+    const projectRecord=await project(req.params.projectId),run=await ownedRun(projectRecord,req.params.id),concept=run.concepts.find(c=>c.id===req.params.conceptId),proposal=await Proposal.findById(id.parse(req.params.proposalId)).lean();
+    if(!concept||!proposal||String(proposal.runId)!==String(run._id)||proposal.conceptId!==concept.id)throw fail(409,'PROPOSAL_SOURCE_MISMATCH');
+    const operations=await Operation.find({projectId:projectRecord._id,runId:run._id,conceptId:concept.id,kind:'IMAGE',state:'SUCCEEDED'}).lean();
+    const previews=operations.filter(o=>o.result?.preview).map(o=>({id:String(o._id),assetUrl:'/api/previews/'+o._id+'/image',...Object.fromEntries(['sourceHash','conceptHash','reviewVersion','proposalId','proposalHash'].map(k=>[k,o.result.preview[k]]))}));
+    const report=require('../services/constructionFidelity').assess(proposal,concept.assessment.proposal,previews);
+    let sourceStale=false;try{await conceptService.ensureCurrent(run);}catch(e){if(e.status===409)sourceStale=true;else throw e;}
+    res.json({...report,stale:sourceStale||proposal.provenance.fabricSourceHash!==run.sourceSnapshot.hash||proposal.reviewVersion!==concept.reviewVersion});
+  }));
   router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/geometry-plan',wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
     const result=await require('../services/geometryPlanner').execute(req.params.id,req.params.conceptId,req.body);

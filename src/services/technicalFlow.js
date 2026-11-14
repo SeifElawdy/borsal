@@ -75,6 +75,7 @@ async function create(runId,conceptId,body,generation=null){
       nestingSvg=nestingSvg.replace(/(<svg\b[^>]*>)/,m=>m+'<metadata>'+escape(JSON.stringify({proposalId:String(_id),version,fabricSourceHash:provenance.fabricSourceHash,reportBasis:generation?.construction?.screening?'PRELIMINARY_GEOMETRY':feasibility?'FULL_FEASIBILITY':'PRELIMINARY_GEOMETRY',reportSha256:fingerprint(generation?.construction?.screening||feasibility||assessment.preliminaryGeometry?.result||null),manufacturingVerified:false}))+'</metadata>');}
     const data={_id,runId:run._id,conceptId,fabricId:run.fabricId,version,reviewVersion:concept.reviewVersion,origin:input.origin,sourceLabel:input.sourceLabel,originalInput:body,provenance,
       status:assessment.status,verdict:assessment.verdict,assessment,feasibility,previewSvg:svg,svgSha256:svg?bytesHash(svg):null,nestingSvg,nestingSvgSha256:nestingSvg?bytesHash(nestingSvg):null,manufacturingVerified:false};
+    if(input.origin==='ENGINE_DERIVED')assessment.constructionFidelity=require('./constructionFidelity').assess(data,concept.assessment.proposal);
     [saved]=await Proposal.create([data],{session});
     concept.technicalVersion=version;concept.technicalHistory=concept.technicalHistory||[];concept.technicalHistory.push({version,proposalId:_id,reviewVersion:concept.reviewVersion,inputSha256:provenance.inputSha256});
     run.markModified('concepts');await run.save({session});
