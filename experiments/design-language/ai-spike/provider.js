@@ -56,16 +56,26 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       phase = 'VALIDATING_RESPONSE';
       // Trusted server-only sink: retain unexpected model envelopes before rejecting
       // them. The caller redacts secrets and never exposes this artifact as an API error.
-      if (typeof captureEnvelope === 'function') captureEnvelope({httpStatus:response.status,body});
+      const contentType=response.headers?.get?.('content-type')?.split(';')[0].trim().toLowerCase();
+      if (typeof captureEnvelope === 'function') captureEnvelope({httpStatus:response.status,...(contentType&&/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(contentType)?{contentType}:{}),body});
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(null, 'INVALID_PROVIDER_ENVELOPE'));
       // Do not expose remote error strings, response headers, tokens or account identifiers.
       const codes = Array.isArray(body.errors) ? body.errors.map((item) => item.code).filter(Number.isFinite) : [];
-      if (!response.ok || body.success === false) {
+      if (!response.ok || body.success === false || body.error || (Array.isArray(body.errors) && body.errors.length)) {
         const code = [401, 403].includes(response.status) ? 'AUTHENTICATION_OR_PERMISSION' : response.status === 429 ? 'QUOTA_OR_RATE_LIMIT' : 'PROVIDER_ERROR';
         throw new ProviderError(code, response.status, codes, diagnostics(null, 'HTTP_OR_PROVIDER_ERROR'));
       }
       const result = body.result;
-      if (!result || !(typeof result.response === 'string' || (result.response && typeof result.response === 'object' && !Array.isArray(result.response)))) throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(null, 'INVALID_PROVIDER_ENVELOPE'));
+      if (result?.error) throw new ProviderError('PROVIDER_ERROR',response.status,codes,diagnostics(null,'HTTP_OR_PROVIDER_ERROR'));
+      let text;
+      if (typeof result?.response === 'string' || (result?.response && typeof result.response === 'object' && !Array.isArray(result.response))) text=typeof result.response==='string'?result.response:JSON.stringify(result.response);
+      else if (result?.object==='chat.completion' && Array.isArray(result.choices) && result.choices.length===1) {
+        // GPT-OSS /ai/run returns a Chat Completions object inside Workers AI's
+        // result wrapper. Extract final assistant content ONLY, never reasoning.
+        const choice=result.choices[0],message=choice?.message;
+        if(choice?.index===0 && message?.role==='assistant' && typeof message.content==='string' && message.content.trim() && !message.refusal && !message.function_call && (!message.tool_calls || Array.isArray(message.tool_calls)&&message.tool_calls.length===0)) text=message.content;
+      }
+      if (text===undefined) throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(null, 'INVALID_PROVIDER_ENVELOPE'));
       const usage = {};
       for (const field of ['prompt_tokens', 'completion_tokens', 'total_tokens', 'neurons']) {
         if (Number.isFinite(result.usage?.[field]) && result.usage[field] >= 0) usage[field] = result.usage[field];
@@ -73,7 +83,7 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       const finishReason = result.finish_reason || result.choices?.[0]?.finish_reason || null;
       const truncated = finishReason === 'length' || result.truncated === true ||
         (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= parameters.max_tokens) ? true : finishReason === 'stop' || result.truncated === false ? false : null;
-      return { text: typeof result.response === 'string' ? result.response : JSON.stringify(result.response),
+      return { text,
         usage: Object.keys(usage).length ? usage : null, httpStatus: response.status,
         finishReason, outputTokenLimit: parameters.max_tokens, truncated,
       };
