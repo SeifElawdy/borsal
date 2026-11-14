@@ -1,0 +1,45 @@
+const fs=require('fs'),path=require('path'),sharp=require('sharp'),{randomUUID,createHash}=require('crypto');
+const Run=require('../models/ConceptRun'),Proposal=require('../models/TechnicalProposal');
+const {ensureCurrent,fail,writeNew}=require('./conceptFlow');
+const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter');
+const {openBudget}=require('../../experiments/design-language/ai-spike/campaign');
+const {validateRuntime}=require('./localAI');
+const DATA=path.resolve(__dirname,'../../data');
+const hash=b=>createHash('sha256').update(b).digest('hex');
+async function prepare(runId,conceptId,proposalId,visualNotes=''){
+  const run=await Run.findById(runId);if(!run)throw fail(404,'CONCEPT_RUN_NOT_FOUND');await ensureCurrent(run);
+  const concept=run.concepts.find(c=>c.id===conceptId);if(!concept?.assessment.schemaValid)throw fail(409,'VALID_CONCEPT_REQUIRED');
+  let proposal;if(proposalId){proposal=await Proposal.findById(proposalId).lean();if(!proposal||String(proposal.runId)!==run.id||proposal.conceptId!==conceptId)throw fail(409,'PROPOSAL_SOURCE_MISMATCH');if(proposal.reviewVersion!==concept.reviewVersion)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');}
+  const sourceHash=run.sourceSnapshot.hash,conceptHash=concept.assessment.provenance.proposalSha256;
+  const provenance={runId:run.id,conceptId,conceptHash,reviewVersion:concept.reviewVersion,sourceHash,analysisId:run.sourceSnapshot.selectedPhoto?.analysisId,
+    proposalId:proposal?._id?.toString()||null,proposalVersion:proposal?.version||null,proposalHash:proposal?.provenance.inputSha256||null,sourceImageSha256:null,
+    label:'ILLUSTRATIVE_AI_PREVIEW',physicalAccuracy:'UNVERIFIED',conditioning:'ACTUAL_SOURCE_PHOTO_APPROXIMATE_VISUAL_REFERENCE',visualNotes};
+  const p=concept.assessment.proposal;
+  const prompt=['Photorealistic concept visualization of this one selected product, on a neutral studio background.',
+    'Use image 0 only as an approximate fabric appearance reference; ignore the calibration mat, printed markers and background. Do not put markers on the product.',
+    JSON.stringify({product:p.productIdea,intendedUse:p.intendedUse,features:p.distinctiveFeatures,constraints:p.constraints,unresolved:p.unresolvedRequirements,
+      technical:proposal?.status==='CHECKED'?proposal.originalInput?.proposal?.design?.data?.creative:null,userVisualNotes:visualNotes}),
+    'Do not add unsupported accessories or claim measured construction, exact texture, fabric properties, dimensional accuracy or manufacturing feasibility. Undefined visual details are illustrative artistic assumptions, not source facts.'].join('\n');
+  return {run,concept,provenance,prompt,fingerprint:fingerprint({sourceHash,conceptHash,reviewVersion:concept.reviewVersion,proposalHash:provenance.proposalHash,visualNotes})};
+}
+async function generate(prepared,projectId,campaignId,runtime){
+  validateRuntime(runtime);const {provenance,prompt,run}=prepared;
+  const file=run.sourceSnapshot.selectedPhoto?.photoPath;if(!file||!fs.existsSync(file))throw fail(409,'SOURCE_PHOTO_UNAVAILABLE');
+  const resolved=fs.realpathSync(file),root=fs.realpathSync(DATA);if(!resolved.toLowerCase().startsWith((root+path.sep).toLowerCase()))throw fail(403,'INVALID_SOURCE_PHOTO_PATH');
+  const original=fs.readFileSync(resolved),conditioning=await sharp(original).rotate().resize({width:1024,height:1024,fit:'inside',withoutEnlargement:true}).png().toBuffer();
+  provenance.sourceImageSha256=hash(original);provenance.conditioningImageSha256=hash(conditioning);
+  const directory=path.join(runtime.root,'campaigns',campaignId);fs.mkdirSync(path.dirname(directory),{recursive:true});fs.mkdirSync(directory);
+  const save=(name,data)=>writeNew(path.join(directory,name),data,[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI]);
+  save('lock.json',{campaignId,model:runtime.imageProvider.model,maxRequests:1,maxRepairs:0,execution:runtime.testing?'TEST_FIXTURE':'LIVE'});
+  save('request.json',{prompt,provenance,width:1024,height:1024});const slot=openBudget(runtime.root).reserve(campaignId,1);save('attempt-1.json',{state:'RESERVED_BEFORE_INFERENCE',globalSlot:slot,requestsDispatched:1});
+  let response;try{response=await runtime.imageProvider.generate({prompt,sourceImage:conditioning});}catch(e){save('failure.json',{code:e.code||'PROVIDER_FAILURE',httpStatus:e.status??null,diagnostics:e.diagnostics??null,outcome:'MAY_HAVE_EXECUTED'});throw e;}
+  const meta=await sharp(response.bytes).metadata();if(!['png','jpeg'].includes(meta.format)||!meta.width||!meta.height)throw fail(502,'INVALID_IMAGE_RESPONSE');
+  const folder=path.join(DATA,'creation-previews',String(projectId));fs.mkdirSync(folder,{recursive:true});const output=path.join(folder,randomUUID()+'.'+(meta.format==='png'?'png':'jpg'));
+  fs.writeFileSync(output,response.bytes,{flag:'wx'});
+  let stale=false;try{const latest=await prepare(run.id,provenance.conceptId,provenance.proposalId,provenance.visualNotes);stale=latest.fingerprint!==prepared.fingerprint;}catch{stale=true;}
+  const preview={...provenance,fingerprint:prepared.fingerprint,prompt,model:runtime.imageProvider.model,httpStatus:response.httpStatus??null,usage:response.usage??null,
+    execution:runtime.testing?'TEST_FIXTURE':'LIVE',createdAt:new Date().toISOString(),filePath:output,imageSha256:hash(response.bytes),contentType:'image/'+(meta.format==='png'?'png':'jpeg'),width:meta.width,height:meta.height,
+    stale,artisticAssumptions:['Undefined colors/finishing and attachment presentation are illustrative','Source-photo conditioning does not verify material or texture','No finished physical product is depicted'],manufacturingVerified:false};
+  save('result.json',preview);return preview;
+}
+module.exports={prepare,generate};

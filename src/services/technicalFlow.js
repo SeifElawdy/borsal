@@ -54,6 +54,17 @@ async function create(runId,conceptId,body,generation=null){
     const feasibility=assessment.handoff?.drafting.bridge?.pipeline||null;
     const evidence=feasibility?.evidence?.independentValidation;
     let nestingSvg=evidence&&feasibility.evidence.nesting.status==='LAYOUT_FOUND'?geometrySvg(evidence):null;
+    // Geometry can be screened independently while source material/stock remain unknown.
+    // This never upgrades bridge readiness or the aggregate feasibility verdict.
+    const cutting=assessment.handoff?.drafting?.cuttingPieces;
+    if(!feasibility&&assessment.status!=='REJECTED'&&cutting?.length){
+      const result=require('../../experiments/pattern-feasibility/nesting').nest({schemaVersion:'borsal.nesting/0.1',unit:'cm',
+        fabric:{polygonCm:run.sourceSnapshot.polygonCm,holes:run.sourceSnapshot.holes||[],...(f.grainDirectionDeg===undefined?{}:{grainDirectionDeg:f.grainDirectionDeg})},
+        pieces:cutting.map(p=>({id:p.id,polygonCm:p.polygonCm,outlineBasis:'CUTTING',seamAllowanceStatus:'INCLUDED',grain:{localDirectionDeg:p.grainDirectionDeg,...(p.grainToleranceDeg==null?{}:{toleranceDeg:p.grainToleranceDeg})}})),
+        search:{maxCandidates:5000,maxBacktracks:100}});
+      assessment.preliminaryGeometry={label:'PRELIMINARY GEOMETRY ONLY',result,fullReadinessUpgraded:false,manufacturingVerified:false};
+      if(result.status==='LAYOUT_FOUND')nestingSvg=geometrySvg(result.validatorEvidence).replace('Geometry screening ONLY','PRELIMINARY GEOMETRY ONLY');
+    }
     if(nestingSvg){nestingSvg=nestingSvg.replace('Geometry screening ONLY','Nested layout ONLY - physically UNVERIFIED');
       nestingSvg=nestingSvg.replace(/(<svg\b[^>]*>)/,m=>m+'<metadata>'+escape(JSON.stringify({proposalId:String(_id),version,fabricSourceHash:provenance.fabricSourceHash,reportSha256:fingerprint(feasibility),manufacturingVerified:false}))+'</metadata>');}
     const data={_id,runId:run._id,conceptId,fabricId:run.fabricId,version,reviewVersion:concept.reviewVersion,origin:input.origin,sourceLabel:input.sourceLabel,originalInput:body,provenance,

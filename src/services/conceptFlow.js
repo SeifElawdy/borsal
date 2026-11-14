@@ -51,16 +51,17 @@ function writeNew(file,value,secrets=[],raw=false){
   const fd=fs.openSync(file,'wx');try{fs.writeFileSync(fd,raw?JSON.parse(redact(value,secrets)):redact(value,secrets));fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
 }
 function mockProvider(sources){return {mode:'MOCK',model:'offline-fixtures',generate:async()=>{const {petal,leaf}=require('../../experiments/staged-concept/examples').concepts();for(const p of [petal,leaf])p.sourceReferences=[sources[0].id];return {text:JSON.stringify({concepts:[petal,leaf]}),usage:null,httpStatus:null};}};}
-async function generate(fabricId,options,override){
+async function generate(fabricId,options,override,runtime){
+  const root=runtime?require('./localAI').validateRuntime(runtime).root:ROOT;
   const f=await Fabric.findById(fabricId).lean();if(!f)throw fail(404,'FABRIC_NOT_FOUND');
   const source=sourceFor(f),mode=options.mode,campaignId=mode==='LIVE'?options.campaignId:'mock-'+randomUUID();
   let provider,dir,budget,secrets=[];
   if(mode==='LIVE'){
-    if(process.env.BORSAL_CONCEPT_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!options.freeTierConfirmed)throw fail(403,'LIVE_GENERATION_DISABLED');
-    try{validateCampaignId(campaignId);}catch{throw fail(400,'INVALID_CAMPAIGN_ID');}dir=path.join(ROOT,'campaigns',campaignId);
+    if(!runtime&&(process.env.BORSAL_CONCEPT_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!options.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
+    try{validateCampaignId(campaignId);}catch{throw fail(400,'INVALID_CAMPAIGN_ID');}dir=path.join(root,'campaigns',campaignId);fs.mkdirSync(path.dirname(dir),{recursive:true});
     if(fs.existsSync(dir))throw fail(409,'CAMPAIGN_ALREADY_EXISTS');
-    budget=openBudget(ROOT);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
-    provider=cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
+    budget=openBudget(root);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
+    provider=runtime?require('./localAI').textProvider(runtime):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
     secrets=[process.env.CF_API_TOKEN,process.env.CF_ACCOUNT_ID,process.env.MONGODB_URI];
   }else{provider=override||mockProvider(source.sources);if(provider.mode!=='MOCK')throw fail(403,'LIVE_GENERATION_DISABLED');}
   const prompt=batchMessages(source.sources),bytes=Buffer.byteLength(JSON.stringify(prompt));
@@ -76,7 +77,7 @@ async function generate(fabricId,options,override){
     const response=await provider.generate(prompt); // exactly one call, never repaired/retried
     if(mode==='LIVE'){writeNew(path.join(dir,'response.json'),response,secrets);writeNew(path.join(dir,'raw-response.txt'),response.text,secrets,true);}
     const result=assessBatch(response.text,source.sources);
-    run.rawText=response.text;run.response={...response,text:undefined,model:provider.model,mode,globalUsed:budget?.used()??null};run.validationErrors=result.errors;run.concepts=result.concepts;
+    run.rawText=response.text;run.response={...response,text:undefined,execution:runtime?.testing?'TEST_FIXTURE':'LIVE',model:provider.model,mode,globalUsed:budget?.used()??null};run.validationErrors=result.errors;run.concepts=result.concepts;
     run.state=result.errors.length||result.concepts.some(c=>!c.assessment.schemaValid)?'INVALID_OUTPUT':'RECEIVED';
     if(mode==='LIVE')writeNew(path.join(dir,'result.json'),{runId:String(run._id),state:run.state,...result,globalUsed:budget.used(),manufacturingVerified:false},secrets);
     await run.save();return run;

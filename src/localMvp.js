@@ -4,13 +4,14 @@ const Fabric=require('./models/FabricPiece'),Run=require('./models/ConceptRun'),
 const {AccessoryStock,InventoryItem,DesignReview}=require('./models/ApprovalInventory');
 const DATA=path.resolve(__dirname,'../data');
 const {dimensions,validateWithHoles}=require('./geometry/polygon');
-function createLocalMvp({origins=['http://127.0.0.1:5173','http://localhost:5173'],operatorToken,referenceDatabase,preferredRunId,preferredProposalId}={}){
+function createLocalMvp({origins=['http://127.0.0.1:5173','http://localhost:5173'],operatorToken,referenceDatabase,preferredRunId,preferredProposalId,workspaceKind='DEMO',simulatedProviders,generationRoot,demoDatabase}={}){
+  const studio=workspaceKind==='USER'?require('./routes/creationStudio').createStudioRouter({operatorToken,simulatedProviders,generationRoot}):null;
   const app=express(),session=randomBytes(32).toString('hex'),hosts=origins.map(o=>new URL(o).host);
   const validCookie=req=>{const value=/(?:^|;\s*)borsal_local=([a-f0-9]+)(?:;|$)/.exec(req.headers.cookie||'')?.[1];return value&&value.length===session.length&&timingSafeEqual(Buffer.from(value),Buffer.from(session));};
   app.use((req,res,next)=>{
     res.set({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin'});
     if(!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)||!hosts.includes(req.headers.host))return res.status(403).json({error:'LOCAL_HOST_REQUIRED'});
-    if(!/^borsal-[a-z0-9-]+-test$/.test(mongoose.connection.name||''))return res.status(503).json({error:'ISOLATED_TEST_DATABASE_REQUIRED'});
+    if(!(workspaceKind==='USER'?/^borsal-local-user-[a-f0-9-]{36}$/.test(mongoose.connection.name||'')||/^borsal-[a-z0-9-]+-test$/.test(mongoose.connection.name||''):/^borsal-[a-z0-9-]+-test$/.test(mongoose.connection.name||'')))return res.status(503).json({error:'ISOLATED_TEST_DATABASE_REQUIRED'});
     if(!['GET','HEAD','OPTIONS'].includes(req.method)&&(!origins.includes(req.get('origin'))||!validCookie(req)))return res.status(403).json({error:'LOCAL_SESSION_AND_ORIGIN_REQUIRED'});
     next();
   });
@@ -19,18 +20,22 @@ function createLocalMvp({origins=['http://127.0.0.1:5173','http://localhost:5173
   const archive=()=>referenceDatabase&&/^borsal-mvp-demo-[a-f0-9-]{36}-test$/.test(referenceDatabase)?mongoose.connection.client.db(referenceDatabase):null;
   app.get('/ui/bootstrap',wrap(async(req,res)=>{
     if(!validCookie(req))res.cookie('borsal_local',session,{httpOnly:true,sameSite:'strict',path:'/',maxAge:8*60*60*1000});
-    const [fabrics,runs,proposals,stock,inventory,reviews]=await Promise.all([Fabric.find().lean(),Run.find().sort({createdAt:-1}).lean(),Proposal.find().sort({createdAt:-1}).lean(),AccessoryStock.find().lean(),InventoryItem.find().lean(),DesignReview.find().lean()]);
-    for(const f of fabrics){const polygon=f.geometry?.polygonCm||f.analysis?.suggestedPolygonCm,holes=f.geometry?.polygonCm?f.geometry.holes||[]:[];if(polygon){const v=validateWithHoles(polygon,holes);if(v.valid)f.measurements={...dimensions(polygon),areaCm2:v.netAreaCm2,basis:'COMPUTED_CM_GEOMETRY_PHYSICAL_ACCURACY_UNVERIFIED'};}}
-    const db=archive();const referenceInventory=db?await db.collection(InventoryItem.collection.name).find().toArray():[],referenceStock=db?await db.collection(AccessoryStock.collection.name).find().toArray():[];
-    const budget=require('../experiments/design-language/ai-spike/campaign').openBudget(path.resolve(__dirname,'../experiments/design-language/ai-spike/results'));
+    const projects=studio?await require('./models/CreationProject').Project.find().sort({updatedAt:-1}).lean():[];
+    const sourceFilter=studio?{_id:{$in:projects.map(p=>p.fabricId).filter(Boolean)}}:{};const linkedFilter=studio?{fabricId:{$in:projects.map(p=>p.fabricId).filter(Boolean)}}:{};
+    const [fabrics,runs,proposals,stock,inventory,reviews]=await Promise.all([Fabric.find(sourceFilter).lean(),Run.find(linkedFilter).sort({createdAt:-1}).lean(),Proposal.find(linkedFilter).sort({createdAt:-1}).lean(),AccessoryStock.find().lean(),InventoryItem.find().lean(),DesignReview.find().lean()]);
+    for(const f of fabrics){if(studio){try{f.uiSourceHash=require('./services/conceptFlow').sourceFor(f).snapshot.hash;}catch{f.uiSourceHash=null;}}const polygon=f.geometry?.polygonCm||f.analysis?.suggestedPolygonCm,holes=f.geometry?.polygonCm?f.geometry.holes||[]:[];if(polygon){const v=validateWithHoles(polygon,holes);if(v.valid)f.measurements={...dimensions(polygon),areaCm2:v.netAreaCm2,basis:'COMPUTED_CM_GEOMETRY_PHYSICAL_ACCURACY_UNVERIFIED'};}}
+    const db=studio?null:archive();const referenceInventory=db?await db.collection(InventoryItem.collection.name).find().toArray():[],referenceStock=db?await db.collection(AccessoryStock.collection.name).find().toArray():[];
+    const budget=require('../experiments/design-language/ai-spike/campaign').openBudget(generationRoot||path.resolve(__dirname,'../experiments/design-language/ai-spike/results'));
+    if(studio){const capabilities=await studio.capabilities();return res.json({mode:simulatedProviders?'USER / TEST_FIXTURE PROVIDERS':'USER',workspaceKind,projects,fabrics,runs,proposals,stock,inventory,reviews,operations:(await require('./models/CreationProject').Operation.find().sort({createdAt:-1}).lean()).map(studio.publicOperation),archive:{readOnly:true,inventory:[],stock:[]},capabilities:{...capabilities,operator:!!operatorToken},budget:capabilities.budget,demoAvailable:!!demoDatabase,manufacturingVerified:false});}
     res.json({mode:'DEMO / TEST_FIXTURE',databaseName:mongoose.connection.name,preferredRunId,preferredProposalId,fabrics,runs,proposals,stock,inventory,reviews,
       archive:{readOnly:true,databaseName:referenceDatabase||null,inventory:referenceInventory,stock:referenceStock},
       capabilities:{operator:!!operatorToken,conceptGeneration:false,conceptReason:'TEXT_INFERENCE_NOT_AUTHORIZED',imagePreview:false,imageReason:process.env.BORSAL_WORKERS_FREE_CONFIRMED==='1'?'LIVE_PREVIEW_NOT_CONFIGURED':'FREE_TIER_NOT_VERIFIED',imageModel:'@cf/black-forest-labs/flux-2-klein-4b'},budget:{used:budget.used(),limit:budget.limit},manufacturingVerified:false});
   }));
+  if(studio)app.use(studio.router);
   app.get('/ui/authored-draft',wrap(async(req,res)=>res.json(JSON.parse(fs.readFileSync(path.resolve(__dirname,'../experiments/mvp-design-flow/keychain-draft.json'),'utf8')))));
   // Explicit offline testing only: same concept service, never a live provider or budget slot.
   app.post('/ui/test-fixture/fabrics/:id/concepts',wrap(async(req,res)=>{
-    if(process.env.BORSAL_INVENTORY_TEST_FIXTURES!=='1')return res.status(403).json({error:'TEST_FIXTURE_DISABLED'});
+    if(workspaceKind==='USER'||process.env.BORSAL_INVENTORY_TEST_FIXTURES!=='1')return res.status(403).json({error:'TEST_FIXTURE_DISABLED'});
     if(!mongoose.isObjectIdOrHexString(req.params.id)||Object.keys(req.body||{}).length)return res.status(400).json({error:'INVALID_INPUT'});
     const fabric=await Fabric.findById(req.params.id).lean();if(!fabric?.geometry?.confirmed)return res.status(409).json({error:'CONFIRMED_FABRIC_REQUIRED'});
     const run=await require('./services/conceptFlow').generate(req.params.id,{mode:'MOCK'});
@@ -57,7 +62,7 @@ function createLocalMvp({origins=['http://127.0.0.1:5173','http://localhost:5173
     const p=await db.collection(Proposal.collection.name).findOne({_id:new mongoose.Types.ObjectId(req.params.id)}),svg=p?.[req.params.kind==='pattern'?'previewSvg':'nestingSvg'];
     if(!svg)return res.status(404).end();res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'").type('image/svg+xml').send(svg);
   }));
-  // No model calls, fake concept generation or provider retries are exposed by this UI.
+  // Demo and unconfigured legacy paths remain blocked; USER requests were handled by the guarded studio router.
   app.post(/^\/api\/(fabrics\/[^/]+\/concepts|concept-runs\/.+\/technical-proposals\/generate)\/?$/i,(_req,res)=>res.status(403).json({error:'LIVE_GENERATION_DISABLED_FOR_THIS_PHASE'}));
   app.use('/ui/operator',(req,res,next)=>{
     if(!operatorToken||req.method!=='POST'||!/^\/(accessory-stock|technical-proposals\/[a-f0-9]{24}\/(design-review|approve-production|verification-evidence))$/.test(req.path))return res.status(403).json({error:'LOCAL_OPERATOR_ACTION_NOT_ALLOWED'});

@@ -17,14 +17,16 @@ function messages(run,concept){
     .replace('Return exactly ONE JSON object: {"design": Root, "instances": CuttingInstance[]}.','Return exactly ONE JSON object: {"design":{"path":TEXT,"data":Root},"context":{"instances":CuttingInstance[]}}.')
     .replace('Root below describes ONLY the design member, not the response envelope.','Root describes design.data; path is a descriptive proposal source label.')
     .replaceAll('synthetic-scrap',run.sources[0].id)
-    .replace('One original small fabric-based accessory, not a full invented parent bag','The approved small fabric keychain only')
-    .replace('Choose your own small accessory and outline, keeping output concise.','Draft only the approved keychain; keep output concise.')+
-    '\nUse the approved reviewer brief below. Proposed geometry, dimensions, seams and BOM are design hypotheses, not source measurements. Do not add context.fabric, stock, stockBindings or fabricMaterialDeclaration: source material, grain and stock remain unknown. Missing required source facts must remain missing; retain explicit limitations. One metal key ring is a requested accessory, not verified stock. Never invent its measured specifications. No repair will be performed.';
+    .replace(/Known: ONLY[^\n]+/, 'Known: ONLY the selected source snapshot, polygon and declared label. This text request cannot inspect the photograph. Source fiber, weave, weight, grain, stock and strength are not supplied. BOM specifications may be explicit unverified design requirements, never claims about source properties or stock. Missing source facts remain absent; document limitations. Proposed dimensions are hypotheses, not source measurements.')
+    .replace('One original small fabric-based accessory, not a full invented parent bag','Only the approved selected concept; never introduce an unrequested parent bag')
+    .replace('Choose your own small accessory and outline, keeping output concise.','Draft only the selected approved concept; arbitrary supported polygonal outlines are allowed.')+
+    '\nUse the approved reviewer brief below. Proposed geometry, dimensions, seams and BOM are design hypotheses, not source measurements. Do not add context.fabric, stock, stockBindings or fabricMaterialDeclaration: source material, grain and stock remain unknown. Missing required source facts must remain missing; retain explicit limitations. Accessories must come from the selected brief, not a fixed keychain template. Required BOM specifications are proposed design targets, never facts about the source or available stock. Never use UNKNOWN enums, zero placeholders, or guessed source measurements. Supply context.instances for every physical cutting copy and reconcile SCRAP quantity with their total area. If required information cannot be proposed honestly, omit it and record a precise limitation; an incomplete result is allowed. No repair will be performed.';
   return [{role:'system',content:system},{role:'user',content:JSON.stringify({concept:concept.assessment.proposal,
     reviewerBrief:concept.reviews.at(-1).review.draftingBrief,sources:run.sources,
-    sourceSnapshotHash:run.sourceSnapshot.hash,sourceGeometryStatus:run.sourceSnapshot.status,physicalAccuracy:'UNVERIFIED',materialProperties:'UNKNOWN',grain:'UNKNOWN',stock:'UNKNOWN'})}];
+    sourceSnapshotHash:run.sourceSnapshot.hash,sourceGeometryStatus:run.sourceSnapshot.status,physicalAccuracy:'UNVERIFIED',sourceMaterialEvidence:'NOT_SUPPLIED',sourceGrainEvidence:'NOT_SUPPLIED',stockEvidence:'NOT_SUPPLIED'})}];
 }
-async function generate(runId,conceptId,body,{mockProvider,root=ROOT}={}){
+async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}){
+  if(runtime)root=require('./localAI').validateRuntime(runtime).root;
   const input=inputSchema.parse(body);try{validateCampaignId(input.campaignId);}catch{throw fail(400,'INVALID_CAMPAIGN_ID');}
   const run=await Run.findById(runId);if(!run)throw fail(404,'CONCEPT_RUN_NOT_FOUND');
   const concept=run.concepts.find(c=>c.id===conceptId);if(!concept)throw fail(404,'CONCEPT_NOT_FOUND');
@@ -36,9 +38,9 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT}={}){
   if(!review.draftingBrief)throw fail(409,'DRAFTING_BRIEF_REQUIRED');
   const live=input.mode==='LIVE';let provider,budget,secrets=[];
   if(live){
-    if(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed)throw fail(403,'LIVE_GENERATION_DISABLED');
-    provider=cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
-    budget=openBudget(ROOT);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
+    if(!runtime&&(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
+    provider=runtime?require('./localAI').textProvider(runtime):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
+    budget=openBudget(root);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
     secrets=[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI];
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
   const prompt=messages(run,concept),promptBytes=Buffer.byteLength(JSON.stringify(prompt));
@@ -47,7 +49,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT}={}){
   const parent=path.join(root,'campaigns');fs.mkdirSync(parent,{recursive:true});if(fs.lstatSync(parent).isSymbolicLink())throw fail(409,'INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,input.campaignId);try{fs.mkdirSync(directory);}catch(e){if(e.code==='EEXIST')throw fail(409,'CAMPAIGN_ALREADY_EXISTS');throw e;}
   const save=(name,value,raw=false)=>writeNew(path.join(directory,name),value,secrets,raw);
-  const provenance={campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
+  const provenance={execution:runtime?.testing?'TEST_FIXTURE':'LIVE',campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
   save('lock.json',{...provenance,maxRequests:1,maxRepairs:0});
   save('request.json',{...provenance,messages:prompt,promptBytes,conservativeMaxNeurons});
   const slot=budget?budget.reserve(input.campaignId,1):null;

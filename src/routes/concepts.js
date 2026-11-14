@@ -68,3 +68,4 @@ router.get('/technical-proposals/:proposalId/nesting.svg',wrap(async(req,res)=>{
   res.set({'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'}).type('image/svg+xml').send(proposal.nestingSvg);
 }));
 module.exports=router;
+module.exports.generationSchema=generation;

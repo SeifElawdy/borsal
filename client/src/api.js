@@ -1,6 +1,6 @@
 export class ApiError extends Error{constructor(status,body){super(body.error||'REQUEST_FAILED');this.status=status;this.body=body;}}
-export async function request(path,{method='GET',body}={}){
-  let response;try{response=await fetch(path,{method,credentials:'same-origin',headers:body instanceof FormData?{}:body?{'Content-Type':'application/json'}:{},...(body?{body:body instanceof FormData?body:JSON.stringify(body)}:{})});}catch{throw new ApiError(0,{error:'CONNECTION_FAILED'});}
+export async function request(path,{method='GET',body,headers:extraHeaders={}}={}){
+  let response;try{response=await fetch(path,{method,credentials:'same-origin',headers:{...(body instanceof FormData?{}:body?{'Content-Type':'application/json'}:{}),...extraHeaders},...(body?{body:body instanceof FormData?body:JSON.stringify(body)}:{})});}catch{throw new ApiError(0,{error:'CONNECTION_FAILED'});}
   const data=await response.json().catch(()=>({error:'INVALID_RESPONSE'}));if(!response.ok)throw new ApiError(response.status,data);return data;
 }
 export const api={bootstrap:()=>request('/ui/bootstrap'),upload:form=>request('/api/fabrics/from-photo',{method:'POST',body:form}),
