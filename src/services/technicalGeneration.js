@@ -10,7 +10,7 @@ const {openBudget,validateCampaignId}=require('../../experiments/design-language
 const {cloudflareProvider,COMPARISON_MODEL}=require('../../experiments/design-language/ai-spike/provider');
 const ROOT=path.resolve(__dirname,'../../experiments/design-language/ai-spike/results');
 const inputSchema=z.object({mode:z.enum(['MOCK','LIVE']).default('MOCK'),campaignId:z.string(),freeTierConfirmed:z.boolean().default(false),
-  strategy:z.enum(['LEGACY','CANDIDATE']).default('LEGACY'),revisionApproach:z.enum(['SMALLER_SAME_INTENT','DIFFERENT_CONSTRUCTION_SAME_INTENT']).optional(),feedbackFromProposalId:z.string().regex(/^[a-f0-9]{24}$/).optional(),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
+  strategy:z.enum(['LEGACY','CANDIDATE']).default('LEGACY'),normalizeEquivalent:z.boolean().default(false),revisionApproach:z.enum(['SMALLER_SAME_INTENT','DIFFERENT_CONSTRUCTION_SAME_INTENT']).optional(),feedbackFromProposalId:z.string().regex(/^[a-f0-9]{24}$/).optional(),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
 function messages(run,concept){
   // Reuse the current compact technical types/rules; adapt only the API envelope/source/selected product.
   const system=legacyMessages()[0].content
@@ -65,7 +65,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   // Recheck review/source/version in the existing transaction AFTER inference, never retry inference.
   try{
     const proposal=await technical.create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'MODEL_OUTPUT',sourceLabel:'campaign:'+input.campaignId,rawProposalText:response.text},generation);
-    save('proposal.json',proposal.toObject());let derived;if(input.strategy==='CANDIDATE'&&proposal.status!=='REJECTED'){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY'});save('derived-proposal.json',derived.proposal.toObject());}
+    save('proposal.json',proposal.toObject());let derived,recoverable=false;if(input.normalizeEquivalent&&proposal.status==='REJECTED')try{const c=require('./designCandidate');recoverable=c.candidateSchema.safeParse(c.normalizeCandidate(JSON.parse(response.text)).candidate).success;}catch{/* Raw invalid JSON stays rejected; no recovery data is invented. */}if(input.strategy==='CANDIDATE'&&(proposal.status!=='REJECTED'||recoverable)){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:input.normalizeEquivalent});save('derived-proposal.json',derived.proposal.toObject());}
     const final=derived?.proposal||proposal;if(final.previewSvg)save('preview.svg',final.previewSvg,true);
     save('result.json',{...generation,requestsDispatched:1,proposalId:String(final._id),rawProposalId:String(proposal._id),status:final.status,verdict:final.verdict,manufacturingVerified:false});
     return {proposal:final,rawProposal:proposal,generation,manufacturingVerified:false};

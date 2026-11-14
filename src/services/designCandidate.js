@@ -5,6 +5,7 @@ const {nest}=require('../../experiments/pattern-feasibility/nesting');
 const {renderPreview}=require('../../experiments/technical-drafting/preview');
 const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter');
 const VERSION='borsal.design-candidate/0.1',POLICY='borsal.draft-constructor/0.2';
+const RECOVERY_POLICY='borsal.candidate-recovery/0.1';
 const object=s=>z.object(s).strict(),text=z.string().trim().min(1).max(2000),n=z.number().finite(),point=z.tuple([n,n]),polygon=z.array(point).min(3).max(100);
 const material=designSchema.shape.technical.shape.bom.element.shape.material;
 const part=object({piece:text,copy:z.number().int().positive(),edges:z.array(z.number().int().min(0)).min(1),direction:z.enum(['FORWARD','REVERSE'])});
@@ -28,6 +29,22 @@ const candidateSchema=object({schemaVersion:z.literal(VERSION),name:text,unit:z.
 const problem=(code,path,message)=>({code,path,message});
 function outline(ring){return {start:ring[0],segments:ring.map((_,i)=>({id:'edge-'+(i+1),type:'LINE',to:ring[(i+1)%ring.length]}))};}
 function perimeter(ring){return ring.reduce((s,p,i)=>s+Math.hypot(p[0]-ring[(i+1)%ring.length][0],p[1]-ring[(i+1)%ring.length][1]),0);}
+function normalizeCandidate(input){
+  const candidate=structuredClone(input),transformations=[];
+  if(!candidate||typeof candidate!=='object')return {candidate,transformations};
+  const point=(value,path)=>{if(value&&!Array.isArray(value)&&typeof value==='object'&&Object.keys(value).length===2&&Object.hasOwn(value,'x')&&Object.hasOwn(value,'y')&&Number.isFinite(value.x)&&Number.isFinite(value.y)){transformations.push({operation:'EQUIVALENT_POINT_TUPLE',path});return [value.x,value.y];}return value;};
+  const pieces=Array.isArray(candidate.pieces)?candidate.pieces:[];
+  for(const [i,p]of pieces.entries())if(p&&typeof p==='object'){
+    for(const field of ['cuttingPolygon','stitchingPolygon'])if(Array.isArray(p[field])){p[field]=p[field].map((v,j)=>point(v,['pieces',i,field,j]));const ring=p[field],first=ring[0],last=ring.at(-1);if(ring.length>=4&&Array.isArray(first)&&first.length===2&&Array.isArray(last)&&last.length===2&&first.every((v,k)=>Number.isFinite(v)&&v===last[k])){ring.pop();transformations.push({operation:'REMOVE_EXPLICIT_CLOSING_DUPLICATE',path:['pieces',i,field]});}}
+    if(Array.isArray(p.folds))for(const [j,f]of p.folds.entries())if(f)for(const k of ['from','to'])f[k]=point(f[k],['pieces',i,'folds',j,k]);
+  }
+  for(const [i,a]of (Array.isArray(candidate.assembly)?candidate.assembly:[]).entries())if(a){
+    const refs=a.type==='SEAM'&&Array.isArray(a.sides)?a.sides:a.type==='INSTALL'&&Array.isArray(a.anchors)?a.anchors:[a.from,a.to].filter(Boolean);
+    for(const [j,r]of refs.entries())if(r&&typeof r==='object'){if(Object.hasOwn(r,'point'))r.point=point(r.point,['assembly',i,'references',j,'point']);const matches=pieces.filter(p=>p?.name===r.piece);if(r.copy===undefined&&matches.length===1&&matches[0].quantity===1){r.copy=1;transformations.push({operation:'UNIQUE_SINGLE_COPY_REFERENCE',path:['assembly',i,'references',j,'copy'],piece:r.piece});}}
+    // Edge order and traversal direction both carry intent. Never guess which is wrong.
+  }
+  return {candidate,transformations};
+}
 function convexAllowance(ring,allowance){
   // Intersect adjacent offset lines; preserve vertex order and never flatten concave geometry.
   if(!validatePolygon(ring).valid)throw Error('INVALID_STITCHING_POLYGON');if(allowance===0)return structuredClone(ring);
@@ -35,8 +52,9 @@ function convexAllowance(ring,allowance){
   const result=ring.map((p,i)=>{const a=lines[(i+ring.length-1)%ring.length],b=lines[i],cross=a.d[0]*b.d[1]-a.d[1]*b.d[0];if(sign*cross<=1e-9)throw Error('UNSUPPORTED_NONCONVEX_OR_COLLINEAR_OFFSET');const t=((b.p[0]-a.p[0])*b.d[1]-(b.p[1]-a.p[1])*b.d[0])/cross;const q=[a.p[0]+t*a.d[0],a.p[1]+t*a.d[1]];if(Math.hypot(q[0]-p[0],q[1]-p[1])>8*allowance)throw Error('UNSUPPORTED_SHARP_MITER');return q;});
   if(!validatePolygon(result).valid)throw Error('INVALID_DERIVED_CUTTING_POLYGON');return result;
 }
-function construct(input,source,concept){
-  const parsed=candidateSchema.safeParse(input),errors=[],unresolved=[],transformations=[];
+function construct(input,source,concept,{normalizeEquivalent=false}={}){
+  const normalized=normalizeEquivalent?normalizeCandidate(input):{candidate:input,transformations:[]};
+  const parsed=candidateSchema.safeParse(normalized.candidate),errors=[],unresolved=[],transformations=[...normalized.transformations];
   const out={policy:POLICY,status:'CONCEPT_ONLY',errors,unresolved,transformations,proposal:null,screening:null,previewSvg:null,instructions:[],manufacturingVerified:false};
   if(!parsed.success){out.status='REJECTED';errors.push({code:'INVALID_CANDIDATE',issues:parsed.error.issues});return out;}
   if(!validateWithHoles(source.polygonCm,source.holes||[]).valid){out.status='REJECTED';errors.push(problem('INVALID_SOURCE_GEOMETRY',['source'],'Existing polygon validator rejected the fabric'));return out;}
@@ -76,4 +94,4 @@ function construct(input,source,concept){
     const hash=fingerprint(input);out.previewSvg=renderPreview({status:errors.length?'REJECTED':'CONCEPT_ONLY',verdict:errors.length||out.screening?.reason==='AREA_PRECHECK_FAILED'?'FAIL':'UNVERIFIED',provenance:{concept:{sha256:fingerprint(concept||{})},design:{sha256:hash}},cuttingPieces:instances.map(i=>{const r=records.find(r=>r.id===i.pieceId);return {id:i.id,sourcePieceId:i.pieceId,sourceCopy:i.copy,polygonCm:i.cuttingPolygonCm,dimensions:dimensions(i.cuttingPolygonCm),areaCm2:area(i.cuttingPolygonCm),stitchingOutline:r.stitch?outline(r.stitch):null,folds:design.technical.patternPieces.find(p=>p.id===i.pieceId).folds,grainDirectionDeg:r.p.grainDirectionDeg??'UNRESOLVED',grainToleranceDeg:r.p.grainToleranceDeg??null,seamAllowanceCm:r.allowance??'UNRESOLVED'};})},{friendlyLabels:true}).replaceAll('MANUALLY AUTHORED DRAFT','SYSTEM-DERIVED DESIGN PROPOSAL');}
   out.status=errors.length?'REJECTED':unresolved.length?'CONCEPT_ONLY':'CONSTRUCTED';return out;
 }
-module.exports={VERSION,POLICY,candidateSchema,construct,convexAllowance,outline};
+module.exports={VERSION,POLICY,RECOVERY_POLICY,candidateSchema,construct,normalizeCandidate,convexAllowance,outline};
