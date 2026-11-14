@@ -4,7 +4,7 @@ const schema=new mongoose.Schema({
   runId:{type:mongoose.Schema.Types.ObjectId,ref:'ConceptRun',required:true,immutable:true},
   conceptId:{type:String,required:true,immutable:true},fabricId:{type:mongoose.Schema.Types.ObjectId,ref:'FabricPiece',required:true,immutable:true},
   version:{type:Number,required:true,immutable:true},reviewVersion:{type:Number,required:true,immutable:true},
-  origin:{type:String,enum:['AUTHORED','MODEL_OUTPUT','DERIVED'],required:true,immutable:true},sourceLabel:{type:String,required:true,immutable:true},
+  origin:{type:String,enum:['AUTHORED','MODEL_OUTPUT','DERIVED','ENGINE_DERIVED'],required:true,immutable:true},sourceLabel:{type:String,required:true,immutable:true},
   originalInput:{type:mongoose.Schema.Types.Mixed,immutable:true},provenance:{type:mongoose.Schema.Types.Mixed,immutable:true},
   status:{type:String,enum:['CONCEPT_ONLY','REJECTED','CHECKED'],required:true,immutable:true},
   verdict:{type:String,enum:['PASS','FAIL','UNVERIFIED'],required:true,immutable:true},

@@ -85,6 +85,11 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     const result=await require('../services/designConstruction').create(req.params.id,req.params.conceptId,id.parse(req.params.proposalId),req.body);
     res.status(result.replayed?200:201).json({...result,manufacturingVerified:false});
   }));
+  router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/geometry-plan',wrap(async(req,res)=>{
+    if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
+    const result=await require('../services/geometryPlanner').execute(req.params.id,req.params.conceptId,req.body);
+    res.status(result.proposal&&!result.replayed?201:200).json(result);
+  }));
   router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/assisted-draft',wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
     const proposal=await require('../services/assistedDraft').create(req.params.id,req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});

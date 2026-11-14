@@ -1,0 +1,22 @@
+// Offline fixture seeding only; no generation HTTP endpoint or external provider.
+const fs=require('fs'),path=require('path'),mongoose=require('mongoose');
+async function seed(){
+  if(!process.argv.includes('--mock')||!process.argv.includes('--geometry-first')||!/^borsal-ui-[a-f0-9-]{36}-test$/.test(mongoose.connection.name||''))throw Error('Fresh isolated mock database required');
+  const Fabric=require('../src/models/FabricPiece'),{Project}=require('../src/models/CreationProject');
+  if(await Project.countDocuments())throw Error('No resetting or overwriting existing demo workspaces');
+  const fabric=await Fabric.create({name:'TEST_FIXTURE synthetic burgundy polygon; physical accuracy UNVERIFIED',status:'CONFIRMED',geometry:{confirmed:true,version:1,polygonCm:require('../experiments/pattern-feasibility/synthetic-fabric.json').polygonCm}});
+  const run=await require('../src/services/conceptFlow').generate(fabric.id,{mode:'MOCK'},{mode:'MOCK',model:'OFFLINE_SAVED_CONCEPT',generate:async()=>{const c=structuredClone(require('../src/services/fixtures/woven-concept.json'));c.sourceReferences=['fabric-'+fabric.id];const other=structuredClone(c);other.id='other-intent';other.productIdea.name='Other intent';return {text:JSON.stringify({concepts:[c,other]})};}}),concept=run.concepts[0];
+  const {routineReview,reviewBody}=await import('../client/src/journey.mjs'),review=reviewBody(concept,{...routineReview(concept),decision:'APPROVED_FOR_DRAFTING',reviewer:'TEST_FIXTURE simulated explicit human review',prefilled:true}).review;
+  concept.reviewVersion=1;concept.reviews=[{version:1,review,createdAt:new Date()}];run.markModified('concepts');await run.save();
+  const parent=await require('../src/services/technicalFlow').create(run.id,concept.id,{expectedReviewVersion:1,expectedTechnicalVersion:0,origin:'MODEL_OUTPUT',sourceLabel:'TEST_FIXTURE replay of saved LIVE v7; zero inference',rawProposalText:fs.readFileSync(path.resolve('src/services/fixtures/woven-wrap-candidate-v7.json'),'utf8')});
+  const failed=(await require('../src/services/designConstruction').create(run.id,concept.id,parent.id,{expectedReviewVersion:1,expectedTechnicalVersion:1,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:true})).proposal;
+  const project=await Project.create({name:'TEST_FIXTURE Woven geometry-first',scope:'TEST_FIXTURE',fabricId:fabric._id,selection:{runId:run._id,conceptId:concept.id,proposalId:failed._id,stage:4}}),summary={execution:'TEST_FIXTURE',database:mongoose.connection.name,projectId:project.id,runId:run.id,conceptId:concept.id,parentId:parent.id,failedId:failed.id,manufacturingVerified:false};
+  const dir=path.resolve('data/phase6n-demo');fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'seed.json'),JSON.stringify(summary,null,2));return summary;
+}
+async function exportSelected(){
+  const boot=await fetch('http://127.0.0.1:5173/ui/bootstrap').then(r=>r.json());if(boot.mode!=='USER / TEST_FIXTURE PROVIDERS')throw Error('Explicit isolated mock workspace required');
+  const dir=path.resolve('data/phase6n-demo'),summary=JSON.parse(fs.readFileSync(path.join(dir,'seed.json'))),project=boot.projects.find(p=>p._id===summary.projectId),p=boot.proposals.find(p=>p._id===project?.selection?.proposalId);if(!p||p.origin!=='ENGINE_DERIVED')throw Error('Select an alternative through the UI first');
+  fs.writeFileSync(path.join(dir,'proposal.json'),JSON.stringify(p,null,2));fs.writeFileSync(path.join(dir,'cutting-pattern.svg'),p.previewSvg);fs.writeFileSync(path.join(dir,'nesting-layout.svg'),p.nestingSvg);fs.writeFileSync(path.join(dir,'bom.json'),JSON.stringify(p.originalInput.proposal.design.data.technical.bom,null,2));fs.writeFileSync(path.join(dir,'assembly.json'),JSON.stringify({instructions:p.assessment.constructionPlan.instructions,finishingPaths:p.provenance.derivation.finishingPaths,physicalAssembly:'UNVERIFIED'},null,2));console.log(JSON.stringify({directory:dir,proposalId:p._id,origin:p.origin,status:p.status,verdict:p.verdict,geometry:p.assessment.preliminaryGeometry.status,area:p.assessment.preliminaryGeometry.result.areaSummary,execution:'TEST_FIXTURE'}));
+}
+module.exports={seed};
+if(require.main===module){if(!process.argv.includes('--export'))throw Error('Launch node scripts/local-mvp.js --mock --geometry-first; select through the UI, then run this script --export');exportSelected().catch(e=>{console.error(e.message);process.exitCode=1;});}
