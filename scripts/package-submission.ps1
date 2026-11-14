@@ -36,6 +36,7 @@ New-Item -ItemType Directory -Path $output | Out-Null
 $archive = Join-Path $output 'borsal-mvp-source.zip'
 & $git archive --format=zip --prefix=borsal/ --output=$archive HEAD
 if ($LASTEXITCODE -ne 0) { throw 'Source archive failed' }
+Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [IO.Compression.ZipFile]::Open($archive, [IO.Compression.ZipArchiveMode]::Update)
 try {
