@@ -27,3 +27,11 @@ it('requires explicit alternative selection and persists a coherent sleeve throu
  const reviewed=await post('/ui/operator/technical-proposals/'+p._id+'/design-review').send({expectedVersion:0,decision:'APPROVED_FOR_PROTOTYPE',sourceHash:gate.body.sourceHash,proposalHash:gate.body.proposalHash,reviewer:'TEST_FIXTURE explicit simulated review',rationale:'Prototype exploration only; no physical or manufacturing evidence asserted'});expect(reviewed.status,JSON.stringify(reviewed.body)).toBe(201);expect(reviewed.body.manufacturingVerified).toBe(false);
  expect((await post('/api/technical-proposals/'+p._id+'/production-readiness').send({})).body.ready).toBe(false);expect((await get('/ui/bootstrap')).body.inventory).toEqual([]);
 });
+it('returns a stable 422 for the saved unsupported live intent without writing a derived version',async()=>{
+ const raw=JSON.stringify(require('../services/fixtures/unsupported-construction-intent.json'));
+ const p=await require('../services/technicalFlow').create(run.id,concept.id,{expectedReviewVersion:1,expectedTechnicalVersion:4,origin:'MODEL_OUTPUT',sourceLabel:'TEST_FIXTURE saved unsupported live response',rawProposalText:raw});
+ const before=JSON.stringify(await Proposal.find().sort({version:1}).lean()),runBefore=JSON.stringify(await Run.findById(run.id).lean());
+ const r=await post(`/ui/projects/${project.id}/runs/${run.id}/concepts/${concept.id}/proposals/${p.id}/construct`).send({expectedReviewVersion:1,expectedTechnicalVersion:5,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:true});
+ expect(r.status,JSON.stringify(r.body)).toBe(422);expect(JSON.stringify(r.body)).toContain('CONSTRUCTION_METHOD_UNSUPPORTED');
+ expect(JSON.stringify(await Proposal.find().sort({version:1}).lean())).toBe(before);expect(JSON.stringify(await Run.findById(run.id).lean())).toBe(runBefore);expect(JSON.stringify(await Fabric.findById(project.fabricId).lean())).toBe(sourceBefore);
+});

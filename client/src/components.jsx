@@ -4,10 +4,11 @@ import {panelSpring,selectionSpring} from './motion.mjs';
 import {AlertCircle,CheckCircle2,Clock3,Loader2,Lock,RefreshCw,X,ZoomIn,ZoomOut,Maximize2,RotateCcw} from 'lucide-react';
 import {api,explain,errorText} from './api';
 import {useWorkspace} from './state';
+import {friendlyStatus} from './designFlow.mjs';
 export const number=(v,d=1)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?new Intl.NumberFormat('en-US',{maximumFractionDigits:d}).format(v):'—';
 export function technicalOf(p){let raw=p?.originalInput?.proposal;if(!raw&&p?.originalInput?.rawProposalText)try{raw=JSON.parse(p.originalInput.rawProposalText);}catch{}return raw?.design?.data;}
 export const nameOf=p=>technicalOf(p)?.name||'Saved technical proposal';
-export function Badge({value,children}){return <motion.span layout key={value} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={selectionSpring} className={'badge '+(['PASS','AVAILABLE','COMPLETED'].includes(value)?'positive':['FAIL','REJECTED','FAILED'].includes(value)?'negative':['UNVERIFIED','CONCEPT_ONLY','DRAFT'].includes(value)?'caution':'neutral')}><span className="badge-dot"/>{children||value?.replaceAll('_',' ')||'UNVERIFIED'}</motion.span>;}
+export function Badge({value,children}){return <motion.span layout key={value} initial={{opacity:0,y:5}} animate={{opacity:1,y:0}} transition={selectionSpring} className={'badge '+(['PASS','AVAILABLE','COMPLETED'].includes(value)?'positive':['FAIL','REJECTED','FAILED'].includes(value)?'negative':['UNVERIFIED','CONCEPT_ONLY','DRAFT'].includes(value)?'caution':'neutral')}><span className="badge-dot"/>{children||friendlyStatus(value)}</motion.span>;}
 export function Button({children,icon:Icon,variant='',busy=false,...props}){return <motion.button {...props} disabled={props.disabled||busy} whileHover={props.disabled||busy?{}:{y:-2}} whileTap={props.disabled||busy?{}:{scale:.98}} transition={selectionSpring} className={'button '+variant+' '+(props.className||'')}>{busy?<Loader2 size={20} className="spin"/>:Icon?<Icon size={20}/>:null}{children}</motion.button>;}
 export function Notice({children,tone='info'}){return <div className={'notice '+tone} role={tone==='error'?'alert':undefined}><AlertCircle size={18}/><div>{children}</div></div>;}
 export function Empty({title='Your next chapter starts here',text='Choose a saved project or upload your fabric to begin.',action}){return <div className="empty"><span className="empty-icon"><Clock3 size={28}/></span><h3>{title}</h3><p>{text}</p>{action}</div>;}

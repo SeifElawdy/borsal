@@ -21,6 +21,14 @@ function fromLegacy(raw,policy){
     limitations:[...d.limitations.flatMap(l=>[l.reason,...l.missingInformation]),'Legacy overall dimensions are preserved targets; the flat pieces do not establish them','Fabric requirements are model-proposed targets, not inspected source properties']};
 }
 function build(parent,run,concept,policy,normalizeEquivalent=false){let raw;try{raw=parent.origin==='MODEL_OUTPUT'?JSON.parse(parent.originalInput.rawProposalText):parent.originalInput.proposal;}catch{throw fail(422,'INVALID_JSON_REQUIRES_NEW_PROPOSAL');}
+  // A construction intent is not a legacy technical design. Never parse its
+  // absent design.data, infer cutting geometry, or bypass alternative selection.
+  if(raw?.schemaVersion===require('./constructionPlanner').VERSION){
+    const intent=require('./constructionPlanner').intentSchema.safeParse(raw);
+    if(!intent.success)throw fail(422,'INVALID_CONSTRUCTION_INTENT');
+    throw fail(422,intent.data.method==='UNSUPPORTED'?'CONSTRUCTION_METHOD_UNSUPPORTED':'EXPLICIT_CONSTRUCTION_SELECTION_REQUIRED');
+  }
+  if(raw?.schemaVersion!==candidate.VERSION&&!raw?.design?.data)throw fail(422,'CUTTING_GEOMETRY_REQUIRED');
   if(raw?.schemaVersion!==candidate.VERSION&&raw?.design?.data?.technical?.scrapSources?.[0]?.id!==undefined&&raw.design.data.technical.scrapSources[0].id!==run.sources[0].id)throw fail(409,'LEGACY_SCRAP_REFERENCE_MISMATCH');
   const c=raw?.schemaVersion===candidate.VERSION?raw:fromLegacy(raw,policy);
   const result=candidate.construct(c,{id:run.sources[0].id,...run.sourceSnapshot},concept.assessment.proposal,{normalizeEquivalent});
