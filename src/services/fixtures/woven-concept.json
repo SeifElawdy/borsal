@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "borsal.creative-concept/0.1",
+  "id": "accessory-1",
+  "productIdea": {
+    "name": "Woven Wrap",
+    "description": "A versatile fabric wrap for styling hair or accessorizing outfits"
+  },
+  "intendedUse": "Hair accessory or fashion accent",
+  "distinctiveFeatures": [
+    {
+      "id": "feature-1",
+      "description": "Intricate weave pattern"
+    }
+  ],
+  "sourceReferences": [
+    "fabric-6af7a9185ce38497e465b50a"
+  ],
+  "constraints": [
+    "Limited by fabric scrap size"
+  ],
+  "unresolvedRequirements": [
+    {
+      "id": "requirement-1",
+      "description": "Determine optimal fabric fold and tie methods",
+      "neededInformation": [
+        "Fabric weight and drape"
+      ]
+    }
+  ]
+}

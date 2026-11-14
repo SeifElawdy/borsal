@@ -24,6 +24,11 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
       execution:testing?'TEST_FIXTURE':'LIVE',textModel:COMPARISON_MODEL,imageModel:IMAGE_MODEL,estimates,proof:proof?{...proof,_id:undefined}:null,budget:{used:budget.used(),limit:budget.limit}};}
   router.post('/ui/projects',wrap(async(req,res)=>{const b=object({name:text.max(100)}).parse(req.body);await indexes();const p=await Project.create({name:b.name,scope:testing?'TEST_FIXTURE':'USER'});res.status(201).json({project:p,manufacturingVerified:false});}));
   router.get('/ui/projects',wrap(async(_req,res)=>res.json({projects:await Project.find().sort({updatedAt:-1}).lean()})));
+  router.post('/ui/projects/:id/observations',wrap(async(req,res)=>{const p=await project(req.params.id),b=object({expectedVersion:version,runId:id,conceptId:text.max(100),stretch:z.enum(['UNKNOWN','YES','NO']),accessory:z.enum(['UNKNOWN','YES','NO'])}).parse(req.body);
+    const r=await ownedRun(p,b.runId);if(!r.concepts.some(c=>c.id===b.conceptId))throw fail(409,'PROJECT_CONCEPT_MISMATCH');const f=await Fabric.findById(p.fabricId).lean();if(!f)throw fail(409,'PROJECT_SOURCE_REQUIRED');
+    const record={runId:b.runId,conceptId:b.conceptId,stretch:b.stretch,accessory:b.accessory,sourceHash:conceptService.sourceFor(f).snapshot.hash,basis:'USER_DECLARED_UNVERIFIED',createdAt:new Date()};
+    const updated=await Project.findOneAndUpdate({_id:p._id,__v:b.expectedVersion},{$push:{observations:record},$inc:{__v:1}},{new:true});if(!updated)throw fail(409,'PROJECT_VERSION_CONFLICT');res.json({project:updated,manufacturingVerified:false,inventoryMutated:false});
+  }));
   router.patch('/ui/projects/:id',wrap(async(req,res)=>{const p=await project(req.params.id),b=object({expectedVersion:version,selection}).parse(req.body),s=b.selection;
     if(s.conceptId&&!s.runId)throw fail(409,'PROJECT_RUN_REQUIRED');
     if(s.runId){const r=await ownedRun(p,s.runId);if(s.conceptId&&!r.concepts.some(c=>c.id===s.conceptId))throw fail(409,'PROJECT_CONCEPT_MISMATCH');}
@@ -64,7 +69,8 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     const op=await Operation.create({projectId:p._id,requestKey:key,requestHash,kind,campaignId,execution:testing?'TEST_FIXTURE':'LIVE',runId:run?._id,conceptId:req.params.conceptId,sourceHash:run?.sourceSnapshot.hash});
     try{
       const reserved=await Settings.findOneAndUpdate({_id:'workers-free',method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',paidPlan:false,expiresAt:{$gt:new Date()},blockedReason:null,remainingNeurons:{$gte:estimates[kind]}},{$inc:{remainingNeurons:-estimates[kind],revision:1}},{new:true});if(!reserved)throw fail(403,'FREE_ALLOCATION_INSUFFICIENT_OR_EXPIRED');
-      const runtime={authorized:true,freeTierConfirmed:true,root:generationRoot,testing,textProvider:simulatedProviders?.text,imageProvider:testing?simulatedProviders.image:imageProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true})};
+      const observation=p.observations?.at(-1);
+      const runtime={authorized:true,freeTierConfirmed:true,root:generationRoot,testing,userObservations:observation&&observation.conceptId===req.params.conceptId&&observation.sourceHash===run?.sourceSnapshot.hash?observation:null,textProvider:simulatedProviders?.text,imageProvider:testing?simulatedProviders.image:imageProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true})};
       if(kind==='CONCEPTS'){const r=await conceptService.generate(p.fabricId,input,null,runtime);op.result={runId:r._id};op.state=r.state==='FAILED'?'FAILED':'SUCCEEDED';op.httpStatus=r.state==='FAILED'?502:201;if(r.failure)op.failure=r.failure;}
       else if(kind==='TECHNICAL'){const r=await technicalGeneration.generate(run.id,req.params.conceptId,input,{runtime});if(r.failure){op.failure=r.failure;op.state='FAILED';op.httpStatus=502;}else{op.result={proposalId:r.proposal._id,generation:r.generation};op.proposalId=r.proposal._id;op.state='SUCCEEDED';op.httpStatus=201;}}
       else{const preview=await previewService.generate(prepared,p.id,campaignId,runtime);op.result={preview};op.state='SUCCEEDED';op.httpStatus=201;}
@@ -74,6 +80,11 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
   router.post('/api/fabrics/:fabricId/concepts',generation('CONCEPTS'));
   router.post('/api/concept-runs/:id/concepts/:conceptId/technical-proposals/generate',generation('TECHNICAL'));
   router.post('/api/concept-runs/:id/concepts/:conceptId/previews',generation('IMAGE'));
+  router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/proposals/:proposalId/construct',wrap(async(req,res)=>{
+    if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
+    const result=await require('../services/designConstruction').create(req.params.id,req.params.conceptId,id.parse(req.params.proposalId),req.body);
+    res.status(result.replayed?200:201).json({...result,manufacturingVerified:false});
+  }));
   router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/assisted-draft',wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
     const proposal=await require('../services/assistedDraft').create(req.params.id,req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});

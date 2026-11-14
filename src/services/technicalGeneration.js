@@ -10,7 +10,7 @@ const {openBudget,validateCampaignId}=require('../../experiments/design-language
 const {cloudflareProvider,COMPARISON_MODEL}=require('../../experiments/design-language/ai-spike/provider');
 const ROOT=path.resolve(__dirname,'../../experiments/design-language/ai-spike/results');
 const inputSchema=z.object({mode:z.enum(['MOCK','LIVE']).default('MOCK'),campaignId:z.string(),freeTierConfirmed:z.boolean().default(false),
-  expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
+  strategy:z.enum(['LEGACY','CANDIDATE']).default('LEGACY'),feedbackFromProposalId:z.string().regex(/^[a-f0-9]{24}$/).optional(),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
 function messages(run,concept){
   // Reuse the current compact technical types/rules; adapt only the API envelope/source/selected product.
   const system=legacyMessages()[0].content
@@ -43,13 +43,14 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
     budget=openBudget(root);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
     secrets=[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI];
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
-  const prompt=messages(run,concept),promptBytes=Buffer.byteLength(JSON.stringify(prompt));
+  let feedback;if(input.feedbackFromProposalId){const previous=await require('../models/TechnicalProposal').findById(input.feedbackFromProposalId).lean();if(!previous||String(previous.runId)!==run.id||previous.conceptId!==conceptId||previous.reviewVersion!==concept.reviewVersion||previous.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'FEEDBACK_SOURCE_MISMATCH');feedback={status:previous.status,unresolved:previous.assessment.constructionPlan?.unresolved,errors:previous.assessment.errors,geometry:previous.assessment.preliminaryGeometry?{status:previous.assessment.preliminaryGeometry.result.status,reason:previous.assessment.preliminaryGeometry.result.reason,limits:previous.assessment.preliminaryGeometry.result.searchLimits,area:previous.assessment.preliminaryGeometry.result.areaSummary,globalImpossibilityClaimed:false}:null};}
+  const prompt=input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations):messages(run,concept),promptBytes=Buffer.byteLength(JSON.stringify(prompt));
   const conservativeMaxNeurons=(24000*26668+6144*204805)/1000000;
   if(promptBytes+512+6144>24000||conservativeMaxNeurons>2000)throw fail(422,'PREFLIGHT_LIMIT_EXCEEDED');
   const parent=path.join(root,'campaigns');fs.mkdirSync(parent,{recursive:true});if(fs.lstatSync(parent).isSymbolicLink())throw fail(409,'INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,input.campaignId);try{fs.mkdirSync(directory);}catch(e){if(e.code==='EEXIST')throw fail(409,'CAMPAIGN_ALREADY_EXISTS');throw e;}
   const save=(name,value,raw=false)=>writeNew(path.join(directory,name),value,secrets,raw);
-  const provenance={execution:runtime?.testing?'TEST_FIXTURE':'LIVE',campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
+  const provenance={strategy:input.strategy,execution:runtime?.testing?'TEST_FIXTURE':'LIVE',campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
   save('lock.json',{...provenance,maxRequests:1,maxRepairs:0});
   save('request.json',{...provenance,messages:prompt,promptBytes,conservativeMaxNeurons});
   const slot=budget?budget.reserve(input.campaignId,1):null;
@@ -64,9 +65,10 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   // Recheck review/source/version in the existing transaction AFTER inference, never retry inference.
   try{
     const proposal=await technical.create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'MODEL_OUTPUT',sourceLabel:'campaign:'+input.campaignId,rawProposalText:response.text},generation);
-    save('proposal.json',proposal.toObject());if(proposal.previewSvg)save('preview.svg',proposal.previewSvg,true);
-    save('result.json',{...generation,requestsDispatched:1,proposalId:String(proposal._id),status:proposal.status,verdict:proposal.verdict,manufacturingVerified:false});
-    return {proposal,generation,manufacturingVerified:false};
+    save('proposal.json',proposal.toObject());let derived;if(input.strategy==='CANDIDATE'&&proposal.status!=='REJECTED'){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY'});save('derived-proposal.json',derived.proposal.toObject());}
+    const final=derived?.proposal||proposal;if(final.previewSvg)save('preview.svg',final.previewSvg,true);
+    save('result.json',{...generation,requestsDispatched:1,proposalId:String(final._id),rawProposalId:String(proposal._id),status:final.status,verdict:final.verdict,manufacturingVerified:false});
+    return {proposal:final,rawProposal:proposal,generation,manufacturingVerified:false};
   }catch(error){save('persistence-failure.json',{...generation,code:error.status?error.code:'PERSISTENCE_FAILED',rawResponsePreserved:true});throw error;}
 }
 module.exports={generate,messages,inputSchema};

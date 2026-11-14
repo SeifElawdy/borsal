@@ -217,4 +217,4 @@ function precheck(input){
   if(!layers.construction.reasons.length)mark('construction','PASS','SUPPORTED_STRUCTURAL_CHECKS_ONLY');
   result.status=combine(Object.values(layers));return result;
 }
-module.exports={precheck,requestSchema};
+module.exports={precheck,requestSchema,onOrInside,properCross};

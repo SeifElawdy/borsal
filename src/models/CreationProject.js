@@ -3,6 +3,7 @@ const projectSchema=new mongoose.Schema({
   name:{type:String,required:true},scope:{type:String,enum:['USER','TEST_FIXTURE'],default:'USER',immutable:true},
   fabricId:{type:mongoose.Schema.Types.ObjectId,default:undefined},
   selection:{type:mongoose.Schema.Types.Mixed,default:()=>({stage:0,showUpload:true})},
+  observations:{type:[mongoose.Schema.Types.Mixed],default:()=>[]},
 },{timestamps:true,optimisticConcurrency:true});
 projectSchema.index({fabricId:1},{unique:true,partialFilterExpression:{fabricId:{$type:'objectId'}}});
 const operationSchema=new mongoose.Schema({

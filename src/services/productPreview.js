@@ -15,10 +15,19 @@ async function prepare(runId,conceptId,proposalId,visualNotes=''){
     proposalId:proposal?._id?.toString()||null,proposalVersion:proposal?.version||null,proposalHash:proposal?.provenance.inputSha256||null,sourceImageSha256:null,
     label:'ILLUSTRATIVE_AI_PREVIEW',physicalAccuracy:'UNVERIFIED',conditioning:'ACTUAL_SOURCE_PHOTO_APPROXIMATE_VISUAL_REFERENCE',visualNotes};
   const p=concept.assessment.proposal;
+  let technical=null;
+  if(proposal&&proposal.status!=='REJECTED'&&proposal.previewSvg){
+    let data=proposal.originalInput?.proposal;if(!data&&proposal.originalInput?.rawProposalText)try{data=JSON.parse(proposal.originalInput.rawProposalText);}catch{}
+    const t=data?.design?.data?.technical,layout=proposal.assessment?.preliminaryGeometry?.result||proposal.feasibility?.evidence?.nesting;
+    technical={evidence:'UNVERIFIED_DESIGN_PROPOSAL',pieces:t?.patternPieces?.map(piece=>({id:piece.id,copies:piece.cutCount,cuttingOutlines:data?.context?.instances?.filter(i=>i.pieceId===piece.id).map(i=>({copy:i.copy,polygonCm:i.cuttingPolygonCm})),allowanceCm:piece.seamAllowanceCm,folds:piece.folds})),
+      requiredMaterials:t?.bom?.map(b=>({type:b.material?.type,quantity:b.quantity,source:b.source.kind,availability:'NOT_VERIFIED'})),
+      proposedAssembly:proposal.assessment?.constructionPlan?.instructions||t?.assembly,
+      layout:layout?{status:layout.status,placements:layout.placements,area:layout.areaSummary}:null};
+  }
   const prompt=['Photorealistic concept visualization of this one selected product, on a neutral studio background.',
     'Use image 0 only as an approximate fabric appearance reference; ignore the calibration mat, printed markers and background. Do not put markers on the product.',
     JSON.stringify({product:p.productIdea,intendedUse:p.intendedUse,features:p.distinctiveFeatures,constraints:p.constraints,unresolved:p.unresolvedRequirements,
-      technical:proposal?.status==='CHECKED'?proposal.originalInput?.proposal?.design?.data?.creative:null,userVisualNotes:visualNotes}),
+      technical,userVisualNotes:visualNotes}),
     'Do not add unsupported accessories or claim measured construction, exact texture, fabric properties, dimensional accuracy or manufacturing feasibility. Undefined visual details are illustrative artistic assumptions, not source facts.'].join('\n');
   return {run,concept,provenance,prompt,fingerprint:fingerprint({sourceHash,conceptHash,reviewVersion:concept.reviewVersion,proposalHash:provenance.proposalHash,visualNotes})};
 }
