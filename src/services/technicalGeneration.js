@@ -7,7 +7,7 @@ const {messages:legacyMessages}=require('../../experiments/live-pattern-generati
 const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter');
 const {diagnoseOutput}=require('../../experiments/design-language/ai-spike/harness');
 const {openBudget,validateCampaignId}=require('../../experiments/design-language/ai-spike/campaign');
-const {cloudflareProvider,COMPARISON_MODEL}=require('../../experiments/design-language/ai-spike/provider');
+const {cloudflareProvider,COMPARISON_MODEL,CONSTRUCTION_POLICY,constructionMaxNeurons}=require('../../experiments/design-language/ai-spike/provider');
 const ROOT=path.resolve(__dirname,'../../experiments/design-language/ai-spike/results');
 const inputSchema=z.object({mode:z.enum(['MOCK','LIVE']).default('MOCK'),campaignId:z.string(),freeTierConfirmed:z.boolean().default(false),
   strategy:z.enum(['LEGACY','CANDIDATE','CONSTRUCTION']).default('LEGACY'),normalizeEquivalent:z.boolean().default(false),revisionApproach:z.enum(['SMALLER_SAME_INTENT','DIFFERENT_CONSTRUCTION_SAME_INTENT']).optional(),feedbackFromProposalId:z.string().regex(/^[a-f0-9]{24}$/).optional(),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
@@ -48,8 +48,8 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   const prompt=input.strategy==='CONSTRUCTION'?require('./constructionPlanner').messages(run,concept):input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations,input.revisionApproach):messages(run,concept);
   if(runtime?.designSpecification){await require('./designIdentity').assertActive(runtime.designSpecification);applyDesign(prompt,runtime.designSpecification);}
   const promptBytes=Buffer.byteLength(JSON.stringify(prompt));
-  const conservativeMaxNeurons=input.strategy==='CONSTRUCTION'?Math.ceil(((promptBytes+512)*31818+1536*68182)/1000000):(24000*26668+6144*204805)/1000000;
-  if(input.strategy==='CONSTRUCTION'&&(!runtime||promptBytes>5500||conservativeMaxNeurons>300))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
+  const conservativeMaxNeurons=input.strategy==='CONSTRUCTION'?constructionMaxNeurons(promptBytes):(24000*26668+6144*204805)/1000000;
+  if(input.strategy==='CONSTRUCTION'&&(!runtime||promptBytes>CONSTRUCTION_POLICY.maxPromptBytes||conservativeMaxNeurons>CONSTRUCTION_POLICY.freeTierHoldNeurons))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
   if(promptBytes+512+6144>24000||conservativeMaxNeurons>2000)throw fail(422,'PREFLIGHT_LIMIT_EXCEEDED');
   const parent=path.join(root,'campaigns');fs.mkdirSync(parent,{recursive:true});if(fs.lstatSync(parent).isSymbolicLink())throw fail(409,'INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,input.campaignId);try{fs.mkdirSync(directory);}catch(e){if(e.code==='EEXIST')throw fail(409,'CAMPAIGN_ALREADY_EXISTS');throw e;}

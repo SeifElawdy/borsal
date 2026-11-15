@@ -3,6 +3,13 @@ const COMPARISON_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const CONSTRUCTION_MODEL = '@cf/openai/gpt-oss-120b';
 const APPROVED_MODELS = Object.freeze([MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL]);
 const GENERATION_PARAMETERS = Object.freeze({ response_format: Object.freeze({ type: 'json_object' }), stream: false, temperature: 0.7, max_tokens: 6144 });
+// Native Workers AI messages input; do not use Responses-only reasoning objects.
+const CONSTRUCTION_PARAMETERS = Object.freeze({ ...GENERATION_PARAMETERS, temperature: 0.3, max_tokens: 2048, reasoning_effort: 'low' });
+const CONSTRUCTION_POLICY = Object.freeze({maxPromptBytes:5500,promptOverheadTokens:512,inputNeuronsPerMillion:31818,outputNeuronsPerMillion:68182,freeTierHoldNeurons:350});
+function constructionMaxNeurons(promptBytes) {
+  if(!Number.isSafeInteger(promptBytes)||promptBytes<0)throw new ProviderError('INVALID_PROMPT_SIZE');
+  return Math.ceil(((promptBytes+CONSTRUCTION_POLICY.promptOverheadTokens)*CONSTRUCTION_POLICY.inputNeuronsPerMillion+CONSTRUCTION_PARAMETERS.max_tokens*CONSTRUCTION_POLICY.outputNeuronsPerMillion)/1000000);
+}
 const TIMEOUT_MS = 60000;
 // Only enumerated codes may leave the transport. Never retain messages, URLs,
 // stack traces, certificate details, headers or arbitrary exception properties.
@@ -23,7 +30,7 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
   // Presence of credentials or a prior image spike does not establish a free-only account.
   if (freeTierConfirmed !== true) throw new ProviderError('LIVE_TEST_BLOCKED_FREE_TIER_UNVERIFIED');
   if (!['DEFAULT','CONSTRUCTION'].includes(profile) || profile === 'CONSTRUCTION' && model !== CONSTRUCTION_MODEL) throw new ProviderError('PROFILE_NOT_APPROVED');
-  const parameters=profile==='CONSTRUCTION'?Object.freeze({...GENERATION_PARAMETERS,max_tokens:1536,temperature:0.3}):GENERATION_PARAMETERS;
+  const parameters=profile==='CONSTRUCTION'?CONSTRUCTION_PARAMETERS:GENERATION_PARAMETERS;
   return {
     mode: 'LIVE', name: 'Cloudflare Workers AI', model,
     generationParameters: Object.freeze({ ...parameters, timeoutMs }),
@@ -101,4 +108,4 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
     },
   };
 }
-module.exports = { MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL, APPROVED_MODELS, GENERATION_PARAMETERS, ProviderError, cloudflareProvider };
+module.exports = { MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL, APPROVED_MODELS, GENERATION_PARAMETERS, CONSTRUCTION_PARAMETERS, CONSTRUCTION_POLICY, constructionMaxNeurons, ProviderError, cloudflareProvider };

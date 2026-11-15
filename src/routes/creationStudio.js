@@ -4,13 +4,13 @@ const {Project,Operation,Settings}=require('../models/CreationProject');
 const Fabric=require('../models/FabricPiece'),Run=require('../models/ConceptRun'),Proposal=require('../models/TechnicalProposal');
 const conceptService=require('../services/conceptFlow'),technicalGeneration=require('../services/technicalGeneration'),previewService=require('../services/productPreview');
 const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter'),{openBudget}=require('../../experiments/design-language/ai-spike/campaign');
-const {ROOT}=require('../services/localAI'),{imageProvider,MODEL:IMAGE_MODEL}=require('../services/imageProvider'),{COMPARISON_MODEL,CONSTRUCTION_MODEL}=require('../../experiments/design-language/ai-spike/provider');
+const {ROOT}=require('../services/localAI'),{imageProvider,MODEL:IMAGE_MODEL}=require('../services/imageProvider'),{COMPARISON_MODEL,CONSTRUCTION_MODEL,CONSTRUCTION_POLICY}=require('../../experiments/design-language/ai-spike/provider');
 const identity=require('../services/designIdentity');
 const fail=conceptService.fail,object=s=>z.object(s).strict(),id=z.string().regex(/^[a-f0-9]{24}$/i),hash=z.string().regex(/^[a-f0-9]{64}$/),text=z.string().trim().min(1),version=z.number().int().min(0);
 const selection=object({stage:z.number().int().min(0).max(7),showUpload:z.boolean().optional(),runId:id.nullable().optional(),conceptId:z.string().nullable().optional(),proposalId:id.nullable().optional(),previewId:id.nullable().optional()});
 const imageInput=object({proposalId:id.optional(),visualNotes:z.string().max(1000).default(''),viewRole:z.enum(['HERO','ALTERNATE','DETAIL','IN_USE']).default('HERO'),referencePreviewId:id.optional(),expectedReviewVersion:version,expectedSourceHash:hash,freeTierConfirmed:z.literal(true),regenerate:z.boolean().default(false)});
 const imageSetInput=imageInput.omit({viewRole:true,referencePreviewId:true});
-const estimates={CONCEPTS:1900,TECHNICAL:1900,CONSTRUCTION:300,IMAGE:150,IMAGE_SET:600}; // Four conservative per-image holds, no paid usage.
+const estimates={CONCEPTS:1900,TECHNICAL:1900,CONSTRUCTION:CONSTRUCTION_POLICY.freeTierHoldNeurons,IMAGE:150,IMAGE_SET:600}; // Four conservative per-image holds, no paid usage.
 function publicOperation(op){if(!op)return null;const o=op.toObject?op.toObject():op,result={...o.result},asset=(p,role)=>({...p,filePath:undefined,assetUrl:'/api/previews/'+o._id+'/image'+(role?'?view='+role:'')});
  if(!o.result)return o;
  if(result.preview)result.preview=asset(result.preview);
@@ -83,7 +83,7 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     if(kind==='TECHNICAL'){const c=run.concepts.find(c=>c.id===req.params.conceptId),q=p.selection?.conceptId===c.id&&p.selection?.proposalId?await Proposal.findById(p.selection.proposalId).lean():null;designSpecification=await identity.bind(p,run,c,q);}
     if(designSpecification&&req.get('X-Borsal-Design')&&req.get('X-Borsal-Design')!==designSpecification.fingerprint)throw fail(409,'DESIGN_VERSION_CHANGED');
     const estimateKey=fullSet?'IMAGE_SET':kind==='TECHNICAL'&&input.strategy==='CONSTRUCTION'?'CONSTRUCTION':kind;
-    if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(technicalGeneration.applyDesign(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification)))>5500)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
+    if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(technicalGeneration.applyDesign(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification)))>CONSTRUCTION_POLICY.maxPromptBytes)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
     const config=await capabilities();if(config.reason)throw fail(403,config.reason);
     const op=await Operation.create({projectId:p._id,requestKey:key,requestHash,kind,campaignId,execution:testing?'TEST_FIXTURE':'LIVE',runId:run?._id,conceptId:req.params.conceptId,sourceHash:run?.sourceSnapshot.hash});
     try{
