@@ -48,6 +48,11 @@ function build(proposal,concept,previews){
   block('CREATIVE_FUNCTION_NOT_VERIFIED','Product function and distinctive creative features need an explicit engineered implementation and human review. Geometry and generic component roles do not prove them.');
   block('PHYSICAL_ASSEMBLY_NOT_VERIFIED','Material behavior, folds, weaving, tie/closure retention, finished size and physical construction are not established.');
   report.creativeRequirements=[concept?.productIdea?.description,...(concept?.distinctiveFeatures||[]).map(f=>f.description),...(concept?.unresolvedRequirements||[]).map(r=>r.description)].filter(Boolean).map(description=>({description,status:'UNVERIFIED',basis:'Creative intent is preserved as a requirement, not evidence of technical implementation.'}));
+  if(intent?.method==='TWO_PANEL_SNAP_FLAP_POUCH'){
+    report.proposedProduct.classification='EXPLICIT_CONSTRUCTION_INTERPRETATION';
+    block('FLAP_HINGE_AND_SNAP_PHYSICAL_TEST_REQUIRED','The integral flap hinge, hardware installation and coin-retention performance require physical testing. INSTALL checks references, not snap reliability.');
+    report.previewNotice='This proposed plan uses two flat panels, an integral flap and a paired snap. Gathered/drawstring openings or rounded shaping in the saved illustrations are not engineered by this pattern.';
+  }
   report.previews=previews.map(p=>({id:p.id,label:'ILLUSTRATIVE_AI_PREVIEW',assetUrl:p.assetUrl,sourceMatches:p.sourceHash===proposal.provenance.fabricSourceHash,conceptMatches:p.conceptHash===proposal.provenance.conceptSha256,reviewMatches:p.reviewVersion===proposal.reviewVersion,technicalVersionLinked:p.proposalId===String(proposal._id)&&p.proposalHash===proposal.provenance.inputSha256,visualFidelity:'UNVERIFIED',notice:'Illustration is not evidence of folds, thickness, texture, attachment geometry, finished dimensions or construction.'}));
   report.reportHash=fingerprint(report);report.annotationSvg=diagram(report);return report;
 }

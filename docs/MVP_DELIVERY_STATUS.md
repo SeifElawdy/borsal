@@ -169,3 +169,8 @@ Five public steps replace the engineering navigation. Main actions follow actual
 Both new private backups are verified; final addendum: `E:\Borsal-Recovery\borsal-pre-model-upgrade-20261114T170313Z\simple-studio-verified-20261114T204426021Z`. See [PROJECT_RECOVERY_CHECKPOINT.md](PROJECT_RECOVERY_CHECKPOINT.md). Original 35 user documents/indexes and application artifacts match pre-change evidence. Final dump restored 35 documents with zero failures; bundle/file hashes verified.
 
 Current global ledger: **29/30**, one remaining; **ZERO calls in this task**. No automatic retry or live validation was performed. Normal launch: **`npm run mvp` → http://127.0.0.1:5173**. Useful AI construction is still not guaranteed; missing physical/material/stock evidence remains a production blocker. Do not spend the remaining request without explicit confirmation and current Free-tier safeguards.
+
+
+## Coin Pouch technical recovery and complete review ? 2026-11-15
+
+See [COIN_POUCH_TECHNICAL_REVIEW_FINAL.md](COIN_POUCH_TECHNICAL_REVIEW_FINAL.md) for the current original-source replay, rollback references, pattern/nesting/assembly evidence, browser screenshots and verification. New snap-flap construction is an explicit alternative requiring selection, not a repaired AI response. Its 69.75 cm? cutting layout fits the saved 162.0459 cm? polygon (43.04% utilization); physical construction remains UNVERIFIED. The saved source photo is the known synthetic calibration/sample image. Original project records, images, usage receipts and release ZIP remain unchanged. Current usage is 48 requests with no internal cap; ZERO inference in this task. Earlier dated counts above are historical.

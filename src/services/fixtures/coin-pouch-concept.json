@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "borsal.creative-concept/0.1",
+  "id": "coin-pouch",
+  "productIdea": {
+    "name": "Coin Pouch",
+    "description": "A small fabric pouch for storing coins or small treasures"
+  },
+  "intendedUse": "Storing small valuables",
+  "distinctiveFeatures": [
+    {
+      "id": "secure-closure",
+      "description": "Features a secure closure to prevent loss"
+    }
+  ],
+  "sourceReferences": [
+    "fabric-TEST_FIXTURE"
+  ],
+  "constraints": [
+    "Must be small enough to fit in a pocket or purse",
+    "Must have a secure closure"
+  ],
+  "unresolvedRequirements": [
+    {
+      "id": "closure-type",
+      "description": "Determine the type of closure to use",
+      "neededInformation": [
+        "Closure options",
+        "User preferences"
+      ]
+    }
+  ]
+}

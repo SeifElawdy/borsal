@@ -1,0 +1,10 @@
+[
+  {
+    "version": 1,
+    "rawText": "{\n  \"schemaVersion\": \"borsal.construction-intent/0.1\",\n  \"name\": \"Coin Pouch\",\n  \"function\": \"Small fabric pouch for storing coins or small treasures\",\n  \"method\": \"UNSUPPORTED\",\n  \"creativeChanges\": [\n    \"Add a closure mechanism (snap, button, or drawstring) after constructing the basic sleeve\",\n    \"Consider reinforcing the bottom seam for durability\",\n    \"Introduce a small internal pocket for extra items\"\n  ],\n  \"unresolved\": [\n    \"Closure type not defined; need decision on closure mechanism (snap, button, drawstring, etc.)\"\n  ]\n}"
+  },
+  {
+    "version": 2,
+    "rawText": "{\n  \"schemaVersion\": \"borsal.construction-intent/0.1\",\n  \"name\": \"Coin Pouch\",\n  \"function\": \"Storing small valuables\",\n  \"method\": \"TWO_PANEL_OPEN_SLEEVE\",\n  \"cutWidthCm\": 6,\n  \"cutHeightCm\": 8,\n  \"seamAllowanceCm\": 0.5,\n  \"hemTurnCm\": 0.5,\n  \"creativeChanges\": [\n    \"Base two‑panel pouch shape\",\n    \"Open top to be later closed with chosen closure\"\n  ],\n  \"unresolved\": [\n    \"closure-type\"\n  ]\n}"
+  }
+]
