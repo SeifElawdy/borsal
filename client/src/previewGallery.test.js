@@ -15,3 +15,7 @@ it('never changes or discards historical single previews when finding the curren
  const legacy={_id:'old',result:{preview:{...context,prompt:'Original saved prompt'}}},items=[legacy],before=JSON.stringify(items);
  expect(galleryFor(items,context).count).toBe(0);expect(JSON.stringify(items)).toBe(before);
 });
+it('keeps completed views visible while a batch is partial, without pretending missing views succeeded',async()=>{
+ const {previewsFor}=await import('./designFlow.mjs'),hero=image('set','HERO'),use=image('set:IN_USE','IN_USE','set'),op={_id:'set',kind:'IMAGE',state:'FAILED',projectId:'p',runId:'r',conceptId:'c',result:{previewSet:{views:[{viewRole:'HERO',status:'SUCCEEDED',preview:hero.result.preview},{viewRole:'DETAIL',status:'FAILED'},{viewRole:'IN_USE',status:'SUCCEEDED',preview:use.result.preview}]}}};
+ const rows=previewsFor([op],'p','r','c');expect(rows).toHaveLength(2);const gallery=galleryFor(rows,context);expect(gallery.count).toBe(2);expect(gallery.complete).toBe(false);expect(gallery.views.IN_USE).toBeDefined();
+});

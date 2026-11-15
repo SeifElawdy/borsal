@@ -26,6 +26,6 @@ it('never falls back to another project concept or proposal when saved reference
  expect(resolveContext(data,{projectId:'p',runId:'r',conceptId:'c',proposalId:'q'}).proposal._id).toBe('q');
 });
 it('requires matching project, run and concept when showing saved images',()=>{
- const a={kind:'IMAGE',state:'SUCCEEDED',projectId:'p',runId:'r',conceptId:'c'};
+ const a={kind:'IMAGE',state:'SUCCEEDED',projectId:'p',runId:'r',conceptId:'c',result:{preview:{}}};
  expect(previewsFor([a,{...a,runId:'other'},{...a,projectId:'other'},{...a,conceptId:'other'}],'p','r','c')).toEqual([a]);
 });

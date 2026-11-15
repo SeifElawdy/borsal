@@ -19,6 +19,9 @@ export function resolveContext(data,selection){
  const proposal=selection.proposalId?proposals.find(p=>p._id===selection.proposalId):proposals.find(p=>p._id===data?.preferredProposalId)||proposals[0];
  return {userMode,project,fabric,runs,run,concept,proposals,proposal};
 }
-export const previewsFor=(operations,projectId,runId,conceptId)=>(operations||[]).filter(o=>o.kind==='IMAGE'&&o.state==='SUCCEEDED'&&o.projectId===projectId&&String(o.runId)===runId&&o.conceptId===conceptId);
+export const previewsFor=(operations,projectId,runId,conceptId)=>(operations||[]).filter(o=>o.kind==='IMAGE'&&o.projectId===projectId&&String(o.runId)===runId&&o.conceptId===conceptId).flatMap(o=>{
+ if(o.result?.previewSet)return o.result.previewSet.views.filter(v=>v.status==='SUCCEEDED'&&v.preview).map(v=>({...o,_id:v.viewRole==='HERO'?o._id:o._id+':'+v.viewRole,state:'SUCCEEDED',result:{preview:v.preview}}));
+ return o.state==='SUCCEEDED'&&o.result?.preview?[o]:[];
+});
 export function stageForGroup(group,w){if(group===2&&w.concept)return 3;if(group===3)return resultStage(w.proposal);return journey[group].target;}
 export const friendlyStatus=value=>({CONCEPT_ONLY:'Design needs more work',UNVERIFIED:'Needs verification',GEOMETRY_PASS:'Cutting layout fits the fabric',CONSTRUCTION_UNVERIFIED:'Assembly needs testing',CREATIVE_COVERAGE_PARTIAL:'Some idea details remain unresolved',PASS:'Check passed',FAIL:'Needs revision',REJECTED:'Not approved',FAILED:'Generation failed',DRAFT:'Awaiting confirmation',CONFIRMED:'Outline confirmed',APPROVED_FOR_DRAFTING:'Selected for design',APPROVED_FOR_PROTOTYPE:'Approved for prototype',PENDING_REVIEW:'Awaiting your review',NEEDS_ACTION:'Your next step',BLOCKED:'Not ready yet',IN_PROGRESS:'In progress',COMPLETED:'Done'}[value]||value?.replaceAll('_',' ')||'Needs verification');

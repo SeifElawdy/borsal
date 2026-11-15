@@ -8,8 +8,13 @@ const {ROOT}=require('../services/localAI'),{imageProvider,MODEL:IMAGE_MODEL}=re
 const fail=conceptService.fail,object=s=>z.object(s).strict(),id=z.string().regex(/^[a-f0-9]{24}$/i),hash=z.string().regex(/^[a-f0-9]{64}$/),text=z.string().trim().min(1),version=z.number().int().min(0);
 const selection=object({stage:z.number().int().min(0).max(7),showUpload:z.boolean().optional(),runId:id.nullable().optional(),conceptId:z.string().nullable().optional(),proposalId:id.nullable().optional(),previewId:id.nullable().optional()});
 const imageInput=object({proposalId:id.optional(),visualNotes:z.string().max(1000).default(''),viewRole:z.enum(['HERO','ALTERNATE','DETAIL','IN_USE']).default('HERO'),referencePreviewId:id.optional(),expectedReviewVersion:version,expectedSourceHash:hash,freeTierConfirmed:z.literal(true),regenerate:z.boolean().default(false)});
-const estimates={CONCEPTS:1900,TECHNICAL:1900,CONSTRUCTION:300,IMAGE:150}; // 1024 input/output: 4*(5.37+26.05)=125.68 Neurons, rounded conservatively.
-function publicOperation(op){if(!op)return null;const o=op.toObject?op.toObject():op;return {...o,result:o.result?.preview?{...o.result,preview:{...o.result.preview,filePath:undefined,assetUrl:'/api/previews/'+o._id+'/image'}}:o.result};}
+const imageSetInput=imageInput.omit({viewRole:true,referencePreviewId:true});
+const estimates={CONCEPTS:1900,TECHNICAL:1900,CONSTRUCTION:300,IMAGE:150,IMAGE_SET:600}; // Four conservative per-image holds, no paid usage.
+function publicOperation(op){if(!op)return null;const o=op.toObject?op.toObject():op,result={...o.result},asset=(p,role)=>({...p,filePath:undefined,assetUrl:'/api/previews/'+o._id+'/image'+(role?'?view='+role:'')});
+ if(!o.result)return o;
+ if(result.preview)result.preview=asset(result.preview);
+ if(result.previewSet)result.previewSet={...result.previewSet,views:result.previewSet.views.map(v=>({...v,...(v.preview?{preview:asset(v.preview,v.viewRole)}:{})}))};
+ return {...o,result};}
 function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROOT}={}){
   const router=express.Router(),testing=!!simulatedProviders;
   const safeTesting=()=>{if(testing&&(!/^borsal-[a-z0-9-]+-test$/.test(mongoose.connection.name||'')||path.resolve(generationRoot)===ROOT))throw fail(503,'UNSAFE_PROVIDER_TEST_CONFIGURATION');};
@@ -19,7 +24,7 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
   async function ownedRun(p,runId){const r=await Run.findById(id.parse(runId));if(!r||String(r.fabricId)!==String(p.fabricId))throw fail(409,'PROJECT_SOURCE_MISMATCH');return r;}
   async function capabilities(){safeTesting();const proof=await Settings.findById('workers-free').lean(),budget=openBudget(generationRoot),credentials=testing||!!(process.env.CF_ACCOUNT_ID&&process.env.CF_API_TOKEN);
     const verified=!!proof&&proof.method===(testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION')&&!proof.blockedReason&&!proof.paidPlan&&new Date(proof.expiresAt)>new Date();
-    return {constructionGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONSTRUCTION,constructionModel:CONSTRUCTION_MODEL,conceptGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONCEPTS,technicalGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.TECHNICAL,imagePreview:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE,
+    return {constructionGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONSTRUCTION,constructionModel:CONSTRUCTION_MODEL,conceptGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONCEPTS,technicalGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.TECHNICAL,imagePreview:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE,imagePreviewSet:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE_SET,
       reason:!credentials?'CLOUDFLARE_CREDENTIALS_NOT_CONFIGURED':!verified?(proof?.blockedReason||'CURRENT_OWNER_FREE_TIER_VERIFICATION_REQUIRED'):null,
       execution:testing?'TEST_FIXTURE':'LIVE',textModel:COMPARISON_MODEL,imageModel:IMAGE_MODEL,estimates,proof:proof?{...proof,_id:undefined}:null,budget:{used:budget.used(),limit:budget.limit}};}
   router.post('/ui/projects',wrap(async(req,res)=>{const b=object({name:text.max(100)}).parse(req.body);await indexes();const p=await Project.create({name:b.name,scope:testing?'TEST_FIXTURE':'USER'});res.status(201).json({project:p,manufacturingVerified:false});}));
@@ -48,10 +53,11 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     const expires=new Date(now);expires.setUTCHours(24,0,0,0);const current=await Settings.findById('workers-free');if((current?.revision||0)!==b.expectedVersion)throw fail(409,'SETTINGS_VERSION_CONFLICT');
     const updated=await Settings.findOneAndUpdate({_id:'workers-free',revision:current?b.expectedVersion:{$exists:false}},{$set:{verifiedAt:checked,expiresAt:expires,remainingNeurons:b.remainingNeurons,paidPlan:false,method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',blockedReason:null},$inc:{revision:1}},{new:true,upsert:!current});if(!updated)throw fail(409,'SETTINGS_VERSION_CONFLICT');res.json(await capabilities());
   }));
-  async function reply(op,res,replayed=false){const body={operation:publicOperation(op),replayed,manufacturingVerified:false};if(op.result?.runId)body.run=await Run.findById(op.result.runId).lean();if(op.result?.proposalId)body.proposal=await Proposal.findById(op.result.proposalId).lean();if(op.result?.preview)body.preview=publicOperation(op).result.preview;if(op.failure)body.error=op.failure.code;return res.status(op.state==='PENDING'?202:op.httpStatus||200).json(body);}
-  function generation(kind){return wrap(async(req,res)=>{
+  async function reply(op,res,replayed=false){const body={operation:publicOperation(op),replayed,manufacturingVerified:false};if(op.result?.runId)body.run=await Run.findById(op.result.runId).lean();if(op.result?.proposalId)body.proposal=await Proposal.findById(op.result.proposalId).lean();if(op.result?.preview)body.preview=publicOperation(op).result.preview;if(op.result?.previewSet)body.previewSet=publicOperation(op).result.previewSet;if(op.failure)body.error=op.failure.code;return res.status(op.state==='PENDING'?202:op.httpStatus||200).json(body);}
+  async function blockProviderFailure(failure){if(['PROVIDER_HTTP_ERROR','AUTHENTICATION_OR_PERMISSION','QUOTA_OR_RATE_LIMIT'].includes(failure?.code)&&[401,403,429].includes(failure?.httpStatus))await Settings.updateOne({_id:'workers-free'},{$set:{blockedReason:'PROVIDER_AUTH_OR_QUOTA_REQUIRES_REVIEW'}});}
+  function generation(kind,fullSet=false){return wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');
-    if(req.get('X-Borsal-Calls')!=='1')throw fail(400,'ONE_EXPLICIT_CALL_CONFIRMATION_REQUIRED');
+    if(req.get('X-Borsal-Calls')!==(fullSet?'4':'1'))throw fail(400,fullSet?'FOUR_EXPLICIT_CALL_CONFIRMATION_REQUIRED':'ONE_EXPLICIT_CALL_CONFIRMATION_REQUIRED');
     const p=await project(req.get('X-Borsal-Project')),key=z.string().uuid().parse(req.get('Idempotency-Key')),requestHash=fingerprint({kind,path:req.path,body:req.body,source:req.get('X-Borsal-Source')});await indexes();
     const existing=await Operation.findOne({projectId:p._id,requestKey:key});if(existing){if(existing.requestHash!==requestHash)throw fail(409,'IDEMPOTENCY_PAYLOAD_CONFLICT');return reply(existing,res,true);}
     const campaignId='mvp-'+kind.toLowerCase()+'-'+key;let input,run,prepared;
@@ -62,14 +68,14 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
       if(conceptService.sourceFor(f).snapshot.hash!==req.get('X-Borsal-Source'))throw fail(409,'FABRIC_SOURCE_CHANGED');
     }else{run=await ownedRun(p,req.params.id);await conceptService.ensureCurrent(run);if(run.sourceSnapshot.hash!==req.get('X-Borsal-Source'))throw fail(409,'FABRIC_SOURCE_CHANGED');const c=run.concepts.find(c=>c.id===req.params.conceptId);if(!c)throw fail(404,'CONCEPT_NOT_FOUND');
       if(kind==='TECHNICAL'){input=technicalGeneration.inputSchema.parse(req.body);if(input.mode!=='LIVE'||input.campaignId!==campaignId||!input.freeTierConfirmed)throw fail(400,'EXPLICIT_LIVE_REQUEST_REQUIRED');if(c.reviewVersion!==input.expectedReviewVersion||(c.technicalVersion||0)!==input.expectedTechnicalVersion)throw fail(409,'CONCEPT_VERSION_CONFLICT');if(c.reviews.at(-1)?.review.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');}
-      else{input=imageInput.parse(req.body);if(c.reviewVersion!==input.expectedReviewVersion||run.sourceSnapshot.hash!==input.expectedSourceHash)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');
+      else{input=(fullSet?imageSetInput:imageInput).parse(req.body);if(c.reviewVersion!==input.expectedReviewVersion||run.sourceSnapshot.hash!==input.expectedSourceHash)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');
         let reference;if(input.referencePreviewId){const op=await Operation.findOne({_id:input.referencePreviewId,projectId:p._id,runId:run._id,conceptId:c.id,kind:'IMAGE',state:'SUCCEEDED'}).lean(),image=op?.result?.preview;
           if(input.viewRole==='HERO'||!image||image.stale||image.sourceHash!==run.sourceSnapshot.hash||image.reviewVersion!==c.reviewVersion||image.proposalId!==(input.proposalId||null)||(image.viewRole&&image.viewRole!=='HERO'))throw fail(409,'CURRENT_HERO_REFERENCE_REQUIRED');
           reference={operationId:String(op._id),imageSha256:image.imageSha256,filePath:image.filePath,visualSpecification:image.visualSpecification};}
         prepared=await previewService.prepare(run.id,c.id,input.proposalId,input.visualNotes,{viewRole:input.viewRole,reference});if(Buffer.byteLength(prepared.prompt)>12000)throw fail(400,'IMAGE_PROMPT_TOO_LARGE');
-        if(!input.regenerate){const cached=await Operation.findOne({projectId:p._id,kind:'IMAGE',state:'SUCCEEDED','result.preview.fingerprint':prepared.fingerprint}).sort({createdAt:-1});if(cached)return reply(cached,res,true);}}
+        if(!input.regenerate){const cached=await Operation.findOne({projectId:p._id,kind:'IMAGE',state:'SUCCEEDED',[fullSet?'result.previewSet.fingerprint':'result.preview.fingerprint']:prepared.fingerprint}).sort({createdAt:-1});if(cached)return reply(cached,res,true);}}
     }
-    const estimateKey=kind==='TECHNICAL'&&input.strategy==='CONSTRUCTION'?'CONSTRUCTION':kind;
+    const estimateKey=fullSet?'IMAGE_SET':kind==='TECHNICAL'&&input.strategy==='CONSTRUCTION'?'CONSTRUCTION':kind;
     if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId))))>5500)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
     const config=await capabilities();if(config.reason)throw fail(403,config.reason);
     const op=await Operation.create({projectId:p._id,requestKey:key,requestHash,kind,campaignId,execution:testing?'TEST_FIXTURE':'LIVE',runId:run?._id,conceptId:req.params.conceptId,sourceHash:run?.sourceSnapshot.hash});
@@ -77,15 +83,22 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
       const reserved=await Settings.findOneAndUpdate({_id:'workers-free',method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',paidPlan:false,expiresAt:{$gt:new Date()},blockedReason:null,remainingNeurons:{$gte:estimates[estimateKey]}},{$inc:{remainingNeurons:-estimates[estimateKey],revision:1}},{new:true});if(!reserved)throw fail(403,'FREE_ALLOCATION_INSUFFICIENT_OR_EXPIRED');
       const observation=p.observations?.at(-1);
       const runtime={authorized:true,freeTierConfirmed:true,root:generationRoot,testing,userObservations:observation&&observation.conceptId===req.params.conceptId&&observation.sourceHash===run?.sourceSnapshot.hash?observation:null,textProvider:simulatedProviders?.text,imageProvider:testing?simulatedProviders.image:imageProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true})};
+      if(fullSet){const worker=require('../services/previewSet');op.result={previewSet:{...worker.initial(prepared,input),id:String(op._id)}};await op.save();
+        // Save authorization/progress before dispatch. Reading/reloading never resumes a job.
+        void worker.run({op,runId:run.id,conceptId:req.params.conceptId,projectId:p.id,input,runtime,
+          canContinue:async()=>{if(!await Settings.exists({_id:'workers-free',method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',paidPlan:false,expiresAt:{$gt:new Date()},blockedReason:null}))throw fail(403,'FREE_ALLOCATION_INSUFFICIENT_OR_EXPIRED');},onProviderFailure:blockProviderFailure
+        }).catch(async()=>{try{op.state='FAILED';op.httpStatus=500;op.failure={code:'PREVIEW_SET_INTERRUPTED',outcome:'INSPECT_SAVED_VIEWS_NO_AUTOMATIC_RETRY'};const set=op.result.previewSet;set.status=set.views.some(v=>v.status==='SUCCEEDED')?'PARTIAL':'FAILED';for(const v of set.views)if(['QUEUED','GENERATING'].includes(v.status)){v.status='FAILED';v.failure={code:'PREVIEW_SET_INTERRUPTED',outcome:'UNKNOWN_INSPECT_REQUEST_RECEIPTS'};}op.markModified('result');await op.save();}catch{console.error('Preview-set persistence interrupted; inspect retained request receipts.');}});
+        return reply(op,res);}
       if(kind==='CONCEPTS'){const r=await conceptService.generate(p.fabricId,input,null,runtime);op.result={runId:r._id};op.state=r.state==='FAILED'?'FAILED':'SUCCEEDED';op.httpStatus=r.state==='FAILED'?502:201;if(r.failure)op.failure=r.failure;}
       else if(kind==='TECHNICAL'){const r=await technicalGeneration.generate(run.id,req.params.conceptId,input,{runtime});if(r.failure){op.failure=r.failure;op.state='FAILED';op.httpStatus=502;}else{op.result={proposalId:r.proposal._id,generation:r.generation};op.proposalId=r.proposal._id;op.state='SUCCEEDED';op.httpStatus=201;}}
       else{const preview=await previewService.generate(prepared,p.id,campaignId,runtime);op.result={preview};op.state='SUCCEEDED';op.httpStatus=201;}
     }catch(e){op.state='FAILED';op.httpStatus=e.status||502;op.failure={code:e.code&&typeof e.code==='string'?e.code:'GENERATION_FAILED',httpStatus:Number.isInteger(e.status)?e.status:null,diagnostics:e.diagnostics||null,outcome:'REQUEST_MAY_HAVE_EXECUTED_NO_AUTOMATIC_RETRY'};}
-    await op.save();if(op.state==='FAILED'&&['PROVIDER_HTTP_ERROR','AUTHENTICATION_OR_PERMISSION','QUOTA_OR_RATE_LIMIT'].includes(op.failure?.code)&&[401,403,429].includes(op.failure?.httpStatus))await Settings.updateOne({_id:'workers-free'},{$set:{blockedReason:'PROVIDER_AUTH_OR_QUOTA_REQUIRES_REVIEW'}});return reply(op,res);
+    await op.save();if(op.state==='FAILED')await blockProviderFailure(op.failure);return reply(op,res);
   });}
   router.post('/api/fabrics/:fabricId/concepts',generation('CONCEPTS'));
   router.post('/api/concept-runs/:id/concepts/:conceptId/technical-proposals/generate',generation('TECHNICAL'));
   router.post('/api/concept-runs/:id/concepts/:conceptId/previews',generation('IMAGE'));
+  router.post('/api/concept-runs/:id/concepts/:conceptId/preview-sets',generation('IMAGE',true));
   router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/proposals/:proposalId/construct',wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
     const result=await require('../services/designConstruction').create(req.params.id,req.params.conceptId,id.parse(req.params.proposalId),req.body);
@@ -110,8 +123,8 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     const proposal=await require('../services/assistedDraft').create(req.params.id,req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});
   }));
   router.get('/ui/operations/:id',wrap(async(req,res)=>{const op=await Operation.findById(id.parse(req.params.id));if(!op)throw fail(404,'OPERATION_NOT_FOUND');return reply(op,res,true);}));
-  router.get('/api/previews/:id/image',wrap(async(req,res)=>{const op=await Operation.findById(id.parse(req.params.id)).lean(),file=op?.result?.preview?.filePath;if(op?.state!=='SUCCEEDED'||!file)throw fail(404,'PREVIEW_NOT_AVAILABLE');
-    const root=path.resolve(__dirname,'../../data/creation-previews'),resolved=fs.realpathSync(file);if(!resolved.toLowerCase().startsWith((root+path.sep).toLowerCase()))throw fail(403,'INVALID_PREVIEW_PATH');res.type(op.result.preview.contentType).sendFile(resolved);
+  router.get('/api/previews/:id/image',wrap(async(req,res)=>{const op=await Operation.findById(id.parse(req.params.id)).lean(),role=req.query.view,view=role?op?.result?.previewSet?.views.find(v=>v.viewRole===role&&v.status==='SUCCEEDED'):null,image=role?view?.preview:op?.state==='SUCCEEDED'?op.result?.preview:null,file=image?.filePath;if(!file)throw fail(404,'PREVIEW_NOT_AVAILABLE');
+    const root=path.resolve(__dirname,'../../data/creation-previews'),resolved=fs.realpathSync(file);if(!resolved.toLowerCase().startsWith((root+path.sep).toLowerCase()))throw fail(403,'INVALID_PREVIEW_PATH');res.type(image.contentType).sendFile(resolved);
   }));
   return {router,capabilities,publicOperation};
 }
