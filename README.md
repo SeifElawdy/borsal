@@ -27,6 +27,8 @@ npm run mvp
 
 Open **http://127.0.0.1:5173**. Express listens on loopback port **3001**. A new installation starts with an empty user workspace; existing local workspace metadata reopens saved work. Stop an earlier launcher before starting another. No public deployment is configured.
 
+After backend code updates, restart `npm run mvp`; Vite refreshes frontend modules but does not reload Express/CommonJS modules. Reload the browser or return focus to its tab to refresh AI availability. Usage counts never disable generation; current Free-tier and source/review requirements still apply.
+
 ## Submission demonstration — no live AI required
 
 ```powershell

@@ -8,6 +8,12 @@ export function Workspace({children}){
   const key=d=>'borsal-studio-v1:'+(d.workspaceKind==='USER'?'user-projects':d.databaseName);
   async function reload(next={}){setError('');try{const d=await api.bootstrap();dataRef.current=d;if(d.workspaceKind==='USER'&&Object.keys(next).length&&selectionRef.current.projectId){const p=d.projects.find(p=>p._id===selectionRef.current.projectId);if(p){const updatedSelection=Object.fromEntries(Object.entries({...selectionRef.current,...next}).filter(([k])=>['stage','showUpload','runId','conceptId','proposalId','previewId'].includes(k)));await (saveQueue.current=saveQueue.current.catch(()=>{}).then(async()=>{const current=dataRef.current.projects.find(x=>x._id===p._id),r=await request('/ui/projects/'+p._id,{method:'PATCH',body:{expectedVersion:current.__v,selection:updatedSelection}});d.projects=d.projects.map(x=>x._id===p._id?r.project:x);dataRef.current=d;}));}}setData(d);setSelection(s=>({...s,...next}));return d;}catch(e){setError(errorText(e));throw e;}finally{setLoading(false);}}
   useEffect(()=>{reload().catch(()=>{});},[]);
+  // A backend restart must not leave old generation restrictions cached in a tab.
+  // Refresh local capabilities only; never dispatch inference or change projects.
+  useEffect(()=>{let active=true;const refresh=()=>{
+    if(dataRef.current?.workspaceKind!=='USER')return;
+    request('/ui/ai-settings').then(c=>{if(active)setData(d=>d?{...d,capabilities:{...d.capabilities,...c},budget:c.budget}:d);}).catch(()=>{});
+  };window.addEventListener('focus',refresh);return()=>{active=false;window.removeEventListener('focus',refresh);};},[]);
   useEffect(()=>{if(!data||restored)return;try{const saved=JSON.parse(localStorage.getItem(key(data))||'{}');const p=data.projects?.find(p=>p._id===saved.projectId);setSelection(data.workspaceKind==='USER'?(p?{projectId:p._id,fabricId:p.fabricId,...p.selection}:{}):saved);}catch{}setRestored(true);},[data,restored]);
   // Browser stores navigation identifiers only. Evidence and reviews stay in MongoDB.
   useEffect(()=>{if(!data||!restored)return;try{localStorage.setItem(key(data),JSON.stringify(selection));if(selection.fabricId)localStorage.setItem(key(data)+':'+selection.fabricId,JSON.stringify(selection));}catch{}},[selection,data,restored]);
