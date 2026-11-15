@@ -67,6 +67,11 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       }
       const result = body.result;
       if (result?.error) throw new ProviderError('PROVIDER_ERROR',response.status,codes,diagnostics(null,'HTTP_OR_PROVIDER_ERROR'));
+      const usage = {};
+      for (const field of ['prompt_tokens', 'completion_tokens', 'total_tokens', 'neurons']) {
+        if (Number.isFinite(result?.usage?.[field]) && result.usage[field] >= 0) usage[field] = result.usage[field];
+      }
+      const finishReason = result?.finish_reason || result?.choices?.[0]?.finish_reason || null;
       let text;
       if (typeof result?.response === 'string' || (result?.response && typeof result.response === 'object' && !Array.isArray(result.response))) text=typeof result.response==='string'?result.response:JSON.stringify(result.response);
       else if (result?.object==='chat.completion' && Array.isArray(result.choices) && result.choices.length===1) {
@@ -74,13 +79,19 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
         // result wrapper. Extract final assistant content ONLY, never reasoning.
         const choice=result.choices[0],message=choice?.message;
         if(choice?.index===0 && message?.role==='assistant' && typeof message.content==='string' && message.content.trim() && !message.refusal && !message.function_call && (!message.tool_calls || Array.isArray(message.tool_calls)&&message.tool_calls.length===0)) text=message.content;
+        // A valid completion can exhaust its budget before producing final text.
+        // Never extract reasoning as a proposal or retry the consumed request.
+        if(text===undefined && choice?.index===0 && message?.role==='assistant' &&
+          (message.content==null || typeof message.content==='string'&&!message.content.trim()) &&
+          !message.refusal && !message.function_call && (!message.tool_calls || Array.isArray(message.tool_calls)&&message.tool_calls.length===0) && finishReason==='length') {
+          throw new ProviderError('MODEL_OUTPUT_TOKEN_LIMIT_REACHED',response.status,[],{
+            ...diagnostics(null,'OUTPUT_TOKEN_LIMIT'),finishReason,outputTokenLimit:parameters.max_tokens,
+            truncated:true,finalContentPresent:false,reasoningPresent:!!(message.reasoning||message.reasoning_content),
+            usage:Object.keys(usage).length?usage:null,
+          });
+        }
       }
       if (text===undefined) throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(null, 'INVALID_PROVIDER_ENVELOPE'));
-      const usage = {};
-      for (const field of ['prompt_tokens', 'completion_tokens', 'total_tokens', 'neurons']) {
-        if (Number.isFinite(result.usage?.[field]) && result.usage[field] >= 0) usage[field] = result.usage[field];
-      }
-      const finishReason = result.finish_reason || result.choices?.[0]?.finish_reason || null;
       const truncated = finishReason === 'length' || result.truncated === true ||
         (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= parameters.max_tokens) ? true : finishReason === 'stop' || result.truncated === false ? false : null;
       return { text,

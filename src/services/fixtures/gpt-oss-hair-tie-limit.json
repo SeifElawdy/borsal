@@ -1,0 +1,56 @@
+{
+  "httpStatus": 200,
+  "contentType": "application/json",
+  "body": {
+    "result": {
+      "id": "REDACTED_PROVIDER_ID",
+      "object": "chat.completion",
+      "created": 1794766729,
+      "model": "@cf/openai/gpt-oss-120b",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": "REDACTED_PROVIDER_REASONING_SHA256_24bc5264c86d772135cd69344685bc06d711b6c04b55be06525ce993f6c9febc",
+            "reasoning_content": "REDACTED_PROVIDER_REASONING_SHA256_24bc5264c86d772135cd69344685bc06d711b6c04b55be06525ce993f6c9febc"
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "usage": {
+        "prompt_tokens": 1732,
+        "completion_tokens": 1536,
+        "total_tokens": 3268,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 159.8360137939453
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    },
+    "success": true,
+    "errors": [],
+    "messages": []
+  },
+  "_fixture": {
+    "sourceCampaign": "mvp-technical-94d99048-26dd-47ed-8106-76909d149888",
+    "originalEnvelopeSha256": "140618ea7ea29d2b8408511eecbe24954549b2b342d1221e31e8c66d21a74948",
+    "sanitization": "Provider-generated ID and reasoning text redacted; envelope shape, null final content, finish reason and usage unchanged"
+  }
+}
