@@ -7,7 +7,7 @@ async function main(){
  const base='http://127.0.0.1:5173',response=await fetch(base+'/ui/bootstrap'),cookie=response.headers.get('set-cookie')?.split(';')[0],before=await response.json();
  if(before.mode!=='USER'||!cookie)throw Error('Existing local USER session required');
  const config=await fetch(base+'/ui/ai-settings').then(r=>r.json());
- if(!config.constructionGeneration||config.proof?.method!=='OWNER_DASHBOARD_ATTESTATION'||config.proof.paidPlan!==false||new Date(config.proof.expiresAt)<=new Date()||config.estimates.CONSTRUCTION!==300||config.budget.limit!==30)throw Error('Current Free-tier and shared-budget safeguards are not satisfied');
+ if(!config.constructionGeneration||config.proof?.method!=='OWNER_DASHBOARD_ATTESTATION'||config.proof.paidPlan!==false||new Date(config.proof.expiresAt)<=new Date()||config.estimates.CONSTRUCTION!==300)throw Error('Current Free-tier and shared-budget safeguards are not satisfied');
  const project=before.projects.find(p=>p._id===id),run=before.runs.find(r=>r._id===project?.selection?.runId),concept=run?.concepts.find(c=>c.id===project.selection.conceptId);
  if(!run||!concept||concept.reviews.at(-1)?.review.decision!=='APPROVED_FOR_DRAFTING')throw Error('Select an existing approved concept first; no source or approval is changed');
  const root=path.resolve('data/emergency-live-construction-20261114');fs.mkdirSync(root,{recursive:true});

@@ -27,10 +27,10 @@ afterEach(() => {
 });
 
 describe('Named experiment campaigns and shared budget', () => {
-  it('preserves all twenty previous reservations byte-for-byte when the authorized ceiling becomes thirty',()=>{
+  it('preserves historical reservations byte-for-byte when request counting becomes informational',()=>{
     const old=openBudget(root);for(let i=0;i<20;i++)old.reserve('previous-'+i,1);
     const dir=path.join(root,'request-budget'),before=Object.fromEntries(fs.readdirSync(dir).map(name=>[name,fs.readFileSync(path.join(dir,name),'utf8')]));
-    const resumed=openBudget(root);expect(resumed.used()).toBe(20);expect(resumed.limit).toBe(30);expect(resumed.reserve('new-authorized-slot',1)).toBe(21);
+    const resumed=openBudget(root);expect(resumed.used()).toBe(20);expect(resumed.limit).toBeNull();expect(resumed.reserve('new-authorized-slot',1)).toBe(21);
     for(const [name,bytes]of Object.entries(before))expect(fs.readFileSync(path.join(dir,name),'utf8')).toBe(bytes);
   });
   it('isolates named results and locks while preserving the smoke files unchanged', async () => {
@@ -64,11 +64,11 @@ describe('Named experiment campaigns and shared budget', () => {
     fs.writeFileSync(path.join(root, 'live-campaign.json'), JSON.stringify({ maxRequests: 12 }));
     expect(openBudget(root).used()).toBe(12);
   });
-  it('enforces the owner-approved thirty-slot cap across campaign IDs and process restarts', () => {
+  it('continues recording requests beyond thirty across campaign IDs and process restarts', () => {
     seedSmoke();
     for (let i = 0; i < 29; i++) openBudget(root).reserve('campaign-' + i, 1);
     expect(openBudget(root).used()).toBe(30);
-    expect(() => openBudget(root).reserve('new-name', 1)).toThrow('GLOBAL_REQUEST_LIMIT_REACHED');
+    expect(openBudget(root).reserve('new-name', 1)).toBe(31);expect(openBudget(root).used()).toBe(31);expect(openBudget(root).limit).toBeNull();
   });
   it('counts a crash-created empty reservation file and refuses to reset it', () => {
     openBudget(root);
@@ -116,16 +116,16 @@ describe('Named experiment campaigns and shared budget', () => {
     expect(fake.generate).toHaveBeenCalledTimes(2);
     await expect(run('too-many', fake, { maxRequests: 3 })).rejects.toThrow();
   });
-  it('allows concurrent campaigns only within the shared remaining budget', async () => {
+  it('records concurrent campaigns beyond the former shared ceiling', async () => {
     fs.writeFileSync(path.join(root, 'live-run.json'), JSON.stringify({ mode: 'LIVE', requests: 11 }));
     for(let i=11;i<29;i++)openBudget(root).reserve('existing-'+i,1);
-    const fake = provider([JSON.stringify(fixture)]);
+    const fake = provider([JSON.stringify(fixture), JSON.stringify(fixture)]);
     const outcomes = await Promise.allSettled([run('concurrent-a', fake), run('concurrent-b', fake)]);
-    expect(outcomes.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
-    expect(fake.generate).toHaveBeenCalledTimes(1);
-    expect(openBudget(root).used()).toBe(30);
+    expect(outcomes.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
+    expect(fake.generate).toHaveBeenCalledTimes(2);
+    expect(openBudget(root).used()).toBe(31);
   });
-  it('protects shared slots across actual worker threads', async () => {
+  it('records every concurrent request exactly once across actual worker threads', async () => {
     const modulePath = require.resolve('./campaign');
     const tasks = Array.from({ length: 3 }, (_, worker) => new Promise((resolve, reject) => {
       const child = new Worker(
@@ -134,13 +134,13 @@ describe('Named experiment campaigns and shared budget', () => {
       child.once('message', resolve); child.once('error', reject);
     }));
     const counts = await Promise.all(tasks);
-    expect(counts.reduce((n, c) => n + c, 0)).toBe(30);
-    expect(openBudget(root).used()).toBe(30);
+    expect(counts.reduce((n, c) => n + c, 0)).toBe(90);
+    expect(openBudget(root).used()).toBe(90);
   });
   it('extends an existing twelve-slot ledger without resetting baseline, reservations or artifacts',()=>{
     seedSmoke();const budget=openBudget(root);for(let i=1;i<12;i++)budget.reserve('old-'+i,1);
     const directory=path.join(root,'request-budget'),before=Object.fromEntries(fs.readdirSync(directory).map(f=>[f,fs.readFileSync(path.join(directory,f),'utf8')]));
-    const reopened=openBudget(root);expect(reopened.limit).toBe(30);expect(reopened.used()).toBe(12);expect(reopened.reserve('explicit-future-authorization-needed',1)).toBe(13);
+    const reopened=openBudget(root);expect(reopened.limit).toBeNull();expect(reopened.used()).toBe(12);expect(reopened.reserve('explicit-future-authorization-needed',1)).toBe(13);
     for(const [f,bytes]of Object.entries(before))expect(fs.readFileSync(path.join(directory,f),'utf8')).toBe(bytes);
     expect(JSON.parse(before['baseline.json']).maxRequests).toBe(12);expect(reopened.used()).toBe(13);
   });

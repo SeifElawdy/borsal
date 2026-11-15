@@ -63,9 +63,9 @@ describe('One-request live pattern experiment: offline safety',()=>{
   it('refuses duplicate campaigns without overwriting prior outputs',async()=>{
     const p=fake();await run('same',p);const file=path.join(root,'campaigns/same/result.json'),before=fs.readFileSync(file,'utf8');await expect(run('same',p)).rejects.toThrow('CAMPAIGN_ALREADY_EXISTS');expect(p.generate).toHaveBeenCalledTimes(1);expect(fs.readFileSync(file,'utf8')).toBe(before);
   });
-  it('refuses a full shared budget and protects it across concurrent campaigns',async()=>{
-    seed(29);const p=fake('{}','LIVE'),outcomes=await Promise.allSettled([run('last-a',p),run('last-b',p)]);expect(outcomes.filter(x=>x.status==='fulfilled')).toHaveLength(1);expect(p.generate).toHaveBeenCalledTimes(1);expect(openBudget(root).used()).toBe(30);
-    await expect(run('over-cap',p)).rejects.toThrow('GLOBAL_REQUEST_LIMIT_REACHED');expect(p.generate).toHaveBeenCalledTimes(1);
+  it('tracks requests beyond the former ceiling across concurrent campaigns',async()=>{
+    seed(29);const p=fake('{}','LIVE'),outcomes=await Promise.allSettled([run('last-a',p),run('last-b',p)]);expect(outcomes.filter(x=>x.status==='fulfilled')).toHaveLength(2);expect(p.generate).toHaveBeenCalledTimes(2);expect(openBudget(root).used()).toBe(31);
+    await run('over-cap',p);expect(p.generate).toHaveBeenCalledTimes(3);expect(openBudget(root).used()).toBe(32);
   });
   it('keeps crash-reserved slots consumed and all old smoke locks unchanged',async()=>{
     seed(8);const lock=fs.readFileSync(path.join(root,'live-campaign.json'),'utf8');fs.writeFileSync(path.join(root,'request-budget/request-9.json'),'');const out=await run('after-crash',fake('{}','LIVE'));

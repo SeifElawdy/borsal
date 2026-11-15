@@ -60,7 +60,7 @@ Automatic A4/large-mat registration; explicit geometry confirmation; source/phot
 
 Historically used models: Cloudflare **Llama 3.1 8B**, **Llama 3.3 70B**, and **FLUX.2 Klein 4B**. Existing FLUX outputs are illustrative, not measured product photographs. A **GPT-OSS 120B** planner evaluation reached HTTP 200 but failed response-envelope validation; its unretained response body prevents a conclusive cause or quality assessment. Future technical envelopes are captured privately before validation. No speculative parser fix or live success is claimed.
 
-The original owner's shared accounting is **19/30** requests. Live actions require explicit confirmation, current Workers Free/dashboard evidence, sufficient conservative Neurons and atomic ledger reservation; no automatic retry/fallback. **Do not initialize a second ledger using the same owner's account.** Restore the owner's latest private ledger before enabling that account in another checkout. The source package has no credentials, active workspace, campaign ledger or seeded database; it is **not a portable live deployment**.
+AI request usage is informational only; there is no internal request-count ceiling. Existing usage history and atomic request receipts are preserved. Live actions still require explicit confirmation, current Workers Free/dashboard evidence and sufficient conservative Neurons; no paid billing or automatic retry/fallback. **Do not initialize a second ledger using the same owner's account.** Restore the owner's latest private ledger before enabling that account in another checkout. The source package has no credentials, active workspace, campaign ledger or seeded database; it is **not a portable live deployment**.
 
 ## Evidence, tests and limitations
 

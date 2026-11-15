@@ -60,7 +60,7 @@ async function generate(fabricId,options,override,runtime){
     if(!runtime&&(process.env.BORSAL_CONCEPT_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!options.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
     try{validateCampaignId(campaignId);}catch{throw fail(400,'INVALID_CAMPAIGN_ID');}dir=path.join(root,'campaigns',campaignId);fs.mkdirSync(path.dirname(dir),{recursive:true});
     if(fs.existsSync(dir))throw fail(409,'CAMPAIGN_ALREADY_EXISTS');
-    budget=openBudget(root);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
+    budget=openBudget(root);
     provider=runtime?require('./localAI').textProvider(runtime):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
     secrets=[process.env.CF_API_TOKEN,process.env.CF_ACCOUNT_ID,process.env.MONGODB_URI];
   }else{provider=override||mockProvider(source.sources);if(provider.mode!=='MOCK')throw fail(403,'LIVE_GENERATION_DISABLED');}

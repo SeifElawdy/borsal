@@ -40,7 +40,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   if(live){
     if(!runtime&&(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
     provider=runtime?require('./localAI').textProvider(runtime,{construction:input.strategy==='CONSTRUCTION'}):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
-    budget=openBudget(root);if(budget.used()>=budget.limit)throw fail(409,'GLOBAL_REQUEST_LIMIT_REACHED');
+    budget=openBudget(root);
     secrets=[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI];
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
   let feedback;if(input.feedbackFromProposalId){const previous=await require('../models/TechnicalProposal').findById(input.feedbackFromProposalId).lean();if(!previous||String(previous.runId)!==run.id||previous.conceptId!==conceptId||previous.reviewVersion!==concept.reviewVersion||previous.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'FEEDBACK_SOURCE_MISMATCH');feedback=require('./candidatePrompt').revisionFeedback(previous);}
