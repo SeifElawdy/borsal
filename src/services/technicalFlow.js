@@ -48,12 +48,14 @@ async function create(runId,conceptId,body,generation=null){
     if(['DERIVED','ENGINE_DERIVED'].includes(input.origin)){const parent=await Proposal.findById(generation.derivation.parentProposalId).session(session).lean();if(!parent||String(parent.runId)!==String(run._id)||parent.conceptId!==conceptId||parent.reviewVersion!==concept.reviewVersion||parent.provenance.fabricSourceHash!==source.snapshot.hash||parent.provenance.inputSha256!==generation.derivation.parentInputSha256)throw fail(409,'DERIVATION_PARENT_MISMATCH');}
     const version=(concept.technicalVersion||0)+1,_id=new mongoose.Types.ObjectId(),assessment=evaluate(input,run,concept,f,review);
     if(generation?.construction?.status==='REJECTED'){assessment.status='REJECTED';assessment.verdict='FAIL';assessment.errors=generation.construction.errors;}
+    if(generation?.designSpecification){const conflicts=require('./designIdentity').technicalConflicts(generation.designSpecification,{originalInput:input});if(conflicts.length){assessment.identityConflicts=conflicts;assessment.errors.push(...conflicts);assessment.status='CONCEPT_ONLY';assessment.verdict='UNVERIFIED';}}
     const provenance={...(generation?.derivation?{derivation:generation.derivation}:{}),fabricId:String(run.fabricId),fabricScrapId:run.sources[0].id,fabricSourceHash:run.sourceSnapshot.hash,
       sourceSnapshot:run.sourceSnapshot,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),reviewVersion:concept.reviewVersion,
       inputSha256:fingerprint(body),rawProposalSha256:input.rawProposalText?bytesHash(input.rawProposalText):null,
       materialEvidence:'Explicit declarations only; never verified source properties',origin:input.origin,authorship:input.origin==='ENGINE_DERIVED'?'ENGINE_DERIVED':['DERIVED','ENGINE_DERIVED'].includes(input.origin)?'SYSTEM_DETERMINISTIC_TRANSFORM':'DECLARED_NOT_AUTHENTICATED',physicalAccuracy:'UNVERIFIED',sourceRefresh:run.sourceRefresh??null,...(generation&&!generation.construction?{generation}: {})};
     if(generation?.construction){assessment.constructionPlan={instructions:generation.construction.instructions,unresolved:generation.construction.unresolved,transformations:generation.construction.transformations,manufacturingVerified:false};}
     let svg=generation?.construction?.previewSvg||assessment.handoff?.drafting.previewSvg||null;
+    if(assessment.identityConflicts?.length)svg=null;
     if(svg){if(['DERIVED','ENGINE_DERIVED'].includes(input.origin))svg=svg.replaceAll('MANUALLY AUTHORED DRAFT','SYSTEM-DERIVED DESIGN PROPOSAL').replace('Authored technical pattern','System-derived technical pattern');if(input.origin==='MODEL_OUTPUT')svg=svg.replace('MANUALLY AUTHORED DRAFT','IMPORTED MODEL-PROPOSED DRAFT');
       const metadata={proposalId:String(_id),version,...provenance,sourceSnapshot:undefined};
       svg=svg.replace(/(<svg\b[^>]*>)/,match=>match+'\n<metadata id="borsal-proposal-provenance">'+escape(JSON.stringify(metadata))+'</metadata>');}
@@ -72,6 +74,7 @@ async function create(runId,conceptId,body,generation=null){
       assessment.preliminaryGeometry={label:'PRELIMINARY GEOMETRY ONLY',result,fullReadinessUpgraded:false,manufacturingVerified:false};
       if(result.status==='LAYOUT_FOUND')nestingSvg=geometrySvg(result.validatorEvidence).replace('Geometry screening ONLY','PRELIMINARY GEOMETRY ONLY');
     }
+    if(assessment.identityConflicts?.length)nestingSvg=null;
     if(nestingSvg){nestingSvg=nestingSvg.replace('Geometry screening ONLY','Nested layout ONLY - physically UNVERIFIED');
       nestingSvg=nestingSvg.replace(/(<svg\b[^>]*>)/,m=>m+'<metadata>'+escape(JSON.stringify({proposalId:String(_id),version,fabricSourceHash:provenance.fabricSourceHash,reportBasis:generation?.construction?.screening?'PRELIMINARY_GEOMETRY':feasibility?'FULL_FEASIBILITY':'PRELIMINARY_GEOMETRY',reportSha256:fingerprint(generation?.construction?.screening||feasibility||assessment.preliminaryGeometry?.result||null),manufacturingVerified:false}))+'</metadata>');}
     const data={_id,runId:run._id,conceptId,fabricId:run.fabricId,version,reviewVersion:concept.reviewVersion,origin:input.origin,sourceLabel:input.sourceLabel,originalInput:body,provenance,

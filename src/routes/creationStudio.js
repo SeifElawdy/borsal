@@ -5,6 +5,7 @@ const Fabric=require('../models/FabricPiece'),Run=require('../models/ConceptRun'
 const conceptService=require('../services/conceptFlow'),technicalGeneration=require('../services/technicalGeneration'),previewService=require('../services/productPreview');
 const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter'),{openBudget}=require('../../experiments/design-language/ai-spike/campaign');
 const {ROOT}=require('../services/localAI'),{imageProvider,MODEL:IMAGE_MODEL}=require('../services/imageProvider'),{COMPARISON_MODEL,CONSTRUCTION_MODEL}=require('../../experiments/design-language/ai-spike/provider');
+const identity=require('../services/designIdentity');
 const fail=conceptService.fail,object=s=>z.object(s).strict(),id=z.string().regex(/^[a-f0-9]{24}$/i),hash=z.string().regex(/^[a-f0-9]{64}$/),text=z.string().trim().min(1),version=z.number().int().min(0);
 const selection=object({stage:z.number().int().min(0).max(7),showUpload:z.boolean().optional(),runId:id.nullable().optional(),conceptId:z.string().nullable().optional(),proposalId:id.nullable().optional(),previewId:id.nullable().optional()});
 const imageInput=object({proposalId:id.optional(),visualNotes:z.string().max(1000).default(''),viewRole:z.enum(['HERO','ALTERNATE','DETAIL','IN_USE']).default('HERO'),referencePreviewId:id.optional(),expectedReviewVersion:version,expectedSourceHash:hash,freeTierConfirmed:z.literal(true),regenerate:z.boolean().default(false)});
@@ -39,7 +40,8 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     if(s.runId){const r=await ownedRun(p,s.runId);if(s.conceptId&&!r.concepts.some(c=>c.id===s.conceptId))throw fail(409,'PROJECT_CONCEPT_MISMATCH');}
     if(s.proposalId){const q=await Proposal.findById(s.proposalId).lean();if(!q||String(q.fabricId)!==String(p.fabricId)||String(q.runId)!==s.runId||q.conceptId!==s.conceptId)throw fail(409,'PROJECT_PROPOSAL_MISMATCH');}
     if(s.previewId&&!await Operation.exists({_id:s.previewId,projectId:p._id,kind:'IMAGE'}))throw fail(409,'PROJECT_PREVIEW_MISMATCH');
-    const updated=await Project.findOneAndUpdate({_id:p._id,__v:b.expectedVersion},{$set:{selection:s},$inc:{__v:1}},{new:true});if(!updated)throw fail(409,'PROJECT_VERSION_CONFLICT');res.json({project:updated});
+    let design={activeDesignFingerprint:null};if(s.runId&&s.conceptId){const r=await ownedRun(p,s.runId),c=r.concepts.find(c=>c.id===s.conceptId),q=s.proposalId?await Proposal.findById(s.proposalId).lean():null;design=identity.binding(p,r,c,q).fields;}
+    const updated=await Project.findOneAndUpdate({_id:p._id,__v:b.expectedVersion},{$set:{selection:s,...design},$inc:{__v:1}},{new:true});if(!updated)throw fail(409,'PROJECT_VERSION_CONFLICT');res.json({project:updated});
   }));
   router.post('/ui/projects/:id/source',wrap(async(req,res)=>{const p=await project(req.params.id),b=object({expectedVersion:version,fabricId:id}).parse(req.body);await indexes();
     const f=await Fabric.findById(b.fabricId).lean();if(!f||f.registrationSource!=='photo'||new Date(f.createdAt)<p.createdAt)throw fail(409,'NEW_PROJECT_PHOTO_REQUIRED');
@@ -60,33 +62,38 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     if(req.get('X-Borsal-Calls')!==(fullSet?'4':'1'))throw fail(400,fullSet?'FOUR_EXPLICIT_CALL_CONFIRMATION_REQUIRED':'ONE_EXPLICIT_CALL_CONFIRMATION_REQUIRED');
     const p=await project(req.get('X-Borsal-Project')),key=z.string().uuid().parse(req.get('Idempotency-Key')),requestHash=fingerprint({kind,path:req.path,body:req.body,source:req.get('X-Borsal-Source')});await indexes();
     const existing=await Operation.findOne({projectId:p._id,requestKey:key});if(existing){if(existing.requestHash!==requestHash)throw fail(409,'IDEMPOTENCY_PAYLOAD_CONFLICT');return reply(existing,res,true);}
-    const campaignId='mvp-'+kind.toLowerCase()+'-'+key;let input,run,prepared;
+    const campaignId='mvp-'+kind.toLowerCase()+'-'+key;let input,run,prepared,designSpecification;
     if(kind==='CONCEPTS'){
       input=require('./concepts').generationSchema.parse(req.body);if(input.mode!=='LIVE'||input.campaignId!==campaignId||!input.freeTierConfirmed)throw fail(400,'EXPLICIT_LIVE_REQUEST_REQUIRED');
       if(String(p.fabricId)!==req.params.fabricId)throw fail(409,'PROJECT_SOURCE_MISMATCH');const f=await Fabric.findById(p.fabricId).lean();if(!f?.geometry?.confirmed||f.status!=='CONFIRMED'||(f.availabilityStatus||'AVAILABLE')!=='AVAILABLE')throw fail(409,'CONFIRMED_AVAILABLE_FABRIC_REQUIRED');
       if(f.analysis?.analysisId&&f.geometry.basis?.analysisId!==f.analysis.analysisId)throw fail(409,'CURRENT_PHOTO_BASIS_REQUIRED');
       if(conceptService.sourceFor(f).snapshot.hash!==req.get('X-Borsal-Source'))throw fail(409,'FABRIC_SOURCE_CHANGED');
-    }else{run=await ownedRun(p,req.params.id);await conceptService.ensureCurrent(run);if(run.sourceSnapshot.hash!==req.get('X-Borsal-Source'))throw fail(409,'FABRIC_SOURCE_CHANGED');const c=run.concepts.find(c=>c.id===req.params.conceptId);if(!c)throw fail(404,'CONCEPT_NOT_FOUND');
+    }else{if(req.get('X-Borsal-Design')&&req.get('X-Borsal-Design')!==p.activeDesignFingerprint)throw fail(409,'DESIGN_VERSION_CHANGED');if(p.selection?.conceptId&&(p.selection.runId!==req.params.id||p.selection.conceptId!==req.params.conceptId))throw fail(409,'PROJECT_CONCEPT_MISMATCH');run=await ownedRun(p,req.params.id);await conceptService.ensureCurrent(run);if(run.sourceSnapshot.hash!==req.get('X-Borsal-Source'))throw fail(409,'FABRIC_SOURCE_CHANGED');const c=run.concepts.find(c=>c.id===req.params.conceptId);if(!c)throw fail(404,'CONCEPT_NOT_FOUND');
       if(kind==='TECHNICAL'){input=technicalGeneration.inputSchema.parse(req.body);if(input.mode!=='LIVE'||input.campaignId!==campaignId||!input.freeTierConfirmed)throw fail(400,'EXPLICIT_LIVE_REQUEST_REQUIRED');if(c.reviewVersion!==input.expectedReviewVersion||(c.technicalVersion||0)!==input.expectedTechnicalVersion)throw fail(409,'CONCEPT_VERSION_CONFLICT');if(c.reviews.at(-1)?.review.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');}
       else{input=(fullSet?imageSetInput:imageInput).parse(req.body);if(c.reviewVersion!==input.expectedReviewVersion||run.sourceSnapshot.hash!==input.expectedSourceHash)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');
+        const requestedProposal=input.proposalId?await Proposal.findById(input.proposalId).lean():null;if(input.proposalId&&!requestedProposal)throw fail(409,'PROPOSAL_SOURCE_MISMATCH');
+        designSpecification=await identity.bind(p,run,c,requestedProposal);
         let reference;if(input.referencePreviewId){const op=await Operation.findOne({_id:input.referencePreviewId,projectId:p._id,runId:run._id,conceptId:c.id,kind:'IMAGE',state:'SUCCEEDED'}).lean(),image=op?.result?.preview;
           if(input.viewRole==='HERO'||!image||image.stale||image.sourceHash!==run.sourceSnapshot.hash||image.reviewVersion!==c.reviewVersion||image.proposalId!==(input.proposalId||null)||(image.viewRole&&image.viewRole!=='HERO'))throw fail(409,'CURRENT_HERO_REFERENCE_REQUIRED');
-          reference={operationId:String(op._id),imageSha256:image.imageSha256,filePath:image.filePath,visualSpecification:image.visualSpecification};}
-        prepared=await previewService.prepare(run.id,c.id,input.proposalId,input.visualNotes,{viewRole:input.viewRole,reference});if(Buffer.byteLength(prepared.prompt)>12000)throw fail(400,'IMAGE_PROMPT_TOO_LARGE');
+          if(image.designFingerprint!==designSpecification.fingerprint)throw fail(409,'CURRENT_HERO_REFERENCE_REQUIRED');
+          reference={designFingerprint:image.designFingerprint,operationId:String(op._id),imageSha256:image.imageSha256,filePath:image.filePath,visualSpecification:image.visualSpecification};}
+        prepared=await previewService.prepare(run.id,c.id,input.proposalId,input.visualNotes,{viewRole:input.viewRole,reference,designSpecification});if(Buffer.byteLength(prepared.prompt)>12000)throw fail(400,'IMAGE_PROMPT_TOO_LARGE');
         if(!input.regenerate){const cached=await Operation.findOne({projectId:p._id,kind:'IMAGE',state:'SUCCEEDED',[fullSet?'result.previewSet.fingerprint':'result.preview.fingerprint']:prepared.fingerprint}).sort({createdAt:-1});if(cached)return reply(cached,res,true);}}
     }
+    if(kind==='TECHNICAL'){const c=run.concepts.find(c=>c.id===req.params.conceptId),q=p.selection?.conceptId===c.id&&p.selection?.proposalId?await Proposal.findById(p.selection.proposalId).lean():null;designSpecification=await identity.bind(p,run,c,q);}
+    if(designSpecification&&req.get('X-Borsal-Design')&&req.get('X-Borsal-Design')!==designSpecification.fingerprint)throw fail(409,'DESIGN_VERSION_CHANGED');
     const estimateKey=fullSet?'IMAGE_SET':kind==='TECHNICAL'&&input.strategy==='CONSTRUCTION'?'CONSTRUCTION':kind;
-    if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId))))>5500)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
+    if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(technicalGeneration.applyDesign(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification)))>5500)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
     const config=await capabilities();if(config.reason)throw fail(403,config.reason);
     const op=await Operation.create({projectId:p._id,requestKey:key,requestHash,kind,campaignId,execution:testing?'TEST_FIXTURE':'LIVE',runId:run?._id,conceptId:req.params.conceptId,sourceHash:run?.sourceSnapshot.hash});
     try{
       const reserved=await Settings.findOneAndUpdate({_id:'workers-free',method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',paidPlan:false,expiresAt:{$gt:new Date()},blockedReason:null,remainingNeurons:{$gte:estimates[estimateKey]}},{$inc:{remainingNeurons:-estimates[estimateKey],revision:1}},{new:true});if(!reserved)throw fail(403,'FREE_ALLOCATION_INSUFFICIENT_OR_EXPIRED');
       const observation=p.observations?.at(-1);
-      const runtime={authorized:true,freeTierConfirmed:true,root:generationRoot,testing,userObservations:observation&&observation.conceptId===req.params.conceptId&&observation.sourceHash===run?.sourceSnapshot.hash?observation:null,textProvider:simulatedProviders?.text,imageProvider:testing?simulatedProviders.image:imageProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true})};
+      const runtime={authorized:true,freeTierConfirmed:true,root:generationRoot,testing,designSpecification,userObservations:observation&&observation.conceptId===req.params.conceptId&&observation.sourceHash===run?.sourceSnapshot.hash?observation:null,textProvider:simulatedProviders?.text,imageProvider:testing?simulatedProviders.image:imageProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true})};
       if(fullSet){const worker=require('../services/previewSet');op.result={previewSet:{...worker.initial(prepared,input),id:String(op._id)}};await op.save();
         // Save authorization/progress before dispatch. Reading/reloading never resumes a job.
         void worker.run({op,runId:run.id,conceptId:req.params.conceptId,projectId:p.id,input,runtime,
-          canContinue:async()=>{if(!await Settings.exists({_id:'workers-free',method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',paidPlan:false,expiresAt:{$gt:new Date()},blockedReason:null}))throw fail(403,'FREE_ALLOCATION_INSUFFICIENT_OR_EXPIRED');},onProviderFailure:blockProviderFailure
+          canContinue:async()=>{if(designSpecification)await identity.assertActive(designSpecification);if(!await Settings.exists({_id:'workers-free',method:testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION',paidPlan:false,expiresAt:{$gt:new Date()},blockedReason:null}))throw fail(403,'FREE_ALLOCATION_INSUFFICIENT_OR_EXPIRED');},onProviderFailure:blockProviderFailure
         }).catch(async()=>{try{op.state='FAILED';op.httpStatus=500;op.failure={code:'PREVIEW_SET_INTERRUPTED',outcome:'INSPECT_SAVED_VIEWS_NO_AUTOMATIC_RETRY'};const set=op.result.previewSet;set.status=set.views.some(v=>v.status==='SUCCEEDED')?'PARTIAL':'FAILED';for(const v of set.views)if(['QUEUED','GENERATING'].includes(v.status)){v.status='FAILED';v.failure={code:'PREVIEW_SET_INTERRUPTED',outcome:'UNKNOWN_INSPECT_REQUEST_RECEIPTS'};}op.markModified('result');await op.save();}catch{console.error('Preview-set persistence interrupted; inspect retained request receipts.');}});
         return reply(op,res);}
       if(kind==='CONCEPTS'){const r=await conceptService.generate(p.fabricId,input,null,runtime);op.result={runId:r._id};op.state=r.state==='FAILED'?'FAILED':'SUCCEEDED';op.httpStatus=r.state==='FAILED'?502:201;if(r.failure)op.failure=r.failure;}
@@ -111,7 +118,7 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     const previews=operations.filter(o=>o.result?.preview).map(o=>({id:String(o._id),assetUrl:'/api/previews/'+o._id+'/image',...Object.fromEntries(['sourceHash','conceptHash','reviewVersion','proposalId','proposalHash'].map(k=>[k,o.result.preview[k]]))}));
     const report=require('../services/constructionFidelity').assess(proposal,concept.assessment.proposal,previews);
     let sourceStale=false;try{await conceptService.ensureCurrent(run);}catch(e){if(e.status===409)sourceStale=true;else throw e;}
-    res.json({...report,stale:sourceStale||proposal.provenance.fabricSourceHash!==run.sourceSnapshot.hash||proposal.reviewVersion!==concept.reviewVersion});
+    const design=identity.resolve(projectRecord,run,concept,proposal);res.json({...report,designFingerprint:design.fingerprint,identityConflicts:design.conflicts,stale:sourceStale||proposal.provenance.fabricSourceHash!==run.sourceSnapshot.hash||proposal.reviewVersion!==concept.reviewVersion});
   }));
   router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/geometry-plan',wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);

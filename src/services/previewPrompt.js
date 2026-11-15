@@ -19,12 +19,13 @@ function visualDesign(concept,source,technical){
   materialAppearance:'Use only photographed fabric hue, pattern and visible texture. Do not add embroidery or interpret lint, mat markers or Hero-background objects as decorative features.',
   limitations:['Any unspecified silhouette/closure choice above is a visual proposal, not an approved technical decision','No accessory stock, seam performance, material properties or physical manufacturability is established']};
 }
-function specification(concept,source,technical,visualNotes=''){
-  return {product:concept.productIdea,intendedUse:concept.intendedUse,features:concept.distinctiveFeatures,
-    constraints:concept.constraints,unresolved:concept.unresolvedRequirements,
+function specification(concept,source,technical,visualNotes='',identity){
+  const locked=identity?{status:'AUTHORITATIVE_UNVERIFIED_DESIGN',silhouette:identity.product.silhouette,openingClosure:identity.product.closure.description,distinguishingDetails:identity.product.distinctiveDetails,detailFocus:identity.product.closure.kind==='UNKNOWN'?'The stated distinguishing product detail, without inventing a closure':identity.product.closure.description+' at the functional opening',useAction:'Demonstrate '+identity.product.intendedFunction+' using the SAME product and closure',approximateScale:{sourceConstraints:identity.sourceConstraints,proposedCutDimensions:identity.construction.proposedDimensions},materialAppearance:'Follow only the source-linked fabric appearance; do not infer material properties',limitations:identity.unresolved}:null;
+  return {...(identity?{designIdentity:{fingerprint:identity.fingerprint,version:identity.version,projectId:identity.projectId,conceptId:identity.conceptId,proposalId:identity.proposalId}}:{}),product:identity?{name:identity.product.name,description:identity.product.silhouette}:concept.productIdea,intendedUse:identity?identity.product.intendedFunction:concept.intendedUse,features:identity?identity.product.distinctiveDetails:concept.distinctiveFeatures,
+    constraints:identity?identity.sourceConstraints:concept.constraints,unresolved:identity?['Physical construction, stock and source properties remain unverified']:concept.unresolvedRequirements,
     source:{...dimensions(source.polygonCm),usableAreaCm2:area(source.polygonCm)-(source.holes||[]).reduce((n,h)=>n+area(h),0),
       physicalAccuracy:'UNVERIFIED',appearance:'Follow the original fabric photograph or its source-linked hero reference; color and visible texture are approximate, not verified material properties.',materialProperties:'UNKNOWN'},
-    visualDesign:visualDesign(concept,source,technical),technical,userVisualNotes:visualNotes};
+    visualDesign:locked||visualDesign(concept,source,technical),technical,userVisualNotes:visualNotes};
 }
 function promptFor(spec,viewRole,hasReference=false){
   if(!VIEWS[viewRole])throw Error('INVALID_PREVIEW_VIEW');

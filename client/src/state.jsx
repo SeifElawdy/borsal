@@ -19,6 +19,7 @@ export function Workspace({children}){
   useEffect(()=>{if(!data||!restored)return;try{localStorage.setItem(key(data),JSON.stringify(selection));if(selection.fabricId)localStorage.setItem(key(data)+':'+selection.fabricId,JSON.stringify(selection));}catch{}},[selection,data,restored]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(null),7000);return()=>clearTimeout(t);},[toast]);
   const {userMode,project,fabric,runs,run,concept,proposals,proposal}=resolveContext(data,selection);
+  const design=(project?.designVersions||[]).find(v=>v.fingerprint===project.activeDesignFingerprint&&v.runId===run?._id&&v.conceptId===concept?.id&&v.reviewVersion===concept?.reviewVersion&&(v.proposalId||null)===(selection.proposalId||null))||([project?.currentDesign].find(v=>v&&v.runId===run?._id&&v.conceptId===concept?.id&&v.reviewVersion===concept?.reviewVersion&&(v.proposalId||null)===(selection.proposalId||null)));
   useEffect(()=>{let active=true;setComparison(null);if(run)api.comparison(run._id).then(v=>active&&setComparison(v)).catch(()=>active&&setComparison({refreshRequired:true}));return()=>{active=false;};},[run?._id,run?.__v,fabric?.__v,data]);
   // Read-only preview polling must not flash verified source controls back to blocked.
   // New evidence revisions still block immediately; every refresh rechecks the server.
@@ -31,6 +32,6 @@ export function Workspace({children}){
   async function newProject(name){const r=await request('/ui/projects',{method:'POST',body:{name}});await reload();openProject(r.project);}
   async function attachSource(fabricId){if(!userMode)return;const r=await request('/ui/projects/'+project._id+'/source',{method:'POST',body:{expectedVersion:project.__v,fabricId}});await reload();openProject(r.project);}
   function selectFabric(id){if(userMode){const p=data.projects.find(p=>p.fabricId===id);if(p)openProject(p);return;}let saved={};try{saved=JSON.parse(localStorage.getItem(key(data)+':'+id)||'{}');}catch{}setSelection({fabricId:id,stage:1,...saved});}
-  return <Context.Provider value={{data,error,userMode,project,openProject,newProject,attachSource,loading:loading||!restored,reload,fabric,run,runs,concept,proposal,proposals,selection,stage:selection.stage??0,selectFabric,select,comparison,sourceStale,toast,notify:(text,tone='success')=>setToast({text,tone}),dismiss:()=>setToast(null)}}>{children}</Context.Provider>;
+  return <Context.Provider value={{data,error,userMode,project,design,openProject,newProject,attachSource,loading:loading||!restored,reload,fabric,run,runs,concept,proposal,proposals,selection,stage:selection.stage??0,selectFabric,select,comparison,sourceStale,toast,notify:(text,tone='success')=>setToast({text,tone}),dismiss:()=>setToast(null)}}>{children}</Context.Provider>;
 }
 export const useWorkspace=()=>useContext(Context);

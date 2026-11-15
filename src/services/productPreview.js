@@ -5,6 +5,7 @@ const {fingerprint}=require('../../experiments/ai-pattern-proposals/adapter');
 const {openBudget}=require('../../experiments/design-language/ai-spike/campaign');
 const {validateRuntime}=require('./localAI');
 const {POLICY,VIEWS,specification,promptFor}=require('./previewPrompt');
+const identity=require('./designIdentity');
 const {fabricReference}=require('./previewReference');
 const DATA=path.resolve(__dirname,'../../data');
 const hash=b=>createHash('sha256').update(b).digest('hex');
@@ -16,16 +17,18 @@ async function makeConditioning(original,hero){
   return sharp({create:{width:1024,height:1024,channels:3,background:'#efeee9'}}).composite([{input:material,left:0,top:0},{input:product,left:512,top:0}]).png().toBuffer();
 }
 async function prepare(runId,conceptId,proposalId,visualNotes='',options={}){
-  const viewRole=options.viewRole||'HERO',reference=options.reference;
+  const viewRole=options.viewRole||'HERO',reference=options.reference,design=options.designSpecification;
+  if(design)await identity.assertActive(design);
   if(!VIEWS[viewRole])throw fail(400,'INVALID_PREVIEW_VIEW');
   const run=await Run.findById(runId);if(!run)throw fail(404,'CONCEPT_RUN_NOT_FOUND');await ensureCurrent(run);
   const concept=run.concepts.find(c=>c.id===conceptId);if(!concept?.assessment.schemaValid)throw fail(409,'VALID_CONCEPT_REQUIRED');
   let proposal;if(proposalId){proposal=await Proposal.findById(proposalId).lean();if(!proposal||String(proposal.runId)!==run.id||proposal.conceptId!==conceptId)throw fail(409,'PROPOSAL_SOURCE_MISMATCH');if(proposal.reviewVersion!==concept.reviewVersion)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');}
+  if(design&&(design.runId!==run.id||design.conceptId!==conceptId||design.reviewVersion!==concept.reviewVersion||design.proposalId!==(proposalId||null)))throw fail(409,'DESIGN_PROPOSAL_VERSION_MISMATCH');
   const sourceHash=run.sourceSnapshot.hash,conceptHash=concept.assessment.provenance.proposalSha256;
   const provenance={runId:run.id,conceptId,conceptHash,reviewVersion:concept.reviewVersion,sourceHash,analysisId:run.sourceSnapshot.selectedPhoto?.analysisId,
     proposalId:proposal?._id?.toString()||null,proposalVersion:proposal?.version||null,proposalHash:proposal?.provenance.inputSha256||null,sourceImageSha256:null,
     label:'ILLUSTRATIVE_AI_PREVIEW',physicalAccuracy:'UNVERIFIED',conditioning:reference?'SOURCE_AND_HERO_REFERENCE_BOARD':'ACTUAL_SOURCE_PHOTO_APPROXIMATE_VISUAL_REFERENCE',visualNotes,
-    previewPolicy:POLICY,viewRole,previewSetId:options.previewSetId||null,referencePreviewId:reference?.operationId||null,referenceImageSha256:reference?.imageSha256||null};
+    ...(design?{designFingerprint:design.fingerprint,designVersion:design.version,designSpecification:design,imageCategory:proposal?.previewSvg&&!design.conflicts.length?'CURRENT_DESIGN':'EXPLORATORY_CONCEPT'}:{}),previewPolicy:POLICY,viewRole,previewSetId:options.previewSetId||null,referencePreviewId:reference?.operationId||null,referenceImageSha256:reference?.imageSha256||null};
   const p=concept.assessment.proposal;
   let technical=null;
   if(proposal&&proposal.status!=='REJECTED'&&proposal.previewSvg){
@@ -36,9 +39,10 @@ async function prepare(runId,conceptId,proposalId,visualNotes='',options={}){
       proposedAssembly:proposal.assessment?.constructionPlan?.instructions||t?.assembly,
       layout:layout?{status:layout.status,placements:layout.placements,area:layout.areaSummary}:null};
   }
-  const visualSpecification=options.visualSpecification||(reference?.visualSpecification?.visualDesign?reference.visualSpecification:null)||specification(p,run.sourceSnapshot,technical,visualNotes),prompt=promptFor(visualSpecification,viewRole,!!reference)+(reference&&visualNotes?'\nView-specific direction only; preserve product identity: '+visualNotes:'');
+  const visualSpecification=options.visualSpecification||(reference?.visualSpecification?.visualDesign?reference.visualSpecification:null)||specification(p,run.sourceSnapshot,technical,visualNotes,design),prompt=promptFor(visualSpecification,viewRole,!!reference)+(reference&&visualNotes?'\nView-specific direction only; preserve product identity: '+visualNotes:'');
+  if(design){if(visualSpecification.designIdentity?.fingerprint!==design.fingerprint)throw fail(409,'PREVIEW_DESIGN_CONFLICT');identity.assertPrompt(design,visualSpecification.visualDesign,visualNotes);}
   provenance.visualSpecificationSha256=fingerprint(visualSpecification);
-  return {run,concept,provenance,prompt,reference,visualSpecification,fingerprint:fingerprint({policy:POLICY,sourceHash,conceptHash,reviewVersion:concept.reviewVersion,proposalHash:provenance.proposalHash,visualNotes,viewRole,referencePreviewId:provenance.referencePreviewId,referenceImageSha256:provenance.referenceImageSha256})};
+  return {run,concept,provenance,prompt,reference,visualSpecification,fingerprint:fingerprint({policy:POLICY,designFingerprint:design?.fingerprint||null,sourceHash,conceptHash,reviewVersion:concept.reviewVersion,proposalHash:provenance.proposalHash,visualNotes,viewRole,referencePreviewId:provenance.referencePreviewId,referenceImageSha256:provenance.referenceImageSha256})};
 }
 async function generate(prepared,projectId,campaignId,runtime){
   validateRuntime(runtime);const {provenance,prompt,run}=prepared;
@@ -59,7 +63,7 @@ async function generate(prepared,projectId,campaignId,runtime){
   const meta=await sharp(response.bytes).metadata();if(!['png','jpeg'].includes(meta.format)||!meta.width||!meta.height)throw fail(502,'INVALID_IMAGE_RESPONSE');
   const folder=path.join(DATA,'creation-previews',String(projectId));fs.mkdirSync(folder,{recursive:true});const output=path.join(folder,randomUUID()+'.'+(meta.format==='png'?'png':'jpg'));
   fs.writeFileSync(output,response.bytes,{flag:'wx'});
-  let stale=false;try{const latest=await prepare(run.id,provenance.conceptId,provenance.proposalId,provenance.visualNotes,{viewRole:provenance.viewRole,reference:prepared.reference,visualSpecification:prepared.visualSpecification});stale=latest.fingerprint!==prepared.fingerprint;}catch{stale=true;}
+  let stale=false;try{const latest=await prepare(run.id,provenance.conceptId,provenance.proposalId,provenance.visualNotes,{viewRole:provenance.viewRole,reference:prepared.reference,visualSpecification:prepared.visualSpecification,designSpecification:prepared.provenance.designSpecification});stale=latest.fingerprint!==prepared.fingerprint;}catch{stale=true;}
   const preview={...provenance,fingerprint:prepared.fingerprint,prompt,model:runtime.imageProvider.model,httpStatus:response.httpStatus??null,usage:response.usage??null,
     visualSpecification:prepared.visualSpecification,execution:runtime.testing?'TEST_FIXTURE':'LIVE',createdAt:new Date().toISOString(),filePath:output,imageSha256:hash(response.bytes),contentType:'image/'+(meta.format==='png'?'png':'jpeg'),width:meta.width,height:meta.height,
     stale,artisticAssumptions:['Undefined colors/finishing and attachment presentation are illustrative','Source-photo conditioning does not verify material or texture','No finished physical product is depicted'],manufacturingVerified:false};

@@ -174,3 +174,8 @@ Current global ledger: **29/30**, one remaining; **ZERO calls in this task**. No
 ## Coin Pouch technical recovery and complete review ? 2026-11-15
 
 See [COIN_POUCH_TECHNICAL_REVIEW_FINAL.md](COIN_POUCH_TECHNICAL_REVIEW_FINAL.md) for the current original-source replay, rollback references, pattern/nesting/assembly evidence, browser screenshots and verification. New snap-flap construction is an explicit alternative requiring selection, not a repaired AI response. Its 69.75 cm? cutting layout fits the saved 162.0459 cm? polygon (43.04% utilization); physical construction remains UNVERIFIED. The saved source photo is the known synthetic calibration/sample image. Original project records, images, usage receipts and release ZIP remain unchanged. Current usage is 48 requests with no internal cap; ZERO inference in this task. Earlier dated counts above are historical.
+
+
+## Fix 1 - unified product design identity
+
+See [UNIFIED_PRODUCT_IDENTITY_FIX1.md](UNIFIED_PRODUCT_IDENTITY_FIX1.md) for recovery, versioned requirements, historical galleries and both original/fresh-project tests. 51 focused and 849 full tests, build and 1440/1920 desktop checks passed. Usage: 54, internal cap removed, ZERO inference in this task. Original records/images/release are preserved. Metadata does not verify image fidelity or manufacture.
