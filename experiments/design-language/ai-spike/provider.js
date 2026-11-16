@@ -1,7 +1,8 @@
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 const COMPARISON_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const CONSTRUCTION_MODEL = '@cf/openai/gpt-oss-120b';
-const APPROVED_MODELS = Object.freeze([MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL]);
+const QWEN_MODEL = '@cf/qwen/qwen3.8-27b';
+const APPROVED_MODELS = Object.freeze([MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL, QWEN_MODEL]);
 const GENERATION_PARAMETERS = Object.freeze({ response_format: Object.freeze({ type: 'json_object' }), stream: false, temperature: 0.7, max_tokens: 6144 });
 // Native Workers AI messages input; do not use Responses-only reasoning objects.
 const CONSTRUCTION_PARAMETERS = Object.freeze({ ...GENERATION_PARAMETERS, temperature: 0.3, max_tokens: 2048, reasoning_effort: 'low' });
@@ -29,8 +30,9 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
   if (!accountId || !apiToken) throw new ProviderError('LIVE_TEST_BLOCKED_MISSING_CREDENTIALS');
   // Presence of credentials or a prior image spike does not establish a free-only account.
   if (freeTierConfirmed !== true) throw new ProviderError('LIVE_TEST_BLOCKED_FREE_TIER_UNVERIFIED');
-  if (!['DEFAULT','CONSTRUCTION'].includes(profile) || profile === 'CONSTRUCTION' && model !== CONSTRUCTION_MODEL) throw new ProviderError('PROFILE_NOT_APPROVED');
-  const parameters=profile==='CONSTRUCTION'?CONSTRUCTION_PARAMETERS:GENERATION_PARAMETERS;
+  if (!['DEFAULT','CONSTRUCTION','QWEN_ENGINEERING'].includes(profile) || profile === 'CONSTRUCTION' && model !== CONSTRUCTION_MODEL || (profile==='QWEN_ENGINEERING')!==(model===QWEN_MODEL)) throw new ProviderError('PROFILE_NOT_APPROVED');
+  const parameters=profile==='QWEN_ENGINEERING'?require('../../../src/services/qwenEngineering').PARAMETERS:profile==='CONSTRUCTION'?CONSTRUCTION_PARAMETERS:GENERATION_PARAMETERS;
+  const outputLimit=parameters.max_completion_tokens??parameters.max_tokens;
   return {
     mode: 'LIVE', name: 'Cloudflare Workers AI', model,
     generationParameters: Object.freeze({ ...parameters, timeoutMs }),
@@ -78,9 +80,10 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       for (const field of ['prompt_tokens', 'completion_tokens', 'total_tokens', 'neurons']) {
         if (Number.isFinite(result?.usage?.[field]) && result.usage[field] >= 0) usage[field] = result.usage[field];
       }
+      if(model===QWEN_MODEL&&Number.isSafeInteger(result?.usage?.completion_tokens_details?.reasoning_tokens)&&result.usage.completion_tokens_details.reasoning_tokens>=0)usage.completion_tokens_details={reasoning_tokens:result.usage.completion_tokens_details.reasoning_tokens};
       const finishReason = result?.finish_reason || result?.choices?.[0]?.finish_reason || null;
       let text;
-      if (typeof result?.response === 'string' || (result?.response && typeof result.response === 'object' && !Array.isArray(result.response))) text=typeof result.response==='string'?result.response:JSON.stringify(result.response);
+      if (model!==QWEN_MODEL&&(typeof result?.response === 'string' || (result?.response && typeof result.response === 'object' && !Array.isArray(result.response)))) text=typeof result.response==='string'?result.response:JSON.stringify(result.response);
       else if (result?.object==='chat.completion' && Array.isArray(result.choices) && result.choices.length===1) {
         // GPT-OSS /ai/run returns a Chat Completions object inside Workers AI's
         // result wrapper. Extract final assistant content ONLY, never reasoning.
@@ -92,7 +95,7 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
           (message.content==null || typeof message.content==='string'&&!message.content.trim()) &&
           !message.refusal && !message.function_call && (!message.tool_calls || Array.isArray(message.tool_calls)&&message.tool_calls.length===0) && finishReason==='length') {
           throw new ProviderError('MODEL_OUTPUT_TOKEN_LIMIT_REACHED',response.status,[],{
-            ...diagnostics(null,'OUTPUT_TOKEN_LIMIT'),finishReason,outputTokenLimit:parameters.max_tokens,
+            ...diagnostics(null,'OUTPUT_TOKEN_LIMIT'),finishReason,outputTokenLimit:outputLimit,
             truncated:true,finalContentPresent:false,reasoningPresent:!!(message.reasoning||message.reasoning_content),
             usage:Object.keys(usage).length?usage:null,
           });
@@ -100,12 +103,12 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       }
       if (text===undefined) throw new ProviderError('INVALID_PROVIDER_ENVELOPE', response.status, [], diagnostics(null, 'INVALID_PROVIDER_ENVELOPE'));
       const truncated = finishReason === 'length' || result.truncated === true ||
-        (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= parameters.max_tokens) ? true : finishReason === 'stop' || result.truncated === false ? false : null;
+        (Number.isFinite(usage.completion_tokens) && usage.completion_tokens >= outputLimit) ? true : finishReason === 'stop' || result.truncated === false ? false : null;
       return { text,
         usage: Object.keys(usage).length ? usage : null, httpStatus: response.status,
-        finishReason, outputTokenLimit: parameters.max_tokens, truncated,
+        finishReason, outputTokenLimit: outputLimit, truncated,
       };
     },
   };
 }
-module.exports = { MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL, APPROVED_MODELS, GENERATION_PARAMETERS, CONSTRUCTION_PARAMETERS, CONSTRUCTION_POLICY, constructionMaxNeurons, ProviderError, cloudflareProvider };
+module.exports = { MODEL, COMPARISON_MODEL, CONSTRUCTION_MODEL, QWEN_MODEL, APPROVED_MODELS, GENERATION_PARAMETERS, CONSTRUCTION_PARAMETERS, CONSTRUCTION_POLICY, constructionMaxNeurons, ProviderError, cloudflareProvider };

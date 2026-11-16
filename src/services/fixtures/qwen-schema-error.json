@@ -1,0 +1,15 @@
+{
+  "httpStatus": 400,
+  "contentType": "application/json",
+  "body": {
+    "errors": [
+      {
+        "message": "AiError: AiError: Invalid data for response_format - reason Unsupported JSON Schema at '/properties/components/items/properties/shape/oneOf/2/properties/vertices/items': 'items' must be a boolean or an object, not an array. For tuple validation, use 'prefixItems' instead (JSON Schema Draft 2020-12). (362022c0-990f-4add-a920-f245316a3e3f)",
+        "code": 8006
+      }
+    ],
+    "success": false,
+    "result": {},
+    "messages": []
+  }
+}

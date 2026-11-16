@@ -1,6 +1,6 @@
 // Trusted server dependencies only. Request bodies can never select a provider/root.
 const path=require('path'),mongoose=require('mongoose');
-const {cloudflareProvider,COMPARISON_MODEL,CONSTRUCTION_MODEL}=require('../../experiments/design-language/ai-spike/provider');
+const {cloudflareProvider,COMPARISON_MODEL,CONSTRUCTION_MODEL,CONSTRUCTION_PARAMETERS,constructionMaxNeurons}=require('../../experiments/design-language/ai-spike/provider');
 const ROOT=path.resolve(__dirname,'../../experiments/design-language/ai-spike/results');
 function validateRuntime(runtime){
   if(!runtime?.authorized||runtime.freeTierConfirmed!==true)throw Object.assign(Error('LIVE_GENERATION_DISABLED'),{status:403,code:'LIVE_GENERATION_DISABLED'});
@@ -8,5 +8,10 @@ function validateRuntime(runtime){
   if(!runtime.testing&&path.resolve(runtime.root)!==ROOT)throw Error('INVALID_LIVE_LEDGER');
   return runtime;
 }
-function textProvider(runtime,{construction=false}={}){validateRuntime(runtime);return runtime.testing?runtime.textProvider:cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:construction?CONSTRUCTION_MODEL:COMPARISON_MODEL,profile:construction?'CONSTRUCTION':'DEFAULT',timeoutMs:120000});}
-module.exports={ROOT,validateRuntime,textProvider};
+function engineeringSettings(selection=process.env.BORSAL_ENGINEERING_MODEL||'GPT_OSS'){
+ if(selection==='QWEN'){const q=require('./qwenEngineering');return {selection,model:q.MODEL,profile:'QWEN_ENGINEERING',parameters:q.PARAMETERS,maxInputBytes:q.POLICY.maxInputBytes,freeTierHoldNeurons:q.POLICY.freeTierHoldNeurons,inputBytes:q.inputBytes,maxNeurons:q.maxNeurons,messages:q.messages};}
+ if(selection!=='GPT_OSS')throw Error('ENGINEERING_MODEL_NOT_APPROVED');
+ const e=require('./productEngineering');return {selection,model:CONSTRUCTION_MODEL,profile:'CONSTRUCTION',parameters:CONSTRUCTION_PARAMETERS,maxInputBytes:e.LIMITS.maxPromptBytes,freeTierHoldNeurons:e.LIMITS.freeTierHoldNeurons,inputBytes:m=>Buffer.byteLength(JSON.stringify(m)),maxNeurons:constructionMaxNeurons,messages:e.messages};
+}
+function textProvider(runtime,{construction=false,engineering=false}={}){validateRuntime(runtime);const config=engineering?engineeringSettings(runtime.engineeringSelection):null;return runtime.testing?runtime.textProvider:cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:config?.model||(construction?CONSTRUCTION_MODEL:COMPARISON_MODEL),profile:config?.profile||(construction?'CONSTRUCTION':'DEFAULT'),timeoutMs:120000});}
+module.exports={ROOT,validateRuntime,textProvider,engineeringSettings};

@@ -37,26 +37,27 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   const review=concept.reviews.at(-1)?.review;
   if(review?.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');
   if(!review.draftingBrief)throw fail(409,'DRAFTING_BRIEF_REQUIRED');
+  const engineering=input.strategy==='ENGINEERING'?require('./localAI').engineeringSettings(runtime?.engineeringSelection):null;
   const live=input.mode==='LIVE';let provider,budget,secrets=[];
   if(live){
     if(!runtime&&(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
-    provider=runtime?require('./localAI').textProvider(runtime,{construction:['CONSTRUCTION','ENGINEERING'].includes(input.strategy)}):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
+    provider=runtime?require('./localAI').textProvider(runtime,{construction:['CONSTRUCTION','ENGINEERING'].includes(input.strategy),engineering:!!engineering}):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
     budget=openBudget(root);
     secrets=[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI];
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
   let feedback;if(input.feedbackFromProposalId){const previous=await require('../models/TechnicalProposal').findById(input.feedbackFromProposalId).lean();if(!previous||String(previous.runId)!==run.id||previous.conceptId!==conceptId||previous.reviewVersion!==concept.reviewVersion||previous.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'FEEDBACK_SOURCE_MISMATCH');feedback=require('./candidatePrompt').revisionFeedback(previous);}
-  const prompt=input.strategy==='ENGINEERING'?require('./productEngineering').messages(run,concept):input.strategy==='CONSTRUCTION'?require('./constructionPlanner').messages(run,concept):input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations,input.revisionApproach):messages(run,concept);
+  const prompt=engineering?engineering.messages(run,concept):input.strategy==='CONSTRUCTION'?require('./constructionPlanner').messages(run,concept):input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations,input.revisionApproach):messages(run,concept);
   if(runtime?.designSpecification){await require('./designIdentity').assertActive(runtime.designSpecification);applyDesign(prompt,runtime.designSpecification);}
-  const promptBytes=Buffer.byteLength(JSON.stringify(prompt)),limits=input.strategy==='ENGINEERING'?require('./productEngineering').LIMITS:CONSTRUCTION_POLICY;
-  const conservativeMaxNeurons=['CONSTRUCTION','ENGINEERING'].includes(input.strategy)?constructionMaxNeurons(promptBytes):(24000*26668+6144*204805)/1000000;
-  if(['CONSTRUCTION','ENGINEERING'].includes(input.strategy)&&(!runtime||promptBytes>limits.maxPromptBytes||conservativeMaxNeurons>limits.freeTierHoldNeurons))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
-  if(promptBytes+512+6144>24000||conservativeMaxNeurons>2000)throw fail(422,'PREFLIGHT_LIMIT_EXCEEDED');
+  const promptBytes=Buffer.byteLength(JSON.stringify(prompt)),requestInputBytes=engineering?engineering.inputBytes(prompt):promptBytes;
+  const conservativeMaxNeurons=engineering?engineering.maxNeurons(requestInputBytes):input.strategy==='CONSTRUCTION'?constructionMaxNeurons(promptBytes):(24000*26668+6144*204805)/1000000;
+  if(engineering&&(!runtime||requestInputBytes>engineering.maxInputBytes||conservativeMaxNeurons>engineering.freeTierHoldNeurons)||input.strategy==='CONSTRUCTION'&&(!runtime||promptBytes>CONSTRUCTION_POLICY.maxPromptBytes||conservativeMaxNeurons>CONSTRUCTION_POLICY.freeTierHoldNeurons))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
+  if(engineering?.selection!=='QWEN'&&(promptBytes+512+6144>24000||conservativeMaxNeurons>2000))throw fail(422,'PREFLIGHT_LIMIT_EXCEEDED');
   const parent=path.join(root,'campaigns');fs.mkdirSync(parent,{recursive:true});if(fs.lstatSync(parent).isSymbolicLink())throw fail(409,'INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,input.campaignId);try{fs.mkdirSync(directory);}catch(e){if(e.code==='EEXIST')throw fail(409,'CAMPAIGN_ALREADY_EXISTS');throw e;}
   const save=(name,value,raw=false)=>writeNew(path.join(directory,name),value,secrets,raw);
   const provenance={strategy:input.strategy,...(runtime?.designSpecification?{designSpecification:runtime.designSpecification}:{}),...(feedback?{feedbackFromProposalId:input.feedbackFromProposalId,revisionApproach:input.revisionApproach||'SMALLER_SAME_INTENT'}:{}),execution:runtime?.testing||!live?'TEST_FIXTURE':'LIVE',campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
   save('lock.json',{...provenance,maxRequests:1,maxRepairs:0});
-  save('request.json',{...provenance,messages:prompt,promptBytes,conservativeMaxNeurons});
+  save('request.json',{...provenance,messages:prompt,promptBytes,requestInputBytes,conservativeMaxNeurons});
   const slot=budget?budget.reserve(input.campaignId,1):null;
   save('attempt-1.json',{state:'RESERVED_BEFORE_INFERENCE',globalSlot:slot,requestsDispatched:1});
   let response;
