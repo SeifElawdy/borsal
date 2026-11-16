@@ -9,6 +9,7 @@ function validateRuntime(runtime){
   return runtime;
 }
 function engineeringSettings(selection=process.env.BORSAL_ENGINEERING_MODEL||'GPT_OSS'){
+ if(selection==='LLAMA_BLUEPRINT'){const b=require('./blueprintProvider');return {selection,model:b.MODEL,profile:'LLAMA_BLUEPRINT',parameters:b.PARAMETERS,maxInputBytes:b.POLICY.maxInputBytes,freeTierHoldNeurons:b.POLICY.freeTierHoldNeurons,inputBytes:b.inputBytes,maxNeurons:b.maxNeurons,messages:b.messages};}
  if(selection==='QWEN'){const q=require('./qwenEngineering');return {selection,model:q.MODEL,profile:'QWEN_ENGINEERING',parameters:q.PARAMETERS,maxInputBytes:q.POLICY.maxInputBytes,freeTierHoldNeurons:q.POLICY.freeTierHoldNeurons,inputBytes:q.inputBytes,maxNeurons:q.maxNeurons,messages:q.messages};}
  if(selection!=='GPT_OSS')throw Error('ENGINEERING_MODEL_NOT_APPROVED');
  const e=require('./productEngineering');return {selection,model:CONSTRUCTION_MODEL,profile:'CONSTRUCTION',parameters:CONSTRUCTION_PARAMETERS,maxInputBytes:e.LIMITS.maxPromptBytes,freeTierHoldNeurons:e.LIMITS.freeTierHoldNeurons,inputBytes:m=>Buffer.byteLength(JSON.stringify(m)),maxNeurons:constructionMaxNeurons,messages:e.messages};

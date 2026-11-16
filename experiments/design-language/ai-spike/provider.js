@@ -30,8 +30,8 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
   if (!accountId || !apiToken) throw new ProviderError('LIVE_TEST_BLOCKED_MISSING_CREDENTIALS');
   // Presence of credentials or a prior image spike does not establish a free-only account.
   if (freeTierConfirmed !== true) throw new ProviderError('LIVE_TEST_BLOCKED_FREE_TIER_UNVERIFIED');
-  if (!['DEFAULT','CONSTRUCTION','QWEN_ENGINEERING'].includes(profile) || profile === 'CONSTRUCTION' && model !== CONSTRUCTION_MODEL || (profile==='QWEN_ENGINEERING')!==(model===QWEN_MODEL)) throw new ProviderError('PROFILE_NOT_APPROVED');
-  const parameters=profile==='QWEN_ENGINEERING'?require('../../../src/services/qwenEngineering').PARAMETERS:profile==='CONSTRUCTION'?CONSTRUCTION_PARAMETERS:GENERATION_PARAMETERS;
+  if (!['DEFAULT','CONSTRUCTION','QWEN_ENGINEERING','LLAMA_BLUEPRINT'].includes(profile) || profile === 'CONSTRUCTION' && model !== CONSTRUCTION_MODEL || profile==='LLAMA_BLUEPRINT'&&model!==COMPARISON_MODEL || (profile==='QWEN_ENGINEERING')!==(model===QWEN_MODEL)) throw new ProviderError('PROFILE_NOT_APPROVED');
+  const parameters=profile==='LLAMA_BLUEPRINT'?require('../../../src/services/blueprintProvider').PARAMETERS:profile==='QWEN_ENGINEERING'?require('../../../src/services/qwenEngineering').PARAMETERS:profile==='CONSTRUCTION'?CONSTRUCTION_PARAMETERS:GENERATION_PARAMETERS;
   const outputLimit=parameters.max_completion_tokens??parameters.max_tokens;
   return {
     mode: 'LIVE', name: 'Cloudflare Workers AI', model,
@@ -83,7 +83,7 @@ function cloudflareProvider({ accountId, apiToken, freeTierConfirmed = false, fe
       if(model===QWEN_MODEL&&Number.isSafeInteger(result?.usage?.completion_tokens_details?.reasoning_tokens)&&result.usage.completion_tokens_details.reasoning_tokens>=0)usage.completion_tokens_details={reasoning_tokens:result.usage.completion_tokens_details.reasoning_tokens};
       const finishReason = result?.finish_reason || result?.choices?.[0]?.finish_reason || null;
       let text;
-      if (model!==QWEN_MODEL&&(typeof result?.response === 'string' || (result?.response && typeof result.response === 'object' && !Array.isArray(result.response)))) text=typeof result.response==='string'?result.response:JSON.stringify(result.response);
+      if (model!==QWEN_MODEL&&(typeof result?.response === 'string' || (profile!=='LLAMA_BLUEPRINT'&&result?.response && typeof result.response === 'object' && !Array.isArray(result.response)))) text=typeof result.response==='string'?result.response:JSON.stringify(result.response);
       else if (result?.object==='chat.completion' && Array.isArray(result.choices) && result.choices.length===1) {
         // GPT-OSS /ai/run returns a Chat Completions object inside Workers AI's
         // result wrapper. Extract final assistant content ONLY, never reasoning.

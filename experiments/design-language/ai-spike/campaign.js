@@ -47,7 +47,14 @@ function openBudget(root) {
   fs.mkdirSync(directory, { recursive: true });
   if (fs.lstatSync(directory).isSymbolicLink()) throw new Error('INVALID_BUDGET_PATH');
   const file = path.join(directory, 'baseline.json');
-  try { writeNew(file, baseline); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+  // Publish a completely written baseline atomically. Exclusive creation alone
+  // exposed an empty/partial file to concurrent cold starts (false mismatch).
+  // Existing baselines/reservations are never rewritten or repaired.
+  if (!fs.existsSync(file)) {
+    const temporary=path.join(directory,'baseline-pending-'+require('crypto').randomUUID()+'.tmp');
+    try { writeNew(temporary,baseline);try { fs.linkSync(temporary,file); } catch(error) { if(error.code!=='EEXIST')throw error; } }
+    finally { if(fs.existsSync(temporary))fs.unlinkSync(temporary); }
+  }
   // A partial/corrupt baseline or changed legacy counters fails closed; never reset it.
   if (fs.readFileSync(file, 'utf8') !== redact(baseline)) throw new Error('BUDGET_BASELINE_MISMATCH');
   const slots = () => fs.readdirSync(directory).map(name => /^request-([1-9]\d*)\.json$/.exec(name))

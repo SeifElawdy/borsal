@@ -20,7 +20,7 @@ function publicOperation(op){if(!op)return null;const o=op.toObject?op.toObject(
 function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROOT}={}){
   const router=express.Router(),testing=!!simulatedProviders;
   const safeTesting=()=>{if(testing&&(!/^borsal-[a-z0-9-]+-test$/.test(mongoose.connection.name||'')||path.resolve(generationRoot)===ROOT))throw fail(503,'UNSAFE_PROVIDER_TEST_CONFIGURATION');};
-  const wrap=fn=>async(req,res)=>{try{safeTesting();await fn(req,res);}catch(e){if(e instanceof z.ZodError)return res.status(400).json({error:'INVALID_INPUT',issues:e.issues});if(e.code===11000)return res.status(409).json({error:'PROJECT_OR_REQUEST_CONFLICT'});if(e.name==='VersionError')return res.status(409).json({error:'PROJECT_VERSION_CONFLICT'});res.status(e.status||500).json({error:e.status?e.code:'LOCAL_STUDIO_REQUEST_FAILED'});}};
+  const wrap=fn=>async(req,res)=>{try{safeTesting();await fn(req,res);}catch(e){if(e instanceof z.ZodError)return res.status(400).json({error:'INVALID_INPUT',issues:e.issues});if(e.code===11000)return res.status(409).json({error:'PROJECT_OR_REQUEST_CONFLICT'});if(e.name==='VersionError')return res.status(409).json({error:'PROJECT_VERSION_CONFLICT'});res.status(e.status||500).json({error:e.status?e.code:'LOCAL_STUDIO_REQUEST_FAILED',...(e.blueprintCompatibility?{blueprintCompatibility:e.blueprintCompatibility}:{})});}};
   let indexedDatabase;async function indexes(){if(indexedDatabase===mongoose.connection.name)return;await Promise.all([Project.createIndexes(),Operation.createIndexes()]);indexedDatabase=mongoose.connection.name;}
   async function project(value){const key=id.parse(value),p=await Project.findById(key);if(!p)throw fail(404,'PROJECT_NOT_FOUND');return p;}
   async function ownedRun(p,runId){const r=await Run.findById(id.parse(runId));if(!r||String(r.fabricId)!==String(p.fabricId))throw fail(409,'PROJECT_SOURCE_MISMATCH');return r;}
@@ -82,10 +82,12 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
         prepared=await previewService.prepare(run.id,c.id,input.proposalId,input.visualNotes,{viewRole:input.viewRole,reference,designSpecification});if(Buffer.byteLength(prepared.prompt)>12000)throw fail(400,'IMAGE_PROMPT_TOO_LARGE');
         if(!input.regenerate){const cached=await Operation.findOne({projectId:p._id,kind:'IMAGE',state:'SUCCEEDED',[fullSet?'result.previewSet.fingerprint':'result.preview.fingerprint']:prepared.fingerprint}).sort({createdAt:-1});if(cached)return reply(cached,res,true);}}
     }
-    if(kind==='TECHNICAL'){const c=run.concepts.find(c=>c.id===req.params.conceptId),q=p.selection?.conceptId===c.id&&p.selection?.proposalId?await Proposal.findById(p.selection.proposalId).lean():null;designSpecification=await identity.bind(p,run,c,q);}
+    if(kind==='TECHNICAL'){const c=run.concepts.find(c=>c.id===req.params.conceptId),q=p.selection?.conceptId===c.id&&p.selection?.proposalId?await Proposal.findById(p.selection.proposalId).lean():null;
+      if(input.strategy==='ENGINEERING'&&engineeringConfig.selection==='LLAMA_BLUEPRINT'){const gate=require('../services/blueprint').compatibility(identity.resolve(p,run,c,q));if(gate.status==='BLOCKED')throw Object.assign(fail(409,'BLUEPRINT_REQUIREMENT_CLARIFICATION_REQUIRED'),{blueprintCompatibility:gate});}
+      designSpecification=await identity.bind(p,run,c,q);}
     if(designSpecification&&req.get('X-Borsal-Design')&&req.get('X-Borsal-Design')!==designSpecification.fingerprint)throw fail(409,'DESIGN_VERSION_CHANGED');
     const estimateKey=fullSet?'IMAGE_SET':kind==='TECHNICAL'&&['CONSTRUCTION','ENGINEERING'].includes(input.strategy)?input.strategy:kind;
-    if(estimateKey==='ENGINEERING'){const prompt=technicalGeneration.applyDesign(engineeringConfig.messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification),bytes=engineeringConfig.inputBytes(prompt);if(bytes>engineeringConfig.maxInputBytes||engineeringConfig.maxNeurons(bytes)>engineeringConfig.freeTierHoldNeurons)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');}
+    if(estimateKey==='ENGINEERING'){const prompt=technicalGeneration.applyDesign(engineeringConfig.messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification,engineeringConfig.selection==='LLAMA_BLUEPRINT'),bytes=engineeringConfig.inputBytes(prompt);if(bytes>engineeringConfig.maxInputBytes||engineeringConfig.maxNeurons(bytes)>engineeringConfig.freeTierHoldNeurons)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');}
     if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(technicalGeneration.applyDesign(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification)))>CONSTRUCTION_POLICY.maxPromptBytes)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
     const config=await capabilities();if(config.reason)throw fail(403,config.reason);
     const op=await Operation.create({projectId:p._id,requestKey:key,requestHash,kind,campaignId,execution:testing?'TEST_FIXTURE':'LIVE',runId:run?._id,conceptId:req.params.conceptId,sourceHash:run?.sourceSnapshot.hash});
@@ -106,6 +108,17 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     await op.save();if(op.state==='FAILED')await blockProviderFailure(op.failure);return reply(op,res);
   });}
   router.post('/api/fabrics/:fabricId/concepts',generation('CONCEPTS'));
+  // Read-only counterpart of the existing protected action, for pre-confirmation
+  // checks. Does not bind a design, reserve Neurons, or create an operation.
+  router.get('/api/concept-runs/:id/concepts/:conceptId/technical-proposals/generate',wrap(async(req,res)=>{
+    if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.get('X-Borsal-Project')),run=await ownedRun(p,req.params.id);await conceptService.ensureCurrent(run);
+    if(req.get('X-Borsal-Source')&&req.get('X-Borsal-Source')!==run.sourceSnapshot.hash)throw fail(409,'FABRIC_SOURCE_CHANGED');
+    if(req.get('X-Borsal-Design')&&req.get('X-Borsal-Design')!==p.activeDesignFingerprint)throw fail(409,'DESIGN_VERSION_CHANGED');
+    if(p.selection?.conceptId&&(p.selection.runId!==run.id||p.selection.conceptId!==req.params.conceptId))throw fail(409,'PROJECT_CONCEPT_MISMATCH');
+    const c=run.concepts.find(c=>c.id===req.params.conceptId);if(!c)throw fail(404,'CONCEPT_NOT_FOUND');if(c.reviews.at(-1)?.review.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');
+    const q=p.selection?.conceptId===c.id&&p.selection?.proposalId?await Proposal.findById(p.selection.proposalId).lean():null,spec=identity.resolve(p,run,c,q),config=require('../services/localAI').engineeringSettings();
+    res.json({applicable:config.selection==='LLAMA_BLUEPRINT',blueprintCompatibility:config.selection==='LLAMA_BLUEPRINT'?require('../services/blueprint').compatibility(spec):null,designVersion:spec.version,designFingerprint:spec.fingerprint,reviewVersion:c.reviewVersion,manufacturingVerified:false});
+  }));
   router.post('/api/concept-runs/:id/concepts/:conceptId/technical-proposals/generate',generation('TECHNICAL'));
   router.post('/api/concept-runs/:id/concepts/:conceptId/previews',generation('IMAGE'));
   router.post('/api/concept-runs/:id/concepts/:conceptId/preview-sets',generation('IMAGE',true));

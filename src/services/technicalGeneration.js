@@ -25,7 +25,7 @@ function messages(run,concept){
     reviewerBrief:concept.reviews.at(-1).review.draftingBrief,sources:run.sources,
     sourceSnapshotHash:run.sourceSnapshot.hash,sourceGeometryStatus:run.sourceSnapshot.status,physicalAccuracy:'UNVERIFIED',sourceMaterialEvidence:'NOT_SUPPLIED',sourceGrainEvidence:'NOT_SUPPLIED',stockEvidence:'NOT_SUPPLIED'})}];
 }
-function applyDesign(prompt,d){const u=JSON.parse(prompt[1].content);u.concept={activeDesign:require('./designIdentity').promptRequirements(d)};prompt[1].content=JSON.stringify(u);prompt[0].content+=' Follow activeDesign closure and silhouette exactly. If unsupported, declare UNSUPPORTED; do not substitute another closure. Changes require separate explicit human selection.';return prompt;}
+function applyDesign(prompt,d,blueprint=false){const u=JSON.parse(prompt[1].content);u.concept={activeDesign:require('./designIdentity').promptRequirements(d)};prompt[1].content=JSON.stringify(u);if(blueprint)return require('./blueprintProvider').bindDesign(prompt,d);prompt[0].content+=' Follow activeDesign closure and silhouette exactly. If unsupported, declare UNSUPPORTED; do not substitute another closure. Changes require separate explicit human selection.';return prompt;}
 async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}){
   if(runtime)root=require('./localAI').validateRuntime(runtime).root;
   const input=inputSchema.parse(body);try{validateCampaignId(input.campaignId);}catch{throw fail(400,'INVALID_CAMPAIGN_ID');}
@@ -38,6 +38,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   if(review?.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');
   if(!review.draftingBrief)throw fail(409,'DRAFTING_BRIEF_REQUIRED');
   const engineering=input.strategy==='ENGINEERING'?require('./localAI').engineeringSettings(runtime?.engineeringSelection):null;
+  let blueprintCompatibility;if(engineering?.selection==='LLAMA_BLUEPRINT'){if(!runtime?.designSpecification)throw fail(409,'AUTHORITATIVE_CONTEXT_REQUIRED');blueprintCompatibility=require('./blueprint').compatibility(runtime.designSpecification);if(blueprintCompatibility.status==='BLOCKED')throw Object.assign(fail(409,'BLUEPRINT_REQUIREMENT_CLARIFICATION_REQUIRED'),{blueprintCompatibility});}
   const live=input.mode==='LIVE';let provider,budget,secrets=[];
   if(live){
     if(!runtime&&(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
@@ -47,7 +48,8 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
   let feedback;if(input.feedbackFromProposalId){const previous=await require('../models/TechnicalProposal').findById(input.feedbackFromProposalId).lean();if(!previous||String(previous.runId)!==run.id||previous.conceptId!==conceptId||previous.reviewVersion!==concept.reviewVersion||previous.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'FEEDBACK_SOURCE_MISMATCH');feedback=require('./candidatePrompt').revisionFeedback(previous);}
   const prompt=engineering?engineering.messages(run,concept):input.strategy==='CONSTRUCTION'?require('./constructionPlanner').messages(run,concept):input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations,input.revisionApproach):messages(run,concept);
-  if(runtime?.designSpecification){await require('./designIdentity').assertActive(runtime.designSpecification);applyDesign(prompt,runtime.designSpecification);}
+  if(engineering?.selection==='LLAMA_BLUEPRINT'&&!runtime?.designSpecification)throw fail(409,'AUTHORITATIVE_CONTEXT_REQUIRED');
+  if(runtime?.designSpecification){await require('./designIdentity').assertActive(runtime.designSpecification);applyDesign(prompt,runtime.designSpecification,engineering?.selection==='LLAMA_BLUEPRINT');}
   const promptBytes=Buffer.byteLength(JSON.stringify(prompt)),requestInputBytes=engineering?engineering.inputBytes(prompt):promptBytes;
   const conservativeMaxNeurons=engineering?engineering.maxNeurons(requestInputBytes):input.strategy==='CONSTRUCTION'?constructionMaxNeurons(promptBytes):(24000*26668+6144*204805)/1000000;
   if(engineering&&(!runtime||requestInputBytes>engineering.maxInputBytes||conservativeMaxNeurons>engineering.freeTierHoldNeurons)||input.strategy==='CONSTRUCTION'&&(!runtime||promptBytes>CONSTRUCTION_POLICY.maxPromptBytes||conservativeMaxNeurons>CONSTRUCTION_POLICY.freeTierHoldNeurons))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
@@ -55,7 +57,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   const parent=path.join(root,'campaigns');fs.mkdirSync(parent,{recursive:true});if(fs.lstatSync(parent).isSymbolicLink())throw fail(409,'INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,input.campaignId);try{fs.mkdirSync(directory);}catch(e){if(e.code==='EEXIST')throw fail(409,'CAMPAIGN_ALREADY_EXISTS');throw e;}
   const save=(name,value,raw=false)=>writeNew(path.join(directory,name),value,secrets,raw);
-  const provenance={strategy:input.strategy,...(runtime?.designSpecification?{designSpecification:runtime.designSpecification}:{}),...(feedback?{feedbackFromProposalId:input.feedbackFromProposalId,revisionApproach:input.revisionApproach||'SMALLER_SAME_INTENT'}:{}),execution:runtime?.testing||!live?'TEST_FIXTURE':'LIVE',campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
+  const provenance={strategy:input.strategy,...(blueprintCompatibility?{blueprintCompatibility}:{}),...(runtime?.designSpecification?{designSpecification:runtime.designSpecification}:{}),...(feedback?{feedbackFromProposalId:input.feedbackFromProposalId,revisionApproach:input.revisionApproach||'SMALLER_SAME_INTENT'}:{}),execution:runtime?.testing||!live?'TEST_FIXTURE':'LIVE',campaignId:input.campaignId,mode:input.mode,model:provider.model,sourceHash:run.sourceSnapshot.hash,conceptSha256:concept.assessment.provenance.proposalSha256,reviewSha256:fingerprint(review),generationParameters:provider.generationParameters??null};
   save('lock.json',{...provenance,maxRequests:1,maxRepairs:0});
   save('request.json',{...provenance,messages:prompt,promptBytes,requestInputBytes,conservativeMaxNeurons});
   const slot=budget?budget.reserve(input.campaignId,1):null;
@@ -65,13 +67,19 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
     const failure={...provenance,status:'PROVIDER_FAILED',requestsDispatched:1,globalUsed:budget?.used()??null,code:typeof error.code==='string'?error.code:'PROVIDER_FAILURE',httpStatus:Number.isInteger(error.status)?error.status:null,...(error.diagnostics?{diagnostics:error.diagnostics}:{})};
     save('failure.json',failure);return {failure,manufacturingVerified:false};
   }
-  save('response.json',response);save('raw-response.txt',response.text,true);
-  const generation={...provenance,httpStatus:response.httpStatus??null,usage:response.usage??null,finishReason:response.finishReason??null,truncated:response.truncated??null,diagnostics:diagnoseOutput(response.text,response),globalUsed:budget?.used()??null};
+  save('response.json',response);if(typeof response.text==='string')save('raw-response.txt',response.text,true);
+  const generation={...provenance,httpStatus:response.httpStatus??null,usage:response.usage??null,finishReason:response.finishReason??null,truncated:response.truncated??null,diagnostics:typeof response.text==='string'?diagnoseOutput(response.text,response):{finalContentPresent:false},globalUsed:budget?.used()??null};
+  if(engineering?.selection==='LLAMA_BLUEPRINT'){
+    const checked=require('./blueprint').parse(response,runtime.designSpecification);
+    generation.blueprint={...checked,provenance:runtime.testing||!live?'MOCK':'LIVE_AI'};
+    save('blueprint-validation.json',generation.blueprint);
+    if(checked.status==='FAIL'){const failure={...generation,status:'PROVIDER_FAILED',code:'BLUEPRINT_TRANSPORT_FAILED',requestsDispatched:1,manufacturingVerified:false};save('failure.json',failure);return {failure,manufacturingVerified:false};}
+  }
   // Recheck review/source/version in the existing transaction AFTER inference, never retry inference.
   try{
     if(runtime?.designSpecification)await require('./designIdentity').assertActive(runtime.designSpecification);
     const proposal=await technical.create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'MODEL_OUTPUT',sourceLabel:'campaign:'+input.campaignId,rawProposalText:response.text},generation);
-    save('proposal.json',proposal.toObject());let derived,recoverable=false;if(input.normalizeEquivalent&&proposal.status==='REJECTED')try{const c=require('./designCandidate');recoverable=c.candidateSchema.safeParse(c.normalizeCandidate(JSON.parse(response.text)).candidate).success;}catch{/* Raw invalid JSON stays rejected; no recovery data is invented. */}if((input.strategy==='CANDIDATE'&&(proposal.status!=='REJECTED'||recoverable))||(input.strategy==='ENGINEERING'&&proposal.status!=='REJECTED'&&!proposal.assessment.identityConflicts?.length&&JSON.parse(response.text).changes.length===0)){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:input.normalizeEquivalent});save('derived-proposal.json',derived.proposal.toObject());}
+    save('proposal.json',proposal.toObject());let derived,recoverable=false;if(input.normalizeEquivalent&&proposal.status==='REJECTED')try{const c=require('./designCandidate');recoverable=c.candidateSchema.safeParse(c.normalizeCandidate(JSON.parse(response.text)).candidate).success;}catch{/* Raw invalid JSON stays rejected; no recovery data is invented. */}if((input.strategy==='CANDIDATE'&&(proposal.status!=='REJECTED'||recoverable))||(input.strategy==='ENGINEERING'&&proposal.status!=='REJECTED'&&!proposal.assessment.identityConflicts?.length&&(generation.blueprint?.status==='VALID'||JSON.parse(response.text).changes.length===0))){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:input.normalizeEquivalent});save('derived-proposal.json',derived.proposal.toObject());}
     const final=derived?.proposal||proposal;if(final.previewSvg)save('preview.svg',final.previewSvg,true);
     save('result.json',{...generation,requestsDispatched:1,proposalId:String(final._id),rawProposalId:String(proposal._id),status:final.status,verdict:final.verdict,manufacturingVerified:false});
     return {proposal:final,rawProposal:proposal,generation,manufacturingVerified:false};
