@@ -10,7 +10,7 @@ const fail=conceptService.fail,object=s=>z.object(s).strict(),id=z.string().rege
 const selection=object({stage:z.number().int().min(0).max(7),showUpload:z.boolean().optional(),runId:id.nullable().optional(),conceptId:z.string().nullable().optional(),proposalId:id.nullable().optional(),previewId:id.nullable().optional()});
 const imageInput=object({proposalId:id.optional(),visualNotes:z.string().max(1000).default(''),viewRole:z.enum(['HERO','ALTERNATE','DETAIL','IN_USE']).default('HERO'),referencePreviewId:id.optional(),expectedReviewVersion:version,expectedSourceHash:hash,freeTierConfirmed:z.literal(true),regenerate:z.boolean().default(false)});
 const imageSetInput=imageInput.omit({viewRole:true,referencePreviewId:true});
-const estimates={CONCEPTS:1900,TECHNICAL:1900,CONSTRUCTION:CONSTRUCTION_POLICY.freeTierHoldNeurons,IMAGE:150,IMAGE_SET:600}; // Four conservative per-image holds, no paid usage.
+const estimates={CONCEPTS:1900,TECHNICAL:1900,CONSTRUCTION:CONSTRUCTION_POLICY.freeTierHoldNeurons,ENGINEERING:require('../services/productEngineering').LIMITS.freeTierHoldNeurons,IMAGE:150,IMAGE_SET:600}; // Four conservative per-image holds, no paid usage.
 function publicOperation(op){if(!op)return null;const o=op.toObject?op.toObject():op,result={...o.result},asset=(p,role)=>({...p,filePath:undefined,assetUrl:'/api/previews/'+o._id+'/image'+(role?'?view='+role:'')});
  if(!o.result)return o;
  if(result.preview)result.preview=asset(result.preview);
@@ -25,7 +25,7 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
   async function ownedRun(p,runId){const r=await Run.findById(id.parse(runId));if(!r||String(r.fabricId)!==String(p.fabricId))throw fail(409,'PROJECT_SOURCE_MISMATCH');return r;}
   async function capabilities(){safeTesting();const proof=await Settings.findById('workers-free').lean(),budget=openBudget(generationRoot),credentials=testing||!!(process.env.CF_ACCOUNT_ID&&process.env.CF_API_TOKEN);
     const verified=!!proof&&proof.method===(testing?'TEST_FIXTURE':'OWNER_DASHBOARD_ATTESTATION')&&!proof.blockedReason&&!proof.paidPlan&&new Date(proof.expiresAt)>new Date();
-    return {constructionGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONSTRUCTION,constructionModel:CONSTRUCTION_MODEL,conceptGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONCEPTS,technicalGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.TECHNICAL,imagePreview:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE,imagePreviewSet:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE_SET,
+    return {engineeringGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.ENGINEERING,constructionGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONSTRUCTION,constructionModel:CONSTRUCTION_MODEL,conceptGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.CONCEPTS,technicalGeneration:credentials&&verified&&proof.remainingNeurons>=estimates.TECHNICAL,imagePreview:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE,imagePreviewSet:credentials&&verified&&proof.remainingNeurons>=estimates.IMAGE_SET,
       reason:!credentials?'CLOUDFLARE_CREDENTIALS_NOT_CONFIGURED':!verified?(proof?.blockedReason||'CURRENT_OWNER_FREE_TIER_VERIFICATION_REQUIRED'):null,
       execution:testing?'TEST_FIXTURE':'LIVE',textModel:COMPARISON_MODEL,imageModel:IMAGE_MODEL,estimates,proof:proof?{...proof,_id:undefined}:null,budget:{used:budget.used(),limit:budget.limit}};}
   router.post('/ui/projects',wrap(async(req,res)=>{const b=object({name:text.max(100)}).parse(req.body);await indexes();const p=await Project.create({name:b.name,scope:testing?'TEST_FIXTURE':'USER'});res.status(201).json({project:p,manufacturingVerified:false});}));
@@ -82,8 +82,8 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
     }
     if(kind==='TECHNICAL'){const c=run.concepts.find(c=>c.id===req.params.conceptId),q=p.selection?.conceptId===c.id&&p.selection?.proposalId?await Proposal.findById(p.selection.proposalId).lean():null;designSpecification=await identity.bind(p,run,c,q);}
     if(designSpecification&&req.get('X-Borsal-Design')&&req.get('X-Borsal-Design')!==designSpecification.fingerprint)throw fail(409,'DESIGN_VERSION_CHANGED');
-    const estimateKey=fullSet?'IMAGE_SET':kind==='TECHNICAL'&&input.strategy==='CONSTRUCTION'?'CONSTRUCTION':kind;
-    if(estimateKey==='CONSTRUCTION'&&Buffer.byteLength(JSON.stringify(technicalGeneration.applyDesign(require('../services/constructionPlanner').messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification)))>CONSTRUCTION_POLICY.maxPromptBytes)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
+    const estimateKey=fullSet?'IMAGE_SET':kind==='TECHNICAL'&&['CONSTRUCTION','ENGINEERING'].includes(input.strategy)?input.strategy:kind;
+    if(['CONSTRUCTION','ENGINEERING'].includes(estimateKey)&&Buffer.byteLength(JSON.stringify(technicalGeneration.applyDesign((input.strategy==='ENGINEERING'?require('../services/productEngineering'):require('../services/constructionPlanner')).messages(run,run.concepts.find(c=>c.id===req.params.conceptId)),designSpecification)))>(input.strategy==='ENGINEERING'?require('../services/productEngineering').LIMITS:CONSTRUCTION_POLICY).maxPromptBytes)throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
     const config=await capabilities();if(config.reason)throw fail(403,config.reason);
     const op=await Operation.create({projectId:p._id,requestKey:key,requestHash,kind,campaignId,execution:testing?'TEST_FIXTURE':'LIVE',runId:run?._id,conceptId:req.params.conceptId,sourceHash:run?.sourceSnapshot.hash});
     try{

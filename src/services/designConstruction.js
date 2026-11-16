@@ -3,7 +3,7 @@ const {z}=require('zod'),Run=require('../models/ConceptRun'),Proposal=require('.
 const {fail,ensureCurrent}=require('./conceptFlow'),{fingerprint}=require('../../experiments/ai-pattern-proposals/adapter');
 const {designSchema}=require('../../experiments/design-language/schema'),candidate=require('./designCandidate');
 const inputSchema=z.object({expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0),
-  allowancePolicy:z.enum(['UNIFORM_CONVEX_MITER','EXPLICIT_ONLY']).default('EXPLICIT_ONLY'),normalizeEquivalent:z.boolean().default(false)}).strict();
+  allowancePolicy:z.enum(['UNIFORM_CONVEX_MITER','EXPLICIT_ONLY']).default('EXPLICIT_ONLY'),normalizeEquivalent:z.boolean().default(false),acceptCreativeChanges:z.boolean().default(false)}).strict();
 function fromLegacy(raw,policy){
   const d=designSchema.parse(raw.design?.data),t=d.technical,bom=new Map(t.bom.map(b=>[b.id,b]));
   // Existing stock/material declarations are not copied: they are not design requirements.
@@ -20,7 +20,13 @@ function fromLegacy(raw,policy){
     instructions:['Cut only from an independently checked layout; supplied product dimensions are design targets, not finished measurements','Follow only explicitly described assembly relationships; missing fold, tie and finish methods require a new proposal or engineering review'],
     limitations:[...d.limitations.flatMap(l=>[l.reason,...l.missingInformation]),'Legacy overall dimensions are preserved targets; the flat pieces do not establish them','Fabric requirements are model-proposed targets, not inspected source properties']};
 }
-function build(parent,run,concept,policy,normalizeEquivalent=false){let raw;try{raw=parent.origin==='MODEL_OUTPUT'?JSON.parse(parent.originalInput.rawProposalText):parent.originalInput.proposal;}catch{throw fail(422,'INVALID_JSON_REQUIRES_NEW_PROPOSAL');}
+function build(parent,run,concept,policy,normalizeEquivalent=false,acceptCreativeChanges=false){let raw;try{raw=parent.origin==='MODEL_OUTPUT'?JSON.parse(parent.originalInput.rawProposalText):parent.originalInput.proposal;}catch{throw fail(422,'INVALID_JSON_REQUIRES_NEW_PROPOSAL');}
+  if(raw?.schemaVersion===require('./productEngineering').VERSION){
+    const plan=require('./productEngineering').schema.parse(raw);
+    if(plan.changes.length&&!acceptCreativeChanges)throw fail(422,'EXPLICIT_ALTERNATIVE_SELECTION_REQUIRED');
+    return require('./productEngineering').assess(plan,{id:run.sources[0].id,...run.sourceSnapshot},concept.assessment.proposal);
+  }
+  if(acceptCreativeChanges)throw fail(422,'ENGINEERING_PLAN_SELECTION_REQUIRED');
   // A construction intent is not a legacy technical design. Never parse its
   // absent design.data, infer cutting geometry, or bypass alternative selection.
   if(raw?.schemaVersion===require('./constructionPlanner').VERSION){
@@ -39,11 +45,13 @@ async function create(runId,conceptId,parentId,body){
   const c=run.concepts.find(c=>c.id===conceptId),parent=await Proposal.findById(parentId).lean();if(!c||!parent||String(parent.runId)!==run.id||parent.conceptId!==conceptId)throw fail(409,'DERIVATION_PARENT_MISMATCH');
   if(c.reviewVersion!==input.expectedReviewVersion||parent.reviewVersion!==c.reviewVersion||parent.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'CURRENT_SOURCE_AND_REVIEW_REQUIRED');
   if(c.reviews.at(-1)?.review.decision!=='APPROVED_FOR_DRAFTING')throw fail(409,'CONCEPT_APPROVAL_REQUIRED');
-  const key=fingerprint({parentId:String(parent._id),sourceHash:run.sourceSnapshot.hash,reviewVersion:c.reviewVersion,policy:input.allowancePolicy,constructor:candidate.POLICY,...(input.normalizeEquivalent?{recovery:candidate.RECOVERY_POLICY}:{})});
+  const key=fingerprint({parentId:String(parent._id),sourceHash:run.sourceSnapshot.hash,reviewVersion:c.reviewVersion,policy:input.allowancePolicy,constructor:candidate.POLICY,...(input.acceptCreativeChanges?{acceptedEngineeringChanges:true}:{}),...(input.normalizeEquivalent?{recovery:candidate.RECOVERY_POLICY}:{})});
   const existing=await Proposal.findOne({runId:run._id,conceptId,'provenance.derivation.key':key});if(existing)return {proposal:existing,replayed:true};
   if((c.technicalVersion||0)!==input.expectedTechnicalVersion)throw fail(409,'TECHNICAL_VERSION_CONFLICT');
-  const {result,candidate:proposalCandidate}=build(parent,run,c,input.allowancePolicy,input.normalizeEquivalent),derivation={key,parentProposalId:String(parent._id),parentInputSha256:parent.provenance.inputSha256,parentRawProposalSha256:parent.provenance.rawProposalSha256,policy:candidate.POLICY,...(parent.provenance.generation?.designSpecification?{designSpecification:parent.provenance.generation.designSpecification}:{}),...(input.normalizeEquivalent?{recoveryPolicy:candidate.RECOVERY_POLICY}:{}),allowancePolicy:input.allowancePolicy,candidate:proposalCandidate,transformations:result.transformations,unresolved:result.unresolved,instructions:result.instructions};
-  const proposal=await require('./technicalFlow').create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'DERIVED',sourceLabel:'SYSTEM_DERIVED / UNVERIFIED_DESIGN_PROPOSAL',proposal:result.proposal||{design:{path:'rejected-candidate'}}},{derivation,construction:result,...(parent.provenance.generation?.designSpecification?{designSpecification:parent.provenance.generation.designSpecification}:parent.provenance.derivation?.designSpecification?{designSpecification:parent.provenance.derivation.designSpecification}:{})});
+  const {result,candidate:proposalCandidate}=build(parent,run,c,input.allowancePolicy,input.normalizeEquivalent,input.acceptCreativeChanges),derivation={key,parentProposalId:String(parent._id),parentInputSha256:parent.provenance.inputSha256,parentRawProposalSha256:parent.provenance.rawProposalSha256,policy:candidate.POLICY,...(!input.acceptCreativeChanges&&parent.provenance.generation?.designSpecification?{designSpecification:parent.provenance.generation.designSpecification}:{}),...(input.normalizeEquivalent?{recoveryPolicy:candidate.RECOVERY_POLICY}:{}),allowancePolicy:input.allowancePolicy,candidate:proposalCandidate,...(result.engineering?{engineering:result.engineering,...(input.acceptCreativeChanges?{explicitlySelected:true}:{})}:{}),transformations:result.transformations,unresolved:result.unresolved,instructions:result.instructions};
+  // The generation fingerprint predates selection of its raw proposal. Current source,
+  // review, parent hashes and technical revision are checked above and again transactionally.
+  const proposal=await require('./technicalFlow').create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'DERIVED',sourceLabel:'SYSTEM_DERIVED / UNVERIFIED_DESIGN_PROPOSAL',proposal:result.proposal||{design:{path:'rejected-candidate'}}},{derivation,construction:result,...(!input.acceptCreativeChanges&&parent.provenance.generation?.designSpecification?{designSpecification:parent.provenance.generation.designSpecification}:parent.provenance.derivation?.designSpecification?{designSpecification:parent.provenance.derivation.designSpecification}:{})});
   return {proposal,replayed:false};
 }
 module.exports={create,build,fromLegacy,inputSchema};

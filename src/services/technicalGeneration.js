@@ -10,7 +10,7 @@ const {openBudget,validateCampaignId}=require('../../experiments/design-language
 const {cloudflareProvider,COMPARISON_MODEL,CONSTRUCTION_POLICY,constructionMaxNeurons}=require('../../experiments/design-language/ai-spike/provider');
 const ROOT=path.resolve(__dirname,'../../experiments/design-language/ai-spike/results');
 const inputSchema=z.object({mode:z.enum(['MOCK','LIVE']).default('MOCK'),campaignId:z.string(),freeTierConfirmed:z.boolean().default(false),
-  strategy:z.enum(['LEGACY','CANDIDATE','CONSTRUCTION']).default('LEGACY'),normalizeEquivalent:z.boolean().default(false),revisionApproach:z.enum(['SMALLER_SAME_INTENT','DIFFERENT_CONSTRUCTION_SAME_INTENT']).optional(),feedbackFromProposalId:z.string().regex(/^[a-f0-9]{24}$/).optional(),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
+  strategy:z.enum(['LEGACY','CANDIDATE','CONSTRUCTION','ENGINEERING']).default('LEGACY'),normalizeEquivalent:z.boolean().default(false),revisionApproach:z.enum(['SMALLER_SAME_INTENT','DIFFERENT_CONSTRUCTION_SAME_INTENT']).optional(),feedbackFromProposalId:z.string().regex(/^[a-f0-9]{24}$/).optional(),expectedReviewVersion:z.number().int().positive(),expectedTechnicalVersion:z.number().int().min(0)}).strict();
 function messages(run,concept){
   // Reuse the current compact technical types/rules; adapt only the API envelope/source/selected product.
   const system=legacyMessages()[0].content
@@ -40,16 +40,16 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   const live=input.mode==='LIVE';let provider,budget,secrets=[];
   if(live){
     if(!runtime&&(root!==ROOT||process.env.BORSAL_TECHNICAL_LIVE!=='1'||process.env.BORSAL_WORKERS_FREE_CONFIRMED!=='1'||!input.freeTierConfirmed))throw fail(403,'LIVE_GENERATION_DISABLED');
-    provider=runtime?require('./localAI').textProvider(runtime,{construction:input.strategy==='CONSTRUCTION'}):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
+    provider=runtime?require('./localAI').textProvider(runtime,{construction:['CONSTRUCTION','ENGINEERING'].includes(input.strategy)}):cloudflareProvider({accountId:process.env.CF_ACCOUNT_ID,apiToken:process.env.CF_API_TOKEN,freeTierConfirmed:true,model:COMPARISON_MODEL,timeoutMs:120000});
     budget=openBudget(root);
     secrets=[process.env.CF_ACCOUNT_ID,process.env.CF_API_TOKEN,process.env.MONGODB_URI];
   }else{provider=mockProvider;if(!provider||provider.mode!=='MOCK')throw fail(403,'MOCK_PROVIDER_REQUIRED');}
   let feedback;if(input.feedbackFromProposalId){const previous=await require('../models/TechnicalProposal').findById(input.feedbackFromProposalId).lean();if(!previous||String(previous.runId)!==run.id||previous.conceptId!==conceptId||previous.reviewVersion!==concept.reviewVersion||previous.provenance.fabricSourceHash!==run.sourceSnapshot.hash)throw fail(409,'FEEDBACK_SOURCE_MISMATCH');feedback=require('./candidatePrompt').revisionFeedback(previous);}
-  const prompt=input.strategy==='CONSTRUCTION'?require('./constructionPlanner').messages(run,concept):input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations,input.revisionApproach):messages(run,concept);
+  const prompt=input.strategy==='ENGINEERING'?require('./productEngineering').messages(run,concept):input.strategy==='CONSTRUCTION'?require('./constructionPlanner').messages(run,concept):input.strategy==='CANDIDATE'?require('./candidatePrompt').messages(run,concept,feedback,runtime?.userObservations,input.revisionApproach):messages(run,concept);
   if(runtime?.designSpecification){await require('./designIdentity').assertActive(runtime.designSpecification);applyDesign(prompt,runtime.designSpecification);}
-  const promptBytes=Buffer.byteLength(JSON.stringify(prompt));
-  const conservativeMaxNeurons=input.strategy==='CONSTRUCTION'?constructionMaxNeurons(promptBytes):(24000*26668+6144*204805)/1000000;
-  if(input.strategy==='CONSTRUCTION'&&(!runtime||promptBytes>CONSTRUCTION_POLICY.maxPromptBytes||conservativeMaxNeurons>CONSTRUCTION_POLICY.freeTierHoldNeurons))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
+  const promptBytes=Buffer.byteLength(JSON.stringify(prompt)),limits=input.strategy==='ENGINEERING'?require('./productEngineering').LIMITS:CONSTRUCTION_POLICY;
+  const conservativeMaxNeurons=['CONSTRUCTION','ENGINEERING'].includes(input.strategy)?constructionMaxNeurons(promptBytes):(24000*26668+6144*204805)/1000000;
+  if(['CONSTRUCTION','ENGINEERING'].includes(input.strategy)&&(!runtime||promptBytes>limits.maxPromptBytes||conservativeMaxNeurons>limits.freeTierHoldNeurons))throw fail(422,'CONSTRUCTION_PREFLIGHT_LIMIT_EXCEEDED');
   if(promptBytes+512+6144>24000||conservativeMaxNeurons>2000)throw fail(422,'PREFLIGHT_LIMIT_EXCEEDED');
   const parent=path.join(root,'campaigns');fs.mkdirSync(parent,{recursive:true});if(fs.lstatSync(parent).isSymbolicLink())throw fail(409,'INVALID_CAMPAIGN_PATH');
   const directory=path.join(parent,input.campaignId);try{fs.mkdirSync(directory);}catch(e){if(e.code==='EEXIST')throw fail(409,'CAMPAIGN_ALREADY_EXISTS');throw e;}
@@ -70,7 +70,7 @@ async function generate(runId,conceptId,body,{mockProvider,root=ROOT,runtime}={}
   try{
     if(runtime?.designSpecification)await require('./designIdentity').assertActive(runtime.designSpecification);
     const proposal=await technical.create(runId,conceptId,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:input.expectedTechnicalVersion,origin:'MODEL_OUTPUT',sourceLabel:'campaign:'+input.campaignId,rawProposalText:response.text},generation);
-    save('proposal.json',proposal.toObject());let derived,recoverable=false;if(input.normalizeEquivalent&&proposal.status==='REJECTED')try{const c=require('./designCandidate');recoverable=c.candidateSchema.safeParse(c.normalizeCandidate(JSON.parse(response.text)).candidate).success;}catch{/* Raw invalid JSON stays rejected; no recovery data is invented. */}if(input.strategy==='CANDIDATE'&&(proposal.status!=='REJECTED'||recoverable)){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:input.normalizeEquivalent});save('derived-proposal.json',derived.proposal.toObject());}
+    save('proposal.json',proposal.toObject());let derived,recoverable=false;if(input.normalizeEquivalent&&proposal.status==='REJECTED')try{const c=require('./designCandidate');recoverable=c.candidateSchema.safeParse(c.normalizeCandidate(JSON.parse(response.text)).candidate).success;}catch{/* Raw invalid JSON stays rejected; no recovery data is invented. */}if((input.strategy==='CANDIDATE'&&(proposal.status!=='REJECTED'||recoverable))||(input.strategy==='ENGINEERING'&&proposal.status!=='REJECTED'&&!proposal.assessment.identityConflicts?.length&&JSON.parse(response.text).changes.length===0)){derived=await require('./designConstruction').create(runId,conceptId,proposal.id,{expectedReviewVersion:input.expectedReviewVersion,expectedTechnicalVersion:proposal.version,allowancePolicy:'EXPLICIT_ONLY',normalizeEquivalent:input.normalizeEquivalent});save('derived-proposal.json',derived.proposal.toObject());}
     const final=derived?.proposal||proposal;if(final.previewSvg)save('preview.svg',final.previewSvg,true);
     save('result.json',{...generation,requestsDispatched:1,proposalId:String(final._id),rawProposalId:String(proposal._id),status:final.status,verdict:final.verdict,manufacturingVerified:false});
     return {proposal:final,rawProposal:proposal,generation,manufacturingVerified:false};
