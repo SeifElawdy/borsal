@@ -7,6 +7,8 @@ Private snapshot: `E:/Borsal-Recovery/borsal-pre-model-upgrade-20261114T170313Z/
 `VERIFIED-DELIVERY-ADDENDUM.json` records 69 database archives, unique isolated restore namespaces, matching document/index hashes and 4,184 copied artifacts. Git bundle verification, isolated clone and `git fsck --full` passed. The original release ZIP SHA-256 remains `c475ef9e859e33de0bdd78cdbe0cff67ebcd5ca2349a3d54b87eedbb3c168f19`.
 Restore instructions are in the snapshot's `RESTORE.txt`. Restore only into a new directory/database; never overwrite active namespaces or replace a newer usage ledger. Configuration is excluded from source; the original private encrypted configuration backup remains preserved.
 
+Verified post-live backup: `E:/Borsal-Recovery/borsal-pre-model-upgrade-20261114T170313Z/post-general-engineering-20261116T013546336Z/` — 10 live-test collections, eight documents, 545 artifact files, official isolated MongoDB restore with matching document/index hashes. `identity-guard-final.bundle` and `FINAL-SOURCE-CHECKPOINT.json` are the final source addendum; the original bundle/database dump remain untouched. Source rollback is available by creating a new branch from `borsal-pre-general-engineering-20261115T235630000Z`; do not roll back the current ledger or database over newer records.
+
 ## Root cause
 
 The primary construction prompt explicitly prohibited cutting coordinates and offered only `TWO_PANEL_OPEN_SLEEVE`, `TWO_PANEL_SNAP_FLAP_POUCH`, or `UNSUPPORTED`. Its compiler implemented those two recipes. An unfamiliar product therefore could not be decomposed even when lower-level polygon, attachment and nesting capabilities existed. Legacy representation also requires missing physical material/grain/finished-size information: that must remain unresolved, rather than being fabricated to satisfy a schema.
@@ -35,6 +37,8 @@ The exact raw AI plan remains an immutable MODEL_OUTPUT version. Compilation app
 ## Identity and user interaction
 
 The active approved name/function must be copied exactly. Changed name/function/closure or declared creative changes require explicit human selection through the existing append-only construction route. The selected version retains original requirements and lineage. Existing gallery identity, historical-image separation, review and production safeguards remain authoritative. Images are never generated or reassigned by compilation.
+
+After explicit selection, current image-facing feature text comes from the selected engineering plan; old closure/feature text remains in original-requirement history, not in the current prompt. Regression assertions cover both identities. Metadata/requirements consistency is checked; image-model pixel adherence remains unverified.
 
 Ordinary users select a concept and click Generate Product Design. Local construction/nesting happens automatically. The normal result includes cutting/nesting SVGs, component purposes, instructions and an assembly sequence diagram. Changed interpretations offer an explicit selection control; no JSON, BOM IDs or vertices are required. Unknown fabric requirements display as unknown instead of crashing the viewer.
 
