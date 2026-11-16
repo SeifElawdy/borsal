@@ -32,6 +32,7 @@ const reviewInput=z.object({expectedVersion:z.number().int().min(0),review:revie
 router.post('/concept-runs/:id/concepts/:conceptId/review',wrap(async(req,res)=>{
   const body=reviewInput.parse(req.body),{run,concept}=await selected(req);await service.ensureCurrent(run);
   if(body.expectedVersion!==concept.reviewVersion)throw service.fail(409,'CONCEPT_VERSION_CONFLICT');
+  if(body.review.decision==='APPROVED_FOR_DRAFTING'){const required=require('../services/designIdentity').requiredClosure(concept);if(required.kind==='MULTIPLE'&&!body.review.closureChoice)throw service.fail(409,'CLOSURE_SELECTION_REQUIRED');if(body.review.closureChoice&&(required.kind!=='MULTIPLE'||!required.requirements.includes(body.review.closureChoice)))throw service.fail(400,'INVALID_CLOSURE_SELECTION');}
   const result=reviewConcept(concept.rawText,body.review,{sources:run.sources});if(result.reviewGate==='BLOCKED')return res.status(400).json({error:'REVIEW_BLOCKED',result});
   concept.reviewVersion++;concept.reviews.push({version:concept.reviewVersion,review:body.review,result,createdAt:new Date()});run.markModified('concepts');await run.save();res.json({runId:run.id,concept,manufacturingVerified:false});
 }));

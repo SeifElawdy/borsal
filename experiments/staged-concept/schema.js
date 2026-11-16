@@ -12,6 +12,7 @@ const creativeConceptSchema=object({schemaVersion:z.literal('borsal.creative-con
   if(new Set(r.sourceReferences).size!==r.sourceReferences.length)ctx.addIssue({code:'custom',path:['sourceReferences'],message:'Duplicate source reference'});
 });
 const reviewSchema=object({decision:z.enum(['APPROVED_FOR_DRAFTING','REVISE','REJECTED']),reviewer:text,rationale:text,
+  closureChoice:z.enum(['NONE','VELCRO','DRAWSTRING','ZIPPER','SNAP','BUTTON','BUCKLE','TOGGLE','HOOK','TIE','TUCK']).optional(),
   proposalSha256:hash,sourceHashes:z.record(id,hash),
   // Explicitly authored by the reviewer, not inferred from model prose or mislabeled AI authorship.
   draftingBrief:manualConceptSchema.optional(),

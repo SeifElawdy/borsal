@@ -143,7 +143,7 @@ function createStudioRouter({operatorToken,simulatedProviders,generationRoot=ROO
   }));
   router.post('/ui/projects/:projectId/runs/:id/concepts/:conceptId/assisted-draft',wrap(async(req,res)=>{
     if(!operatorToken)throw fail(403,'LOCAL_OPERATOR_REQUIRED');const p=await project(req.params.projectId);await ownedRun(p,req.params.id);
-    const proposal=await require('../services/assistedDraft').create(req.params.id,req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});
+    const proposal=req.body.kind==='ENGINEERING'?await require('../services/assistedEngineering').create(p,req.params.id,req.params.conceptId,req.body):await require('../services/assistedDraft').create(req.params.id,req.params.conceptId,req.body);res.status(201).json({proposal,manufacturingVerified:false});
   }));
   router.get('/ui/operations/:id',wrap(async(req,res)=>{const op=await Operation.findById(id.parse(req.params.id));if(!op)throw fail(404,'OPERATION_NOT_FOUND');return reply(op,res,true);}));
   router.get('/api/previews/:id/image',wrap(async(req,res)=>{const op=await Operation.findById(id.parse(req.params.id)).lean(),role=req.query.view,view=role?op?.result?.previewSet?.views.find(v=>v.viewRole===role&&v.status==='SUCCEEDED'):null,image=role?view?.preview:op?.state==='SUCCEEDED'?op.result?.preview:null,file=image?.filePath;if(!file)throw fail(404,'PREVIEW_NOT_AVAILABLE');
