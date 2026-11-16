@@ -46,9 +46,13 @@ Official rates checked November 16: [Workers AI pricing](https://developers.clou
 
 ## Offline evidence
 
-Baseline: 862 tests passed. Final full regression: 875 tests across 70 files passed. Focused compiler/API/identity run: 15 tests passed. Production build passed (existing bundle-size advisory). Actual Edge tests at 1440/1920 passed, with zero console errors, no overflow, reload/resume, keyboard/reduced-motion checks and production approval blocked.
+Baseline: 862 tests passed. Pre-live full regression: 875 tests across 70 files passed. After adding the exact live failure regression and clarifying the generic prompt, final full regression: 876 tests across 70 files passed. Focused compiler/API/identity run: 16 tests passed. Production build passed (existing bundle-size advisory). Actual Edge tests at 1440/1920 passed, with zero console errors, no overflow, reload/resume, keyboard/reduced-motion checks and production approval blocked.
 
 Browser evidence: `data/local-mvp/real-creation-check-1794789259459/` (screenshots, raw mock plan, cutting/nesting SVGs and report). Mocked-provider results are explicitly TEST_FIXTURE, not live AI or physical manufacturing evidence.
+
+Final post-live offline browser verification: `data/local-mvp/real-creation-check-1794792431724/`. All desktop audits, reload, reduced motion, no technical-field entry and production blocking pass with zero console errors. Reproducible authored case artifacts (cutting, nesting, assembly SVG and complete reports for each composition): `data/general-engineering/offline-cases/`. Their cutting areas are 29.92 cm² (joined panels/hardware/button), 14.96 cm² (folded surface), 28.3305 cm² (repeated curved layers), and 20.4483 cm² (held-out composite). All found real bounded layouts; every aggregate remains CONCEPT_ONLY / UNVERIFIED.
+
+The append-only post-live backup is identified by `data/general-engineering/final-backup.json`; its private manifest and `RESTORE.txt` include the new live-test database's isolated restore/hash verification, all new receipts and the current Git bundle. The original pre-task backup and submission ZIP remain untouched.
 
 The same compiler independently nested six test compositions on the saved irregular source: repeated joined panels, external hardware, button requirement, folded single component, repeated curved layering, and a reserved asymmetric polygon + curved layer + decorative hardware combination. The latter was composed after defining the primitive catalog. Renaming it does not change geometry. Negative tests cover bad quantities/geometry/edge or material references, disconnected seams, unconnected copies, unsupported operations, no-fit/area failure, unknown physical facts and identity conflicts. Existing identity regression tests remain passing.
 
@@ -59,6 +63,10 @@ Elastic channels, gathering, weaving, buttonhole engineering, hook-and-loop inst
 ## Live authorization
 
 Owner subsequently limited the live evaluation to **one** fresh project, maximum six calls: ideas (1), engineering (1), four-view gallery (up to 4), no retries or repair. Owner reported 10,000 Neurons available in response to the Free-plan/billing/headroom question. Conservative combined holds: 1,900 + 450 + 600 = 2,950 Neurons. Starting global ledger: 66 requests, informational cap null. Only after all offline gates and recovery verification pass may this evaluation run; its actual result is recorded separately.
+
+Actual outcome: [single live evaluation](GENERAL_PRODUCT_ENGINEERING_LIVE_TEST1.md). Two calls were made; technical output was truncated and rejected. The four image calls were not spent. Final usage is 68, with no retries. The offline compiler generalizes across the documented compositions; dependable live AI plan emission is **not established** by this test.
+
+The saved failure demonstrated two global prompt weaknesses: the version value was named but not spelled out inside the example object, and dense source geometry was not explicitly prohibited as a cutting component. The prompt now states the exact full version literal, prefers parameterized component shapes, asks for at most 12 vertices per proposed polygon and distinguishes source context from local component coordinates. Schema capability remains up to 64 vertices; no raw output was altered. This clarification was verified offline only, with no second live attempt or increased output budget.
 
 ## Test a new product
 
