@@ -1,80 +1,680 @@
-# Borsal — local fabric-to-product MVP
+# Borsal — AI-Powered Fabric Waste Upcycling
 
-Borsal measures a photographed fabric scrap, supports staged AI concept/review workflows, and checks proposed cutting patterns against the irregular scrap. The premium dark Creation Studio connects the existing backend steps; geometric fit is **not** manufacturing approval.
+> **دليل التثبيت والإعداد والتشغيل — Borsal V1**  
+> **الحالة:** نموذج أولي محلي (Local MVP) للتجربة والبحث، وليس نظام تصنيع تجاريًا معتمدًا.
 
-## Architecture and requirements
+**Borsal** منصة تجريبية لتحويل بواقي القماش إلى أفكار منتجات وتصميمات تقنية قابلة للفحص. تبدأ العملية بصورة القماش وتحليل حدوده وأبعاده، ثم اقتراح منتجات بالذكاء الاصطناعي، وإعداد قطع القص والخياطة، وحساب ترتيب القطع على القماش (**Nesting**)، ومراجعة التجميع، ثم عرض صور توضيحية ومراجعة النموذج الأولي.
 
-- Node.js/CommonJS, Express and MongoDB/Mongoose; Sharp/OpenCV.js calibration and contour extraction.
-- React, Vite, Tailwind, Motion and React Router in `client/`; centralized API client and loopback Vite proxy.
-- Existing deterministic geometry, bounded nesting, material/assembly checks, versioned proposals, SVGs, review and transactional reservation guards.
-- Tested with Node **26.13.0**, npm, Windows and a running MongoDB replica set named **rs0**. Transactions require a replica set. Browser verification uses installed Microsoft Edge; it is not needed for ordinary use.
+**المستودع:** <https://github.com/SeifElawdy/borsal>  
+**هذا الدليل يخص مشروع `borsal` الأصلي (V1)، وليس مشروع `borsal-V2`.**
 
-## Install and launch
+> [!IMPORTANT]
+> يمكن للنظام إنتاج قطع هندسية وعرضها على القماش، لكن **نجاح الـNesting لا يثبت صلاحية المنتج للتصنيع**. كذلك صور الـAI توضيحية وليست دليلًا على أن المنتج يمكن تجميعه فعلًا. راجع [القيود المعروفة](#14-القيود-المعروفة-والتحقق-الهندسي) قبل استخدام أي تصميم في الإنتاج.
 
-From the project directory:
+---
 
-```powershell
-npm ci
-npm --prefix client ci
-if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
+## المحتويات
+
+1. [المتطلبات قبل التشغيل](#1-المتطلبات-قبل-التشغيل)
+2. [تثبيت البرامج المطلوبة على Windows](#2-تثبيت-البرامج-المطلوبة-على-windows)
+3. [تحميل المشروع من GitHub](#3-تحميل-المشروع-من-github)
+4. [تجهيز MongoDB Replica Set](#4-تجهيز-mongodb-replica-set)
+5. [إعداد ملف البيئة `.env`](#5-إعداد-ملف-البيئة-env)
+6. [تثبيت مكتبات المشروع](#6-تثبيت-مكتبات-المشروع)
+7. [تشغيل المشروع لأول مرة](#7-تشغيل-المشروع-لأول-مرة)
+8. [التشغيل بدون استهلاك AI](#8-التشغيل-بدون-استهلاك-ai)
+9. [إعداد وتشغيل Real AI](#9-إعداد-وتشغيل-real-ai)
+10. [شرح رحلة الاستخدام](#10-شرح-رحلة-الاستخدام)
+11. [هيكل المشروع](#11-هيكل-المشروع)
+12. [الاختبارات وبناء الواجهة](#12-الاختبارات-وبناء-الواجهة)
+13. [الأخطاء الشائعة وحلولها](#13-الأخطاء-الشائعة-وحلولها)
+14. [القيود المعروفة والتحقق الهندسي](#14-القيود-المعروفة-والتحقق-الهندسي)
+15. [حماية البيانات والنسخ الاحتياطي](#15-حماية-البيانات-والنسخ-الاحتياطي)
+16. [مراجع المشروع](#16-مراجع-المشروع)
+
+---
+
+## 1. المتطلبات قبل التشغيل
+
+المشروع مصمم أساسًا للتشغيل **محليًا على Windows**. ستحتاج إلى:
+
+| الأداة | لماذا نحتاجها؟ | هل هي ضرورية؟ |
+|---|---|---|
+| **Node.js + npm** | تشغيل الـBackend والـFrontend وتثبيت المكتبات | نعم |
+| **MongoDB Community Server** | حفظ المشاريع والقماش والتصميمات وسجلات العمليات | نعم |
+| **MongoDB Shell (`mongosh`)** | تفعيل Replica Set وفحص حالة قاعدة البيانات | نعم للإعداد والفحص |
+| **Git** | تنزيل المشروع وتحديثه من GitHub | نعم عند استخدام `git clone` |
+| **متصفح حديث** | فتح الواجهة المحلية | نعم |
+| **Visual Studio Code** | قراءة الكود وتعديل ملفات الإعدادات | اختياري |
+| **Cloudflare Workers AI** | اقتراح المنتجات وتوليد صور AI الحقيقية | اختياري، مطلوب للتجربة الحية |
+
+**مهم:** استخدم إصدار **Node.js LTS متوافقًا مع `package.json` وملف القفل**. لا تفترض أن أرقام الإصدارات المذكورة في تقارير قديمة ما زالت مطلوبة؛ تحقق من متطلبات المستودع الحالي.
+
+المنافذ المستخدمة في التشغيل المحلي المعتاد:
+
+| الخدمة | العنوان |
+|---|---|
+| الواجهة — React/Vite | <http://127.0.0.1:5173> |
+| الـBackend المحلي | `http://127.0.0.1:3001` |
+| MongoDB | `127.0.0.1:27017` |
+
+> المنفذ `3000` مرتبط بتجارب/مشاريع أخرى؛ لا تخلط سيرفر **Borsal V2** مع Backend **Borsal V1**.
+
+---
+
+## 2. تثبيت البرامج المطلوبة على Windows
+
+### 2.1 تثبيت Node.js
+
+1. افتح <https://nodejs.org/en/download>.
+2. حمّل إصدار **LTS** المتوافق مع متطلبات المشروع.
+3. ثبّت البرنامج واترك خيار إضافة Node.js إلى `PATH` مفعّلًا.
+4. افتح نافذة **CMD جديدة** ونفّذ:
+
+```cmd
+node --version
+npm --version
 ```
 
-Create `.env` only when absent; **never overwrite existing configuration**. Configure `MONGODB_URI` for your existing local replica set. Cloudflare credentials are optional for offline use and stay server-side. The archive does not install MongoDB, initialize its replica set, or include database contents.
+يجب أن يعرض الأمران أرقام إصدارات، لا رسالة `not recognized`.
 
-```powershell
+### 2.2 تثبيت Git
+
+1. حمّل Git for Windows من <https://git-scm.com/downloads/win>.
+2. أكمل التثبيت بالإعدادات المعتادة.
+3. تحقق:
+
+```cmd
+git --version
+```
+
+يمكنك استخدام **CMD** في كل الخطوات التالية. إذا استخدمت **Git Bash** فالأوامر الأساسية نفسها تعمل، لكن الانتقال إلى مجلد آخر يختلف قليلًا.
+
+### 2.3 تثبيت MongoDB Community Server
+
+1. حمّل إصدار Windows من <https://www.mongodb.com/try/download/community>.
+2. ثبّته، ويفضّل اختيار **Install MongoD as a Service** إذا كان متاحًا.
+3. حمّل MongoDB Shell من <https://www.mongodb.com/try/download/shell> إذا لم يُثبّت تلقائيًا.
+4. افتح CMD جديدًا وتحقق:
+
+```cmd
+mongosh --version
+```
+
+إذا لم يُتعرف على `mongosh`، تحقق من تثبيته أو أضف مجلد التنفيذ إلى `PATH`.
+
+**لا يكفي تشغيل MongoDB بوضعه الافتراضي وحده**: المشروع يستخدم معاملات تتطلب MongoDB **Replica Set**. الإعداد المطلوب موضح في القسم التالي.
+
+---
+
+## 3. تحميل المشروع من GitHub
+
+### في حالة عدم وجود المشروع على الجهاز
+
+افتح CMD داخل المجلد الذي تريد حفظ المشروع بداخله:
+
+```cmd
+cd /d "E:\Borsal project\The_Project"
+git clone https://github.com/SeifElawdy/borsal.git
+cd /d "E:\Borsal project\The_Project\borsal"
+```
+
+المسار `E:\Borsal project\The_Project` مجرد مثال؛ غيّره حسب مكان الحفظ عندك.
+
+إذا كان المستودع خاصًا (`Private`)، فقد تحتاج إلى تسجيل الدخول إلى GitHub.
+
+### في حالة وجود المشروع بالفعل
+
+لا تعمل `git clone` فوق الملفات الحالية. ادخل إلى نفس مجلد المشروع:
+
+```cmd
+cd /d "E:\Borsal project\The_Project\borsal"
+git status
+git branch --show-current
+```
+
+إذا كنت تريد تحديثه، **احفظ أي تغييرات محلية وافحص اختلافات الفروع أولًا**. لا تنفّذ `git reset --hard` أو `git clean -fd` لأن المشروع قد يحتوي على بيانات أو تعديلات غير محفوظة.
+
+---
+
+## 4. تجهيز MongoDB Replica Set
+
+### 4.1 تأكد أن خدمة MongoDB موجودة
+
+افتح **CMD بصلاحيات Administrator** ونفّذ:
+
+```cmd
+sc query MongoDB
+```
+
+إذا لم يكن اسم الخدمة `MongoDB`، افتح `services.msc` وابحث عن الاسم الفعلي للخدمة المثبتة على جهازك. إذا كنت تشغّل `mongod` يدويًا، استخدم ملف الإعدادات الخاص به بدل خطوات الخدمة.
+
+### 4.2 عدّل ملف `mongod.cfg`
+
+ابحث عن ملف إعدادات MongoDB المثبت على جهازك. غالبًا يوجد في مسار شبيه بـ:
+
+```text
+C:\Program Files\MongoDB\Server\<version>\bin\mongod.cfg
+```
+
+**احتفظ بنسخة احتياطية من الملف قبل تعديله.** أضف إعداد `replication` التالي إذا لم يكن موجودًا بالفعل:
+
+```yaml
+replication:
+  replSetName: rs0
+```
+
+لا تستبدل بقية إعدادات الملف مثل `storage` و`systemLog` و`net` و`security`. إذا كان لديك Replica Set باسم مختلف أو خادم مشترك، لا تغيّر إعداده بشكل أعمى؛ تحقق من إعداد المشروع وقاعدة بياناته أولًا.
+
+### 4.3 أعد تشغيل MongoDB
+
+في CMD بصلاحيات Administrator، **إذا كانت الخدمة فعلًا اسمها MongoDB**:
+
+```cmd
+net stop MongoDB
+net start MongoDB
+```
+
+### 4.4 فعّل Replica Set مرة واحدة فقط
+
+افتح CMD عاديًا ونفّذ:
+
+```cmd
+mongosh --eval "rs.status()"
+```
+
+- إذا ظهرت حالة Replica Set باسم `rs0` وكان هناك عضو **PRIMARY**، فالإعداد موجود بالفعل؛ **لا تشغّل `rs.initiate()` مرة ثانية**.
+- إذا كان الخادم جديدًا تمامًا ولم تُهيّئ Replica Set من قبل، تأكد أن `mongod.cfg` يحتوي على `replSetName: rs0`، ثم شغّل:
+
+```cmd
+mongosh --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]})"
+```
+
+بعد لحظات، تحقق مجددًا:
+
+```cmd
+mongosh --eval "rs.status()"
+```
+
+**ملاحظتان مهمتان:**
+
+- لا تنفّذ `rs.initiate()` على قاعدة بيانات/خادم مستخدم بالفعل قبل التأكد من وضعه الحالي.
+- مثال `127.0.0.1` مخصص لخادم محلي على نفس الجهاز، وليس إعدادًا لشبكة إنتاجية متعددة الأجهزة.
+
+راجع توثيق MongoDB الرسمي إذا احتجت إعداد Replica Set مختلفًا: <https://www.mongodb.com/docs/manual/replication/>.
+
+---
+
+## 5. إعداد ملف البيئة `.env`
+
+المشروع يحتاج إعدادات قاعدة البيانات، وقد يحتاج مفاتيح Cloudflare عند استخدام AI الحقيقي.
+
+### 5.1 أنشئ الملف بأمان
+
+داخل مجلد المشروع، إذا كان `.env` **غير موجود** ويوجد ملف `.env.example`:
+
+```cmd
+copy .env.example .env
+```
+
+افتح `.env` في محرر نصوص، واملأ الإعدادات المطلوبة وفق **الأسماء والتعليقات الموجودة في `.env.example` الخاص بنفس نسخة الكود**.
+
+> [!CAUTION]
+> **إذا كان ملف `.env` موجودًا بالفعل، لا تنسخه فوقه ولا تستبدله.** قد يحتوي على مفاتيح حقيقية وإعدادات محلية مستخدمة حاليًا. لا ترفع هذا الملف على GitHub ولا تلصق محتواه في Issues أو الشات.
+
+### 5.2 ربط MongoDB
+
+يتطلب المشروع عنوان اتصال بقاعدة بيانات MongoDB. مثال **محلي توضيحي** إذا كان اسم المتغير في `.env.example` هو `MONGODB_URI`:
+
+```dotenv
+MONGODB_URI=mongodb://127.0.0.1:27017/borsal?replicaSet=rs0
+```
+
+**انتبه:** الـMVP Launcher يدير عادةً مساحة بيانات مستخدم محلية منفصلة، وقد يستخدم قاعدة بيانات `borsal-local-user-<UUID>` ويحفظ معرفها في `data/local-mvp/user-workspace.json`. لا تغيّر أسماء قواعد بيانات موجودة ولا تنقل ملفات workspace يدويًا بغرض إعادة التهيئة. بعض الاختبارات تستخدم قواعد منفصلة تنتهي بـ`-test`.
+
+لا تفترض أن هذا المثال يغني عن مراجعة `.env.example` أو الإعدادات الفعلية في `scripts/local-mvp.js`.
+
+### 5.3 إعداد Cloudflare Workers AI (لـReal AI فقط)
+
+التكاملات المسجلة للمشروع تستخدم متغيرات باسم:
+
+```dotenv
+CF_ACCOUNT_ID=YOUR_CLOUDFLARE_ACCOUNT_ID
+CF_API_TOKEN=YOUR_CLOUDFLARE_API_TOKEN
+```
+
+هذه **قيم توضيحية وليست مفاتيح حقيقية**. أنشئ/استخدم بياناتك من حساب Cloudflare مع الصلاحيات المناسبة لـWorkers AI، ولا تضعها في ملفات داخل `client/`.
+
+التأكد من وجود المفاتيح لا يعني بالضرورة أن النموذج متاح أو أن الحساب لديه رصيد مجاني كافٍ. راجع قسم [إعداد وتشغيل Real AI](#9-إعداد-وتشغيل-real-ai).
+
+### 5.4 اختيار نموذج التصميم الهندسي (اختياري)
+
+من الإعدادات المعروفة في Borsal:
+
+```dotenv
+# Optional; use the actual supported profiles in your checked-out code.
+BORSAL_ENGINEERING_MODEL=GPT_OSS
+```
+
+القيم الموجودة في التقارير: `GPT_OSS` (المسار الافتراضي)، و`QWEN`، و`LLAMA_BLUEPRINT`. **هذه بدائل تجريبية، وليست ضمانًا لنجاح توليد باترون من AI حي**. استخدم ما تعرضه النسخة الحالية من إعدادات وقدرات؛ لا تبدّل النموذج أثناء طلب معلق.
+
+**لا تعدّل يدويًا متغيرات الحماية أو الإنتاج أو حدود الاستهلاك لتجاوز شروط الموافقة.** الإعداد والتحقق من Free-tier يتم عبر الواجهة والضوابط الموجودة في الـBackend.
+
+---
+
+## 6. تثبيت مكتبات المشروع
+
+افتح CMD داخل **جذر المستودع** (المجلد الذي يحتوي على `package.json`):
+
+```cmd
+cd /d "E:\Borsal project\The_Project\borsal"
+```
+
+ثبّت مكتبات الـBackend:
+
+```cmd
+npm ci
+```
+
+ثم مكتبات الـFrontend:
+
+```cmd
+npm --prefix client ci
+```
+
+استخدمنا `npm ci` لأنه يعتمد على ملفات `package-lock.json` لتثبيت نسخ مكتبات قابلة لإعادة الإنتاج، بدل تغيير ملف القفل دون داعٍ.
+
+إذا ظهر خطأ بأن ملف القفل غير موجود، **راجع ملفات الـGit والـPackage manifests أولًا**. لا تحذف ملفات القفل عشوائيًا لمجرد تجاوز الخطأ.
+
+للتحقق من السكريبتات المتاحة فعليًا:
+
+```cmd
+npm run
+```
+
+---
+
+## 7. تشغيل المشروع لأول مرة
+
+### الطريقة الأساسية (الموصى بها)
+
+1. تأكد أن MongoDB شغال وأن Replica Set `rs0` له عضو `PRIMARY`.
+2. تأكد أن إعدادات `.env` مناسبة لجهازك.
+3. أغلق سيرفرات Borsal الأخرى التي قد تشغل المنفذين `3001` و`5173`.
+4. افتح CMD في مجلد المشروع وشغّل:
+
+```cmd
+cd /d "E:\Borsal project\The_Project\borsal"
 npm run mvp
 ```
 
-Open **http://127.0.0.1:5173**. Express listens on loopback port **3001**. A new installation starts with an empty user workspace; existing local workspace metadata reopens saved work. Stop an earlier launcher before starting another. No public deployment is configured.
+5. اترك نافذة CMD مفتوحة، ثم افتح:
 
-After backend code updates, restart `npm run mvp`; Vite refreshes frontend modules but does not reload Express/CommonJS modules. Reload the browser or return focus to its tab to refresh AI availability. Usage counts never disable generation; current Free-tier and source/review requirements still apply.
+**<http://127.0.0.1:5173>**
 
-## Submission demonstration — no live AI required
+أمر `npm run mvp` يشغل الـLauncher المحلي الموجود في `scripts/local-mvp.js`، الذي يدير الواجهة والـBackend معًا. **لا تحتاج عادة إلى تشغيل Vite يدويًا في نافذة أخرى.**
 
-```powershell
-node scripts/local-mvp.js --mock --construction
+لإيقاف التشغيل اضغط `Ctrl + C` داخل نافذة الـLauncher.
+
+### ماذا لو لم يظهر شيء بعد بدء الأمر؟
+
+أحيانًا يعرض CMD فقط:
+
+```text
+> borsal@1.0.0 mvp
+> node scripts/local-mvp.js
 ```
 
-This creates a fresh isolated TEST_FIXTURE database and blocks external inference. It does not reset the user's database or shared live ledger.
+هذا **لا يثبت وحده أن السيرفرين جاهزان**. افتح CMD ثانية لفحص المنافذ:
 
-1. Create a new project; upload included **`data/test-mat40.png`**, select **large**, then detect and measure. This is a synthetic calibration fixture, not verified physical fabric.
-2. Inspect the image, outline and measurements; explicitly confirm the geometry.
-3. In **AI availability & budget**, record a **TEST_FIXTURE** check in this mock workspace. Generate ideas; outputs replay saved creative evidence, not new live inference.
-4. Select an idea, generate the fixture-labelled image, and explicitly approve for drafting. Routine review text is prefilled and editable.
-5. Choose **Create Product Design**, confirm one **mocked** planner call, then **Create Product Design · 0 AI calls** to assess the saved construction intent.
-6. Review and explicitly select the **open keepsake sleeve alternative**. It is a different product from the original wearable/weaving concept.
-7. Inspect two 5 × 7 cm cutting panels, actual nesting, proposed seams/hems, assembly schematic, BOM and unresolved evidence. The demonstrated 70 cm² layout uses about **43.20%** of the 162.0459 cm² synthetic scrap.
-8. Record a prototype-only review; production remains blocked and no stock is reserved. Reload and revisit previous stages/versions.
-
-No engineering coordinates, IDs or raw JSON are required. Optional expert editing remains available. `data/test/TEST1.png` and `markers.json` are a legacy manual-calibration test fixture; use `test-mat40.png` for the automatic-mat walkthrough.
-
-Optional desktop verification while that mock launcher is running:
-
-```powershell
-node scripts/check-real-creation.cjs --submission
+```cmd
+netstat -ano | findstr ":5173"
+netstat -ano | findstr ":3001"
 ```
 
-It exercises actual local APIs at 1440/1920 px with mocked external AI. Results and screenshots are saved to a new `data/local-mvp/real-creation-check-*/` directory.
+وجرّب الرابط في المتصفح. إذا لم يعمل، راجع [الأخطاء الشائعة](#13-الأخطاء-الشائعة-وحلولها) بدل إعادة تشغيل عدة نسخ في الوقت نفسه.
 
-## Actual features and AI status
+### هل سأجد مشاريع وصورًا جاهزة بعد `git clone`؟
 
-Automatic A4/large-mat registration; explicit geometry confirmation; source/photo/analysis provenance; project resume; concept review; illustrative-image storage; raw technical-output retention; deterministic sleeve construction; polygon validation and bounded nesting; pattern/nesting SVGs; BOM/assembly assessment; prototype review; protected readiness/reservation backend.
+**ليس بالضرورة.** المستودع يحتوي على **الكود** وملفات التوثيق وبعض Fixtures، لكنه لا ينقل تلقائيًا قاعدة MongoDB المحلية ولا صور المستخدم ولا سجل طلبات الذكاء الاصطناعي الخاص بجهاز آخر. عند إعداد نسخة جديدة، ابدأ مشروعًا جديدًا من الواجهة؛ لا تعتبر غياب مشاريع الجهاز القديم خطأ في التثبيت.
 
-Historically used models: Cloudflare **Llama 3.1 8B**, **Llama 3.3 70B**, and **FLUX.2 Klein 4B**. Existing FLUX outputs are illustrative, not measured product photographs. A **GPT-OSS 120B** planner evaluation reached HTTP 200 but failed response-envelope validation; its unretained response body prevents a conclusive cause or quality assessment. Future technical envelopes are captured privately before validation. No speculative parser fix or live success is claimed.
+---
 
-AI request usage is informational only; there is no internal request-count ceiling. Existing usage history and atomic request receipts are preserved. Live actions still require explicit confirmation, current Workers Free/dashboard evidence and sufficient conservative Neurons; no paid billing or automatic retry/fallback. **Do not initialize a second ledger using the same owner's account.** Restore the owner's latest private ledger before enabling that account in another checkout. The source package has no credentials, active workspace, campaign ledger or seeded database; it is **not a portable live deployment**.
+## 8. التشغيل بدون استهلاك AI
 
-## Evidence, tests and limitations
+لتجربة واجهة البرنامج ومساراته بدون طلبات خارجية، أوقف النسخة العادية أولًا ثم شغّل:
 
-`submission-examples/` in the source ZIP contains selected actual TEST_FIXTURE browser screenshots and cutting/nesting/assembly SVGs. They are evidence of the demonstrated software flow, not real manufacturing. The working repository keeps full private execution records under `data/`; these are excluded from source submission.
+```cmd
+cd /d "E:\Borsal project\The_Project\borsal"
+npm run mvp -- --mock
+```
 
-```powershell
+وضع `--mock` يستخدم بيانات وطلبات تجريبية **TEST_FIXTURE** ويعزل Workspace وLedger عن الاستخدام الحقيقي، حسب تصميم الـLauncher. هذا الوضع **ليس دليلًا على جودة موديلات AI الحقيقية**.
+
+للدخول إلى العرض التجريبي التاريخي، إذا كان موجودًا في نسختك:
+
+```cmd
+npm run mvp -- --demo
+```
+
+لا تشغّل وضعين مختلفين على نفس المنافذ في الوقت نفسه. كما أن بيانات Mock أو Demo ليست رصيد Cloudflare الحقيقي ولا تُستخدم لتأكيد جاهزية التصنيع.
+
+---
+
+## 9. إعداد وتشغيل Real AI
+
+### ما الذي يستخدمه النظام؟
+
+حسب تكاملات وتقارير Borsal V1:
+
+| الاستخدام | النموذج/المسار المسجل | الملاحظة |
+|---|---|---|
+| اقتراح أفكار المنتجات | Cloudflare Llama 3.3 70B Fast | استُخدم سابقًا لتوليد أفكار حقيقية |
+| التوليد الهندسي | GPT-OSS افتراضيًا، وQwen/Blueprint بدائل اختيارية | الاعتمادية على بيانات حية **غير مثبتة** |
+| صور المنتج | Cloudflare FLUX.2 Klein 4B | توليد الصور الحية مسجل، لكن التطابق مع الباترون **غير مضمون** |
+
+هذه ليست قائمة تعهدات بتوافر النماذج اليوم؛ قد تتغير خيارات الحساب والخدمة بمرور الوقت.
+
+### قبل الضغط على Generate
+
+1. تأكد أن `.env` يحتوي على بيانات Cloudflare الصحيحة وبالطريقة التي يتوقعها الـBackend.
+2. افتح **Cloudflare Dashboard** وتحقق من أن **Workers AI Free** متاح، وأن الدفع المدفوع غير مفعّل إذا كنت لا تريد أي رسوم.
+3. تحقق من الاستخدام والرصيد المتاح لليوم. سجّل **إقرار Free-tier** من شاشة إعدادات AI داخل Borsal إذا طلبته الواجهة؛ الإقرار قد تنتهي صلاحيته عند منتصف الليل UTC.
+4. راجع **اسم النموذج، عدد الطلبات، الـConservative Neuron Hold، والتصميم/الإصدار المختار** في نافذة التأكيد.
+5. لا توافق إلا على طلب ترغب فعلًا في إرساله. طلب التوليد الهندسي وطلبات صور Hero/Another Angle/Details/In Use ليست بالضرورة طلبًا واحدًا.
+
+### رحلة AI الحقيقية
+
+- ارفع صورة مصدر القماش وأكّد الهندسة بعد مراجعتها.
+- اطلب **Product Ideas** بشكل صريح، واختر فكرة مناسبة.
+- راجع متطلبات المنتج والقفل والوظيفة، ثم اعتمد الفكرة **لصياغة التصميم** فقط.
+- اطلب **Generate Design** وراجع المقترح الهندسي ونتائج فحصه.
+- افحص الـCutting Pattern والـNesting وتعليمات التجميع، واختر البديل التقني **صراحةً** عند الحاجة.
+- فقط بعد قبول التصميم الهندسي وظهور أنه صالح للتصوير، يمكنك طلب مجموعة الصور الفنية الحالية. مجموعة من أربع لقطات قد تستهلك **أربع استدعاءات** مستقلة إلى مزود الصور.
+- سجّل مراجعة Prototype. لا تخلطها بالموافقة على الإنتاج.
+
+**حدود الأمان:**
+
+- لا يوجد توليد AI يجب أن يبدأ لمجرد فتح الصفحة أو تحديثها.
+- فشل أو غموض نتيجة طلب لا يعني أن كلفته صفر؛ راجع سجل الاستهلاك والإيصالات.
+- لا تعاود المحاولة بشكل متكرر عند `Timeout` أو `502` أو `INVALID_*` أو `Conflict` قبل فهم حالة الطلب.
+- لا تعدّل أو تصفّر Ledger لتوفير رصيد وهمي؛ قد تكون المفاتيح مشتركة مع مشاريع أو Worktrees أخرى.
+- لا تعتبر `HTTP 200` وحده دليلًا على صلاحية التصميم الهندسي؛ لابد من فحص الاستجابة والتحقق المحلي.
+
+---
+
+## 10. شرح رحلة الاستخدام
+
+```text
+New Project
+   ↓
+Upload Fabric
+   ↓
+Analyze Fabric → Confirm Geometry
+   ↓
+Explore Ideas → Select Concept
+   ↓
+Review Requirements / Approve for Drafting
+   ↓
+Generate Design / Select Technical Alternative
+   ↓
+Cutting Pattern + Nesting + Assembly + Materials
+   ↓
+Generate Technical Images (optional, explicit AI calls)
+   ↓
+Review Product → Prototype Decision
+   ↓
+Production approval only with independent physical evidence
+```
+
+### أ. Upload Fabric
+
+- أنشئ **New Project**.
+- ارفع صورة JPEG أو PNG يظهر فيها القماش كاملًا وهو مفرود.
+- اختر مرجع المعايرة المناسب للصورة (مثل A4 أو لوحة المعايرة المدعومة في الشاشة الحالية).
+- لا تضع علامة المعايرة خارج مستوى القماش أو تجعل حدودها غير قابلة للاستخراج.
+
+### ب. Analyze Fabric
+
+- راجع الحدود المكتشفة (Contour)، والأبعاد بالسنتيمتر، والمساحة القابلة للاستخدام.
+- يمكن أن تخطئ المعايرة بسبب ميل الكاميرا أو الثنيات أو الإضاءة أو شكل الخلفية.
+- أكّد الهندسة يدويًا **فقط بعد مراجعتها**؛ التأكيد لا يحوّل القياس إلى نتيجة معملية مستقلة.
+
+### ج. Explore Ideas
+
+- اطلب أفكارًا مرتبطة بكمية القماش المتاحة ونوعه المعروف.
+- اقرأ وظيفة المنتج ومتطلبات الغلق والإكسسوارات والأبعاد المقترحة.
+- الفكرة الإبداعية قد تكون خارج القدرات الهندسية المدعومة؛ هذا ليس بالضرورة خطأ في رفع الصورة.
+
+### د. Generate Design
+
+- راجع ما إذا كان المنتج المختار **هو نفس المنتج المقصود**، أم أن النظام يقترح **Alternative Product** مختلفًا.
+- افحص قطع القص وأبعادها، بدل الاكتفاء برسالة `LAYOUT_FOUND`.
+- تأكد من وجود علاقات خياطة وتجميع منطقية ووسيلة غلق مناسبة عند الحاجة.
+- بعض مسارات AI الهندسية ما زالت تجريبية وقد تُرفض نتائجها لأسباب صحيحة.
+
+### هـ. Review Product
+
+ستجد — عندما تكون البيانات متاحة — العناصر الآتية:
+
+- **Cutting Pattern:** هندسة القطع وحدود القص والخياطة.
+- **Nesting:** مكان وضع القطع داخل حدود القماش الحقيقي ونسبة الاستغلال.
+- **Assembly:** عمليات وترتيب تجميع مقترحة.
+- **Materials / BOM:** المواد الإضافية المطلوبة، مع توضيح غير المتحقق منها.
+- **Original Concept Images:** صور إبداعية مبكرة، وليست مرجع التصنيع.
+- **Selected Technical Design Images:** صور مرتبطة بإصدار التصميم التقني المختار، عندما تكون صالحة ومتوفرة.
+
+إذا ظهرت `TECHNICAL_IMAGE_DETAILS_REQUIRED` أو رسالة `Conflict`، **لا تستمر في تكرار الضغط**. راجع الاختيار الصريح للتصميم وإصداره ومعلومات التجميع الناقصة. قد تكون المشكلة في تناقض الدليل الهندسي وليس نموذج الصور.
+
+### و. Approval / Inventory
+
+**Prototype approval** يعني الموافقة على تجربة تصنيع عينة، وليس إثبات صلاحية الإنتاج أو وجود مخزون حقيقي. الموافقة النهائية والحجز الفعلي يحتاجان قياسات ومعلومات خامات وأدلة اختبار ومخزونًا موثّقًا وفق شروط النظام.
+
+---
+
+## 11. هيكل المشروع
+
+المجلدات المهمة في Borsal V1:
+
+```text
+borsal/
+├── client/                   # React / Vite frontend
+│   └── src/
+├── src/
+│   ├── routes/               # Express routes
+│   ├── models/               # Mongoose models
+│   ├── services/             # AI, engineering, preview and workflow services
+│   ├── geometry/             # Polygon/homography calculations
+│   └── vision/               # Fabric image processing
+├── scripts/
+│   └── local-mvp.js          # Local launcher
+├── docs/                     # Technical reports and audit
+├── data/                     # Local runtime artifacts and test evidence (partly ignored)
+├── .env.example              # Non-secret configuration template, if present
+├── package.json
+└── README.md
+```
+
+الشجرة للتوجيه؛ قد تختلف ملفات فرعية بين فروع Git. **لا تعدّل `data/local-mvp/` أو تنسخ ملفات المستخدم منه دون فهم علاقة البيانات بقاعدة MongoDB.**
+
+---
+
+## 12. الاختبارات وبناء الواجهة
+
+يمكنك معرفة الأوامر المتاحة دائمًا باستخدام:
+
+```cmd
+npm run
+```
+
+### اختبارات الـBackend والخدمات
+
+```cmd
 npm test
-npm run client:build
 ```
 
-Last completed regression before submission stabilization: **791/791** tests. Final submission rerun results are recorded in `docs/MVP_DELIVERY_STATUS.md`. Tests use unique test databases and mocked external inference. The >500 kB frontend chunk warning and Mongoose deprecation warnings are nonblocking.
+> [!WARNING]
+> بعض الاختبارات التكاملية في تاريخ المشروع تُنشئ/تحذف قواعد بيانات اختبارية. **لا تشغّل الاختبارات ضد MongoDB يحتوي على بيانات مهمة إلا بعد مراجعة إعداد اختبار قاعدة البيانات والتأكد من العزل والنسخ الاحتياطي.** النجاح في الاختبارات غير المتصلة لا يثبت نجاح Real AI.
 
-The sleeve's geometry and assembly references pass, but physical assembly/material/stock/grain remain **UNVERIFIED**, with overall **CONCEPT_ONLY** readiness. The original Woven Wrap's interlacing/wearable function is not implemented. Missing finished dimensions are not filled with zero. Fabric/thread specifications are proposed suitability targets, not observed source facts; stock is NOT_CHECKED. Production requires independent measurements/material evidence, physical construction testing, current human approval and genuine stock through the existing protected gates.
+### اختبار بناء الواجهة
 
-Calibration design/print instructions: `docs/AUTOMATIC_FABRIC_CALIBRATION_PHASE3A.md`; printable files: `experiments/automatic-calibration/mat-a4.svg` and `mat-40cm.svg`. Print at Actual Size and verify with a ruler; physical measurement accuracy is not yet established.
+```cmd
+npm --prefix client run build
+```
+
+تحذير Vite بشأن حجم Bundle أكبر من 500 KB قد يظهر حتى عند نجاح البناء؛ تعامل مع الخطأ الفعلي (`error`) منفصلًا عن التحذير (`warning`).
+
+### فحص Git قبل مشاركة التغييرات
+
+```cmd
+git status
+git diff --check
+git ls-files .env
+git check-ignore .env
+```
+
+يجب أن يظل `.env` غير متتبع (`git ls-files .env` لا يعرض شيئًا) ومُتجاهلًا. افحص الملفات staged قبل أي Push، خصوصًا الملفات المولدة داخل `data/`.
+
+---
+
+## 13. الأخطاء الشائعة وحلولها
+
+### المشكلة: `npm` أو `node` غير معروفين
+
+- ثبّت Node.js أو افتح CMD جديدة بعد التثبيت.
+- تحقق من `node --version` و`npm --version`.
+
+### المشكلة: `MongoServerSelectionError` أو الاتصال بقاعدة البيانات مرفوض
+
+- تأكد أن خدمة MongoDB تعمل.
+- راجع عنوان الاتصال الموجود في `.env`، والمنفذ `27017`.
+- شغّل `mongosh --eval "rs.status()"`، وتأكد من وجود `PRIMARY`.
+- تأكد من تطابق `replicaSet=rs0` مع `replSetName` الفعلي.
+- لا تعيد تهيئة Replica Set يعمل بالفعل.
+
+### المشكلة: `Transaction numbers are only allowed on a replica set member`
+
+غالبًا MongoDB يعمل كخادم مستقل (`Standalone`) بدل Replica Set. راجع [القسم 4](#4-تجهيز-mongodb-replica-set).
+
+### المشكلة: `EADDRINUSE` أو `Port 5173/3001 is already in use`
+
+افتح CMD ثانية:
+
+```cmd
+netstat -ano | findstr ":5173"
+netstat -ano | findstr ":3001"
+```
+
+اعرف اسم العملية بعد تحديد الـPID:
+
+```cmd
+tasklist /FI "PID eq 1234"
+```
+
+استبدل `1234` بالـPID الحقيقي. **لا تنفّذ `taskkill` قبل التأكد من هوية العملية**. تأكد خصوصًا أنك أوقفت Frontend مشروع V2 إن كان يستخدم `5173`.
+
+### المشكلة: `npm run mvp` لا يطبع رسالة جاهزية
+
+- لا تفترض أنه نجح أو فشل اعتمادًا على سطر البداية فقط.
+- تحقق من المنافذ وحالة MongoDB ورسائل CMD.
+- جرّب <http://127.0.0.1:5173> بعد فحص المنافذ.
+- لا تفتح نسخًا متعددة من نفس الـLauncher على نفس Workspace.
+
+### المشكلة: الواجهة تظهر لكن AI غير متاح
+
+- راجع إعدادات Cloudflare في `.env` من دون كشف المفاتيح.
+- راجع فحص Free-tier الحالي وإقرار المالك داخل الواجهة.
+- تحقق من الأرصدة والحدود المحاسبية الفعلية وعدم وجود طلب معلّق.
+- إعدادات النموذج لا تضمن أن مزود الخدمة سيعيد JSON صالحًا للتصميم.
+
+### المشكلة: `Conflict`, `stale version`, أو `Technical image details required`
+
+- افتح المشروع المحفوظ وتحقق من **التصميم التقني المحدد حاليًا**.
+- قارن الإصدار والمصدر والمراجعة مع الصورة المطلوبة.
+- لا تخلط صور الـConcept مع صور الـTechnical Design الحالية.
+- إن كان التمثيل الهندسي ناقصًا أو متناقضًا، يجب إصلاح مصدر النقص بدل تعطيل التحقق.
+
+### المشكلة: الصور بعيدة عن الـCutting Pattern
+
+هذا قيد معروف في نماذج الصور. ربط الصور بالإصدار لا يثبت دقة البكسلات أو الشكل النهائي. راجع الشكل ونوع الغلق والقطع واطلب تعديلًا على التصميم أو توثيق عدم التطابق، لا توافق على إنتاج فعلي بالاعتماد على الصورة وحدها.
+
+### المشكلة: `git push` يفشل على SSH Port 22
+
+يمكن استخدام HTTPS إذا كان SSH محظورًا على الشبكة:
+
+```cmd
+git remote set-url origin https://github.com/SeifElawdy/borsal.git
+```
+
+قبل الـPush، راجع `git status` و`git fetch origin` والاختلافات بين فرعك و`origin/main`. **لا تستخدم `--force` لإخفاء اختلافات الفروع**.
+
+---
+
+## 14. القيود المعروفة والتحقق الهندسي
+
+التقرير الأحدث في المشروع، [`docs/BORSAL_FULL_SYSTEM_AUDIT.md`](docs/BORSAL_FULL_SYSTEM_AUDIT.md)، وثّق نقاطًا تحتاج إلى إصلاح قبل اعتبار النظام أداة تصميم وتصنيع ذاتية موثوقة:
+
+- التحقق الحالي من اتصال القطع لا يثبت دائمًا أن كل القطع تتصل في **منتج وظيفي واحد**.
+- وجود مادة أو مرجع لتركيب Closure لا يثبت أن القفل قابل للتشغيل في المنتج الحقيقي.
+- مسارات `LEGACY` و`CANDIDATE` و`CONSTRUCTION` و`ENGINEERING` ليست متكافئة، وقد تنتج تمثيلات مختلفة.
+- بعض البدائل الهندسية تغيّر وظيفة المنتج؛ اختيار بديل يحتاج موافقة صريحة ولا يحل بالضرورة التصميم الأصلي.
+- تفسير المتطلبات من النصوص عبر قواعد لغوية قد يخطئ في نوع الغلق أو الخصائص الإلزامية.
+- نجاح صور FLUX فعليًا لا يعني تطابقها مع الباترون أو ثباتها بين الزوايا الأربع.
+- نجاح الحسابات الهندسية لا يثبت المتانة أو السعة أو أمان الخامة أو جودة الخياطة.
+
+**الحالة الصحيحة:** استخدم النظام لإنتاج أفكار، ومخططات مبدئية، وحسابات قص، ومراجعة إمكانية تجربة نموذج. يتطلب إثبات التصنيع الناجح **اختبار عينة حقيقية وتوثيق النتائج**.
+
+---
+
+## 15. حماية البيانات والنسخ الاحتياطي
+
+### لا ترفع الملفات الخاصة إلى GitHub
+
+يجب أن تظل هذه الفئات خارج أي Commit عام:
+
+- `.env` وأي مفاتيح أو Tokens.
+- قواعد بيانات MongoDB ونسخها الاحتياطية الخاصة.
+- صور المستخدمين والملفات المرفوعة الخاصة.
+- سجلات استهلاك AI الحية وملفات Receipts التي قد تحتوي على معلومات خاصة.
+- Backups والملفات الناتجة عن جلسات اختبار خاصة.
+- `node_modules/` ومخرجات البناء غير المطلوبة.
+
+وجود `.gitignore` لا يغني عن مراجعة `git diff --cached --name-only` قبل الـCommit.
+
+### عند نقل المشروع إلى جهاز جديد
+
+1. انقل أو انسخ **الكود** عبر Git.
+2. ثبّت Node.js وMongoDB و`mongosh` من جديد.
+3. أعد إنشاء `.env` بأسرار الجهاز/الحساب الجديدة أو انقل نسخة خاصة وآمنة.
+4. شغّل المشروع لإنشاء Workspace جديد، **أو** استعد Workspace وMongoDB والأصول المرتبطة به من Backup موثوق.
+5. لا تستعد Ledger قديمًا فوق Ledger أحدث أو تعِدّ السجلات من الصفر لمجرد اختلاف الجهاز.
+6. إذا كنت تستخدم نسخًا احتياطية مشفرة بـWindows DPAPI، فقد تحتاج إلى نفس حساب Windows الذي أُنشئت عليه النسخة أو إلى إعادة تهيئة المفاتيح.
+
+**GitHub ليس Backup لبيانات المستخدم المحلية.**
+
+---
+
+## 16. مراجع المشروع
+
+للتعمق في القرارات والحدود الفنية، راجع هذه الملفات داخل `docs/` إذا كانت موجودة في فرعك:
+
+- [`BORSAL_FULL_SYSTEM_AUDIT.md`](docs/BORSAL_FULL_SYSTEM_AUDIT.md) — المراجعة المعمارية الأخيرة، والمشاكل المؤكدة وخطة الإصلاح.
+- [`TECHNICAL_DESIGN_IMAGE_PREVIEWS.md`](docs/TECHNICAL_DESIGN_IMAGE_PREVIEWS.md) — ربط الصور بالتصميم التقني وحماية الهوية والإصدارات.
+- [`MVP_DELIVERY_STATUS.md`](docs/MVP_DELIVERY_STATUS.md) — سجل نتائج النموذج الأولي والتحقق والتسليم.
+- [`REAL_AI_CREATION_MVP_PHASE6I.md`](docs/REAL_AI_CREATION_MVP_PHASE6I.md) — رحلة إنشاء المشاريع وتفويض الاستدلال الحي.
+
+### Quick Start — ملخص الأوامر (Windows CMD)
+
+بعد تثبيت الأدوات وتهيئة MongoDB وملف `.env`:
+
+```cmd
+cd /d "E:\Borsal project\The_Project\borsal"
+npm ci
+npm --prefix client ci
+mongosh --eval "rs.status()"
+npm run mvp
+```
+
+ثم افتح: **<http://127.0.0.1:5173>**.
+
+**Borsal V1 هو مشروع تجريبي للبحث والتطوير. لا تعتمد على أي نتيجة آلية وحدها لاعتماد تصنيع منتج أو استهلاك مخزون فعلي.**
