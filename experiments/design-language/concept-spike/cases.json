@@ -1,0 +1,445 @@
+[
+  {
+    "schemaVersion": "borsal.concept/0.1",
+    "id": "concept-eight-b",
+    "provenance": {
+      "campaignId": "phase2b-simple-shoulder-003",
+      "attempt": "initial",
+      "responseSha256": "e95d4f12c9f7c5c0352a05b9bd0986d23876cab7101b3171b43b915191c76ab0",
+      "extraction": "OFFLINE_MANUAL",
+      "humanReview": "PENDING"
+    },
+    "originalBrief": {
+      "id": "simple-shoulder",
+      "text": "An original women's small asymmetrical shoulder bag with one sloping top, an external webbing strap, and a visible wooden button closure.",
+      "requirements": [
+        "Asymmetric sloping opening",
+        "External webbing shoulder strap",
+        "Wooden button closure",
+        "One fabric scrap for cut outer pieces"
+      ]
+    },
+    "category": "SHOULDER_BAG",
+    "creative": {
+      "shapeIntent": "Small asymmetric shoulder bag with a sloping opening (required by original brief, not reconstructed geometry).",
+      "visualIntent": [
+        "Minimalist",
+        "Fashionable",
+        "Practical",
+        "Visible wooden button; external webbing strap (brief requirements)."
+      ],
+      "modelDescription": ""
+    },
+    "requirements": [
+      {
+        "id": "requirement-opening",
+        "briefRequirement": "Asymmetric sloping opening",
+        "intent": "Asymmetric sloping opening",
+        "modelEvidence": "Root limitations mentions asymmetric opening; five outlines are unclosed single lines.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Opening edge and assembled shape"
+        ]
+      },
+      {
+        "id": "requirement-strap",
+        "briefRequirement": "External webbing shoulder strap",
+        "intent": "External webbing shoulder strap",
+        "modelEvidence": "Strap component exists but is cut from outer fabric; WEBBING BOM is absent.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Strap ends, mounting construction and load support"
+        ]
+      },
+      {
+        "id": "requirement-closure",
+        "briefRequirement": "Wooden button closure",
+        "intent": "Wooden button closure",
+        "modelEvidence": "Button is a fabric pattern; WOOD BUTTON BOM and valid closure counterpart are absent.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Button counterpart, operation and visible position"
+        ]
+      },
+      {
+        "id": "requirement-scrap",
+        "briefRequirement": "One fabric scrap for cut outer pieces",
+        "intent": "One fabric scrap for cut outer pieces",
+        "modelEvidence": "One outer SCRAP BOM exists; lining and interfacing reference undefined BOM IDs.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Scrap fit, consumption and full material allocation"
+        ]
+      }
+    ],
+    "materials": [
+      {
+        "id": "outer",
+        "type": "WOVEN_FABRIC",
+        "source": "SCRAP",
+        "specificationIntent": "Single outer fabric scrap; suitability unresolved.",
+        "availability": "NOT_CHECKED"
+      },
+      {
+        "id": "strap-stock",
+        "type": "WEBBING",
+        "source": "STOCK",
+        "specificationIntent": "External shoulder strap required by brief; specifications not approved.",
+        "availability": "NOT_CHECKED"
+      },
+      {
+        "id": "closure-stock",
+        "type": "BUTTON",
+        "source": "STOCK",
+        "specificationIntent": "Visible wooden button required by brief; size not approved.",
+        "availability": "NOT_CHECKED"
+      }
+    ],
+    "scrapCount": 1,
+    "elements": [
+      {
+        "id": "body",
+        "intent": "Contain belongings with an asymmetric sloping opening."
+      },
+      {
+        "id": "strap",
+        "intent": "External webbing shoulder carry."
+      },
+      {
+        "id": "button",
+        "intent": "Visible wooden closure."
+      },
+      {
+        "id": "closure-counterpart",
+        "intent": "Required counterpart; loop versus buttonhole undecided."
+      }
+    ],
+    "connections": [
+      {
+        "id": "strap-body",
+        "from": "strap",
+        "to": "body",
+        "intent": "Support body through external shoulder strap mounts.",
+        "missingInformation": [
+          "Both end locations, mount construction and reinforcement."
+        ],
+        "status": "UNVERIFIED"
+      },
+      {
+        "id": "button-body",
+        "from": "button",
+        "to": "body",
+        "intent": "Mount visible wooden button.",
+        "missingInformation": [
+          "Reliable placement, sewing and reinforcement."
+        ],
+        "status": "UNVERIFIED"
+      },
+      {
+        "id": "closure-operation",
+        "from": "button",
+        "to": "closure-counterpart",
+        "intent": "Close opening using a matching counterpart.",
+        "missingInformation": [
+          "Counterpart type, opposing-body mounting and functional alignment."
+        ],
+        "status": "UNVERIFIED"
+      },
+      {
+        "id": "counterpart-body",
+        "from": "closure-counterpart",
+        "to": "body",
+        "intent": "Mount the opposing closure counterpart.",
+        "missingInformation": [
+          "Mounting location and construction."
+        ],
+        "status": "UNVERIFIED"
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "overall width",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source overall dimensions are zero or specifications missing; obtain usable measurements."
+      },
+      {
+        "name": "overall height",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source overall dimensions are zero or specifications missing; obtain usable measurements."
+      },
+      {
+        "name": "overall depth",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source overall dimensions are zero or specifications missing; obtain usable measurements."
+      },
+      {
+        "name": "opening profile",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source overall dimensions are zero or specifications missing; obtain usable measurements."
+      },
+      {
+        "name": "strap length and width",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source overall dimensions are zero or specifications missing; obtain usable measurements."
+      },
+      {
+        "name": "button size",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source overall dimensions are zero or specifications missing; obtain usable measurements."
+      }
+    ],
+    "limitations": [
+      {
+        "feature": "Technical reconstruction",
+        "status": "UNSUPPORTED",
+        "reason": "This concept contract intentionally has no geometry, quantities or attachment points.",
+        "missingInformation": [
+          "Independent pattern and assembly proposal; no automatic conversion is implemented."
+        ]
+      },
+      {
+        "feature": "Source proposal defects",
+        "status": "UNRESOLVED",
+        "reason": "Root limitations mentions asymmetric opening; five outlines are unclosed single lines. Strap component exists but is cut from outer fabric; WEBBING BOM is absent. Button is a fabric pattern; WOOD BUTTON BOM and valid closure counterpart are absent. One outer SCRAP BOM exists; lining and interfacing reference undefined BOM IDs.",
+        "missingInformation": [
+          "Resolve saved Zod errors and independently verify geometry, references, mounts and BOM."
+        ]
+      },
+      {
+        "feature": "Additional model choices",
+        "status": "UNRESOLVED",
+        "reason": "Lining and interfacing appear without valid material allocations; their inclusion cannot be assumed intentional.",
+        "missingInformation": [
+          "Human decision on additional materials and construction."
+        ]
+      }
+    ]
+  },
+  {
+    "schemaVersion": "borsal.concept/0.1",
+    "id": "concept-seventy-b",
+    "provenance": {
+      "campaignId": "phase2b-llama33-70b-shoulder-001",
+      "attempt": "initial",
+      "responseSha256": "a4262fd4712bfac6cbc5b507ca4c994b6d3c2c1f55e2228ca7cadbfbacc3fe3e",
+      "extraction": "OFFLINE_MANUAL",
+      "humanReview": "PENDING"
+    },
+    "originalBrief": {
+      "id": "simple-shoulder",
+      "text": "An original women's small asymmetrical shoulder bag with one sloping top, an external webbing strap, and a visible wooden button closure.",
+      "requirements": [
+        "Asymmetric sloping opening",
+        "External webbing shoulder strap",
+        "Wooden button closure",
+        "One fabric scrap for cut outer pieces"
+      ]
+    },
+    "category": "SHOULDER_BAG",
+    "creative": {
+      "shapeIntent": "Small asymmetric shoulder bag with a sloping opening (required by original brief, not reconstructed geometry).",
+      "visualIntent": [
+        "feminine",
+        "modern",
+        "Visible wooden button; external webbing strap (brief requirements)."
+      ],
+      "modelDescription": "Original women's small asymmetrical shoulder bag with one sloping top, an external webbing strap, and a visible wooden button closure."
+    },
+    "requirements": [
+      {
+        "id": "requirement-opening",
+        "briefRequirement": "Asymmetric sloping opening",
+        "intent": "Asymmetric sloping opening",
+        "modelEvidence": "Asymmetric triangle and misplaced feature claim exist; no opening edge is designated.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Opening edge and assembled shape"
+        ]
+      },
+      {
+        "id": "requirement-strap",
+        "briefRequirement": "External webbing shoulder strap",
+        "intent": "External webbing shoulder strap",
+        "modelEvidence": "STOCK WEBBING and INSTALL exist; anchor is outside body and end mounts are unspecified.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Strap ends, mounting construction and load support"
+        ]
+      },
+      {
+        "id": "requirement-closure",
+        "briefRequirement": "Wooden button closure",
+        "intent": "Wooden button closure",
+        "modelEvidence": "STOCK WOOD BUTTON and INSTALL exist; anchor is outside body and counterpart is missing.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Button counterpart, operation and visible position"
+        ]
+      },
+      {
+        "id": "requirement-scrap",
+        "briefRequirement": "One fabric scrap for cut outer pieces",
+        "intent": "One fabric scrap for cut outer pieces",
+        "modelEvidence": "One outer SCRAP and unchecked accessory STOCK entries exist; fit and quantities are unverified.",
+        "coverage": "PARTIAL",
+        "unresolved": [
+          "Scrap fit, consumption and full material allocation"
+        ]
+      }
+    ],
+    "materials": [
+      {
+        "id": "outer",
+        "type": "WOVEN_FABRIC",
+        "source": "SCRAP",
+        "specificationIntent": "Single outer fabric scrap; suitability unresolved.",
+        "availability": "NOT_CHECKED"
+      },
+      {
+        "id": "strap-stock",
+        "type": "WEBBING",
+        "source": "STOCK",
+        "specificationIntent": "External shoulder strap required by brief; specifications not approved.",
+        "availability": "NOT_CHECKED"
+      },
+      {
+        "id": "closure-stock",
+        "type": "BUTTON",
+        "source": "STOCK",
+        "specificationIntent": "Visible wooden button required by brief; size not approved.",
+        "availability": "NOT_CHECKED"
+      }
+    ],
+    "scrapCount": 1,
+    "elements": [
+      {
+        "id": "body",
+        "intent": "Contain belongings with an asymmetric sloping opening."
+      },
+      {
+        "id": "strap",
+        "intent": "External webbing shoulder carry."
+      },
+      {
+        "id": "button",
+        "intent": "Visible wooden closure."
+      },
+      {
+        "id": "closure-counterpart",
+        "intent": "Required counterpart; loop versus buttonhole undecided."
+      }
+    ],
+    "connections": [
+      {
+        "id": "strap-body",
+        "from": "strap",
+        "to": "body",
+        "intent": "Support body through external shoulder strap mounts.",
+        "missingInformation": [
+          "Both end locations, mount construction and reinforcement."
+        ],
+        "status": "UNVERIFIED"
+      },
+      {
+        "id": "button-body",
+        "from": "button",
+        "to": "body",
+        "intent": "Mount visible wooden button.",
+        "missingInformation": [
+          "Reliable placement, sewing and reinforcement."
+        ],
+        "status": "UNVERIFIED"
+      },
+      {
+        "id": "closure-operation",
+        "from": "button",
+        "to": "closure-counterpart",
+        "intent": "Close opening using a matching counterpart.",
+        "missingInformation": [
+          "Counterpart type, opposing-body mounting and functional alignment."
+        ],
+        "status": "UNVERIFIED"
+      },
+      {
+        "id": "counterpart-body",
+        "from": "closure-counterpart",
+        "to": "body",
+        "intent": "Mount the opposing closure counterpart.",
+        "missingInformation": [
+          "Mounting location and construction."
+        ],
+        "status": "UNVERIFIED"
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "overall width",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source nominal dimensions/specifications are illustrative claims, not approved; confirm independently."
+      },
+      {
+        "name": "overall height",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source nominal dimensions/specifications are illustrative claims, not approved; confirm independently."
+      },
+      {
+        "name": "overall depth",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source nominal dimensions/specifications are illustrative claims, not approved; confirm independently."
+      },
+      {
+        "name": "opening profile",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source nominal dimensions/specifications are illustrative claims, not approved; confirm independently."
+      },
+      {
+        "name": "strap length and width",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source nominal dimensions/specifications are illustrative claims, not approved; confirm independently."
+      },
+      {
+        "name": "button size",
+        "unit": "cm",
+        "status": "UNRESOLVED",
+        "missingInformation": "Source nominal dimensions/specifications are illustrative claims, not approved; confirm independently."
+      }
+    ],
+    "limitations": [
+      {
+        "feature": "Technical reconstruction",
+        "status": "UNSUPPORTED",
+        "reason": "This concept contract intentionally has no geometry, quantities or attachment points.",
+        "missingInformation": [
+          "Independent pattern and assembly proposal; no automatic conversion is implemented."
+        ]
+      },
+      {
+        "feature": "Source proposal defects",
+        "status": "UNRESOLVED",
+        "reason": "Asymmetric triangle and misplaced feature claim exist; no opening edge is designated. STOCK WEBBING and INSTALL exist; anchor is outside body and end mounts are unspecified. STOCK WOOD BUTTON and INSTALL exist; anchor is outside body and counterpart is missing. One outer SCRAP and unchecked accessory STOCK entries exist; fit and quantities are unverified.",
+        "missingInformation": [
+          "Resolve saved Zod errors and independently verify geometry, references, mounts and BOM."
+        ]
+      },
+      {
+        "feature": "Additional model choices",
+        "status": "UNRESOLVED",
+        "reason": "THREAD stock is present but sewing operations are not specified.",
+        "missingInformation": [
+          "Human decision on additional materials and construction."
+        ]
+      }
+    ]
+  }
+]

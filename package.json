@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "test:tx": "node scripts/test-transaction.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "mvp": "node scripts/local-mvp.js",
+    "client:build": "npm --prefix client run build"
   },
   "keywords": [],
   "author": "",

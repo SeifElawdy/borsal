@@ -1,0 +1,21 @@
+{
+  "reference": {
+    "widthCm": null,
+    "heightCm": null,
+    "areaCm2": null,
+    "method": null
+  },
+  "printScale": {
+    "status": "PENDING",
+    "horizontalSpanCm": null,
+    "verticalSpanCm": null,
+    "markerWidthCm": null,
+    "method": null
+  },
+  "conditions": {
+    "lighting": null,
+    "perspective": null,
+    "printScaling": null,
+    "suspectedIssues": []
+  }
+}

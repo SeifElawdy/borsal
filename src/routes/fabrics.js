@@ -13,6 +13,9 @@ const { z } = require('zod');
 
 const FabricPiece = require('../models/FabricPiece');
 const { extractFabricContour } = require('../vision/extractContour');
+// Reuse the tested offline measurement implementation; no CLI/filesystem output is invoked.
+const { measurePhoto } = require('../../experiments/automatic-calibration/measurement');
+const { presetProfile } = require('../../experiments/automatic-calibration/mat');
 const {
   area,
   dimensions,
@@ -70,7 +73,7 @@ const optionalMultipartNumber = (schema) => z.preprocess(
     ? (value.trim() === '' ? undefined : Number(value)) : value,
   schema.optional()
 );
-// TS-001: developer-only temporary calibration until automatic marker detection exists.
+// TS-001: legacy developer-only manual calibration; preset registration is preferred.
 const calibrationShape = {
   markerCornersPx: z.string().min(1, 'markerCornersPx is required'),
   markerSizeCm: optionalMultipartNumber(z.number().finite().min(1).max(100))
@@ -84,8 +87,17 @@ const fromPhotoSchema = z.object({
   ),
   massGrams: optionalMultipartNumber(z.number().finite().min(0)),
   grainDirectionDeg: optionalMultipartNumber(z.number().finite().min(0).lt(180)),
-  ...calibrationShape,
-}).strict();
+  matPreset: z.enum(['a4', 'large']).optional(),
+  markerCornersPx: calibrationShape.markerCornersPx.optional(),
+  markerSizeCm: calibrationShape.markerSizeCm.optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.matPreset) {
+    if (value.markerCornersPx !== undefined || value.markerSizeCm !== undefined)
+      ctx.addIssue({ code: 'custom', message: 'Use matPreset OR legacy developer-only marker inputs, not both' });
+  } else if (value.markerCornersPx === undefined || value.markerSizeCm === undefined) {
+    ctx.addIssue({ code: 'custom', message: 'matPreset (a4 or large) is required; manual marker inputs are legacy/dev-only' });
+  }
+});
 const calibrationSchema = z.object(calibrationShape).strict();
 const putGeometrySchema = z.object({
   polygonCm: z.array(z.tuple([z.number(), z.number()])),
@@ -94,6 +106,7 @@ const putGeometrySchema = z.object({
 const confirmGeometrySchema = putGeometrySchema.extend({
   source: z.enum(['suggested', 'manual']),
   basedOnAnalysisId: z.string().optional(),
+  expectedGeometryVersion: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
 });
 
 // Shared calibration checks for both photo endpoints.
@@ -201,6 +214,27 @@ async function analyze(buffer, corners, size, res) {
   return result;
 }
 
+async function analyzeAutomatic(buffer, matPreset, res) {
+  // Decode before running CV so truncated/invalid files are client errors, not server errors.
+  try { await sharp(buffer, { limitInputPixels: 24000000 }).stats(); } catch {
+    res.status(400).json({ error: 'Could not decode image (maximum 24 million pixels)' });
+    return null;
+  }
+  const { report } = await measurePhoto(buffer, presetProfile(matPreset));
+  if (!report.detection.ok || !report.computed || report.validation?.valid !== true) {
+    res.status(422).json({ error: 'Automatic fabric measurement failed', reason: report.reason,
+      diagnostics: report.detection.diagnostics, validation: report.validation, warnings: report.warnings });
+    return null;
+  }
+  return {
+    polygonCm: report.polygonCm, validation: report.validation, warnings: report.warnings,
+    stats: { ...report.computed, pxPerCmApprox: report.detection.calibration.pxPerCmApprox,
+      perspectiveSkew: report.detection.calibration.perspectiveSkew },
+    calibrationEvidence: { ...report.detection, coordinateFrame: 'EXIF-normalized original image',
+      originalPhotoSha256: report.imageSha256, status: report.status, limitations: report.limitations },
+  };
+}
+
 async function savePhoto(id, type, buffer) {
   const directory = path.join(uploadsRoot, String(id));
   const photoPath = path.join(directory, randomUUID() + (type === 'jpeg' ? '.jpg' : '.png'));
@@ -229,7 +263,8 @@ function buildAnalysis(photoPath, corners, size, result) {
     analysisId: randomUUID(), photoPath, markerCornersPx: corners, markerSizeCm: size,
     scale: { pxPerCmApprox: result.stats.pxPerCmApprox, perspectiveSkew: result.stats.perspectiveSkew },
     suggestedPolygonCm: result.polygonCm, stats: result.stats, warnings: result.warnings,
-    createdAt: new Date(), calibrationSource: 'manual-dev',
+    createdAt: new Date(), calibrationSource: result.calibrationEvidence ? 'auto-marker' : 'manual-dev',
+    ...(result.calibrationEvidence ? { calibrationEvidence: result.calibrationEvidence } : {}),
   };
 }
 
@@ -237,7 +272,11 @@ function analysisResponse(result) {
   const { widthCm, heightCm, areaCm2 } = result.stats;
   return {
     analysisSummary: { widthCm, heightCm, areaCm2, pointsCount: result.polygonCm.length, warnings: result.warnings },
-    suggestedPolygonCm: result.polygonCm, validation: result.validation, accuracyNote, devNotice,
+    suggestedPolygonCm: result.polygonCm, validation: result.validation,
+    ...(result.calibrationEvidence ? {
+      accuracyNote: 'Automatic photo measurement; physical accuracy is unverified. Geometry confirmation required before manufacturing decisions.',
+      calibration: result.calibrationEvidence,
+    } : { accuracyNote, devNotice }),
   };
 }
 
@@ -245,6 +284,28 @@ function frozen(fabric, res) {
   if ((fabric.availabilityStatus || 'AVAILABLE') === 'AVAILABLE') return false;
   res.status(409).json({ error: 'Fabric is reserved or consumed; geometry is frozen' });
   return true;
+}
+
+function versionConflict(res) {
+  return res.status(409).json({ error: 'Fabric changed; reload and retry', code: 'FABRIC_VERSION_CONFLICT' });
+}
+
+// Extra save predicates supplement Mongoose optimisticConcurrency. In particular,
+// legacy raw records without __v must also have exactly one first-save winner.
+function guardSave(fabric) {
+  fabric.$where = { availabilityStatus: { $in: ['AVAILABLE', null] } };
+  if (fabric.__v === undefined) fabric.$where.__v = { $exists: false };
+}
+
+function isSaveConflict(error) {
+  return error instanceof mongoose.Error.VersionError || error instanceof mongoose.Error.DocumentNotFoundError;
+}
+
+// Freshness comparison tolerates orientation and a changed starting vertex.
+function sameOutline(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length || !left.length) return false;
+  const a = normalizeToCounterClockwise(left), b = normalizeToCounterClockwise(right);
+  return b.some((_, offset) => a.every((point, i) => point.every((v, j) => Math.abs(v - b[(i + offset) % b.length][j]) <= 1e-6)));
 }
 
 // Derived per response, never persisted (legacy IDs cannot establish a match).
@@ -265,6 +326,7 @@ function geometryBasis(analysis, normalizedPolygon) {
     analysisId: analysis.analysisId,
     photoPath: analysis.photoPath,
     calibrationSource: analysis.calibrationSource,
+    ...(analysis.calibrationEvidence ? { calibrationEvidence: analysis.calibrationEvidence } : {}),
     markerSizeCm: analysis.markerSizeCm,
     markerCornersPx: analysis.markerCornersPx,
     scale: analysis.scale?.toObject ? analysis.scale.toObject() : analysis.scale,
@@ -304,7 +366,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-/** Image-first registration. TS-001: marker calibration is developer-only and temporary. */
+/** Image-first registration: automatic mat presets or TS-001 legacy developer calibration. */
 router.post('/from-photo', uploadPhoto, async (req, res) => {
   let photoPath;
   try {
@@ -312,18 +374,28 @@ router.post('/from-photo', uploadPhoto, async (req, res) => {
     if (!type) return;
     const parsed = fromPhotoSchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed.error);
-    const { markerCornersPx, markerSizeCm, ...metadata } = parsed.data;
-    const corners = parseCorners(markerCornersPx, res);
-    if (!corners || !await validateCorners(req.file.buffer, corners, res)) return;
-    const result = await analyze(req.file.buffer, corners, markerSizeCm, res);
+    const { markerCornersPx, markerSizeCm, matPreset, ...metadata } = parsed.data;
+    let corners, size = markerSizeCm, result;
+    if (matPreset) {
+      result = await analyzeAutomatic(req.file.buffer, matPreset, res);
+      if (result) {
+        // Compatibility fields describe the detected center reference square, not a single tag.
+        corners = result.calibrationEvidence.calibration.markerCentersPx;
+        size = result.calibrationEvidence.profile.spanCm;
+      }
+    } else {
+      corners = parseCorners(markerCornersPx, res);
+      if (!corners || !await validateCorners(req.file.buffer, corners, res)) return;
+      result = await analyze(req.file.buffer, corners, markerSizeCm, res);
+    }
     if (!result) return;
     const id = new mongoose.Types.ObjectId();
     photoPath = await savePhoto(id, type, req.file.buffer);
     const fabric = await FabricPiece.create({
       _id: id, ...metadata, registrationSource: 'photo', status: 'DRAFT', availabilityStatus: 'AVAILABLE',
-      analysis: buildAnalysis(photoPath, corners, markerSizeCm, result),
+      analysis: buildAnalysis(photoPath, corners, size, result),
     });
-    return res.status(201).json({ fabric, ...analysisResponse(result) });
+    return res.status(201).json({ fabric, ...analysisResponse(result), ...(matPreset ? {} : { legacyDevOnly: true }) });
   } catch (error) {
     if (photoPath) await removePhoto(photoPath);
     console.error('Unexpected error in POST /api/fabrics/from-photo:', error.name);
@@ -361,6 +433,7 @@ router.put('/:id/geometry', async (req, res) => {
     if (fabric.geometry?.confirmed) archiveGeometry(fabric);
     fabric.geometry = { polygonCm: normalizedPolygon, holes, confirmed: false, version: previousVersion + 1 };
     fabric.status = 'DRAFT';
+    guardSave(fabric);
     await fabric.save();
     const dims = dimensions(normalizedPolygon);
     const summary = {
@@ -369,6 +442,7 @@ router.put('/:id/geometry', async (req, res) => {
     };
     return res.status(200).json({ ...fabric.toObject(), summary });
   } catch (error) {
+    if (isSaveConflict(error)) return versionConflict(res);
     console.error('Unexpected error in PUT /api/fabrics/:id/geometry:', error.name);
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -396,6 +470,7 @@ router.post('/:id/analyze-photo', uploadPhoto, async (req, res) => {
     photoPath = await savePhoto(fabric._id, type, req.file.buffer);
     if (fabric.analysis) fabric.analysisHistory.push(fabric.analysis.toObject());
     fabric.analysis = buildAnalysis(photoPath, corners, parsed.data.markerSizeCm, result);
+    guardSave(fabric);
     await fabric.save();
     return res.status(200).json({
       ...analysisResponse(result),
@@ -406,6 +481,7 @@ router.post('/:id/analyze-photo', uploadPhoto, async (req, res) => {
     });
   } catch (error) {
     if (photoPath) await removePhoto(photoPath);
+    if (isSaveConflict(error)) return versionConflict(res);
     console.error('Unexpected error in POST /api/fabrics/:id/analyze-photo:', error.name);
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -420,18 +496,30 @@ router.post('/:id/confirm-geometry', async (req, res) => {
     if (frozen(fabric, res)) return;
     const parsed = confirmGeometrySchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed.error);
-    const { polygonCm, holes, source, basedOnAnalysisId } = parsed.data;
+    const { polygonCm, holes, source, basedOnAnalysisId, expectedGeometryVersion } = parsed.data;
     const geoValidation = validateWithHoles(polygonCm, holes);
     if (!geoValidation.valid) return res.status(400).json({ error: 'Invalid geometry', errors: geoValidation.errors });
+    const previousVersion = fabric.geometry?.version || 0;
+    if (expectedGeometryVersion !== undefined && expectedGeometryVersion !== previousVersion) return versionConflict(res);
     let basisAnalysis = fabric.analysis;
     if (basedOnAnalysisId !== undefined) {
-      basisAnalysis = fabric.analysis?.analysisId === basedOnAnalysisId
-        ? fabric.analysis : fabric.analysisHistory.find((entry) => entry.analysisId === basedOnAnalysisId);
-      if (!basisAnalysis) return res.status(400).json({ error: 'basedOnAnalysisId does not match a current or historical analysis' });
+      if (basisAnalysis?.analysisId !== basedOnAnalysisId) {
+        if (fabric.analysisHistory.some((entry) => entry.analysisId === basedOnAnalysisId))
+          return res.status(409).json({ error: 'Confirmation must use the current analysis', code: 'STALE_ANALYSIS' });
+        return res.status(400).json({ error: 'basedOnAnalysisId does not match a current or historical analysis' });
+      }
+    } else if (basisAnalysis?.analysisId && !sameOutline(polygonCm, basisAnalysis.suggestedPolygonCm) &&
+        !(fabric.geometry?.basis?.analysisId === basisAnalysis.analysisId && sameOutline(polygonCm, fabric.geometry.polygonCm))) {
+      return res.status(409).json({ error: 'Edited geometry requires the current basedOnAnalysisId', code: 'CURRENT_ANALYSIS_REQUIRED' });
     }
+    // Existing geometry edits (including holes) must acknowledge its current revision.
+    const currentHoles = fabric.geometry?.holes || [];
+    if (expectedGeometryVersion === undefined && fabric.geometry &&
+        (!sameOutline(polygonCm, fabric.geometry.polygonCm) || holes.length !== currentHoles.length ||
+         holes.some((hole, i) => !sameOutline(hole, currentHoles[i]))))
+      return res.status(409).json({ error: 'Changed geometry requires expectedGeometryVersion', code: 'CURRENT_GEOMETRY_REQUIRED' });
     // Retain the replaced draft as well as confirmed versions for complete history.
     archiveGeometry(fabric);
-    const previousVersion = fabric.geometry?.version || 0;
     let suggestedPolygonCm;
     if (source === 'suggested' && basisAnalysis?.suggestedPolygonCm) suggestedPolygonCm = basisAnalysis.suggestedPolygonCm;
     const normalizedPolygon = normalizeToCounterClockwise(polygonCm);
@@ -443,6 +531,7 @@ router.post('/:id/confirm-geometry', async (req, res) => {
     fabric.status = 'CONFIRMED';
     fabric.markModified('geometry');
     fabric.markModified('geometryHistory');
+    guardSave(fabric);
     await fabric.save();
     const dims = dimensions(normalizedPolygon);
     const summary = {
@@ -452,6 +541,7 @@ router.post('/:id/confirm-geometry', async (req, res) => {
     };
     return res.status(200).json({ fabric: fabric.toObject(), summary, geometryBasedOnCurrentAnalysis: geometryBasedOnCurrentAnalysis(fabric) });
   } catch (error) {
+    if (isSaveConflict(error)) return versionConflict(res);
     console.error('Unexpected error in POST /api/fabrics/:id/confirm-geometry:', error.name);
     return res.status(500).json({ error: 'Internal server error' });
   }

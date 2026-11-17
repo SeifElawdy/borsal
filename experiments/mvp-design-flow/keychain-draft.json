@@ -1,0 +1,92 @@
+{
+  "authorship": "EXPLICIT_ENGINEERING_DRAFT_NOT_AI",
+  "status": "UNVERIFIED",
+  "sourceConceptId": "a96f954a-3083-491b-9976-93d3bdbb7111",
+  "assumptions": [
+    "All new sizes, material requirements and construction choices are proposed engineering targets, not measured or confirmed source facts.",
+    "Source remains DRAFT; physical scale, material, grain, strength and available stock are unknown.",
+    "BOM specifications are illustrative compatibility targets only. Do not assert that the source is cotton or that any ring/thread exists.",
+    "Legacy TOTE_BAG category is only the schema's accessory context; this draft is one key fob, not a tote bag.",
+    "The center return fold, ring clearance, topstitching and end reinforcement require physical testing; flat anchors do not prove assembled contact.",
+    "The proposed one metal key ring is explicitly D-shaped, using existing D_RING vocabulary. Whether the chosen D-shaped ring can accept/retain keys is unresolved; no circular split-ring substitution or extra ring is assumed.",
+    "The center return axis is explicit in dimensionsCm and construction instructions, but the frozen schema cannot encode a simple RETURN fold. It remains UNSUPPORTED and is not drawn as a supported hem axis."
+  ],
+  "dimensionsCm": {
+    "cutLength": 14, "cutWidth": 4, "cutAreaCm2": 56,
+    "longEdgeTurnIn": 1, "shortEndTurnIn": 0.5,
+    "centerReturnAxis": [[7, 1], [7, 3]], "centerReturnBendAllowanceHypothesis": 0.5,
+    "proposedFlatFoldedEnvelope": {"length": 6.5, "width": 2},
+    "ringNominalSizeTarget": 2
+  },
+  "assemblySequence": [
+    {"step": 1, "instruction": "Verify source and actual materials before cutting. Cut exactly one 14 x 4 cm rectangle; the 56 cm2 includes all hems and seam/fold material. No extra fabric reinforcement is assumed."},
+    {"step": 2, "instruction": "Turn both long raw edges inward by 1 cm at y=1 and y=3; turn short ends by 0.5 cm at x=0.5 and x=13.5. These are unverified fold targets."},
+    {"step": 3, "instruction": "Topstitch the folded long edges along the supplied long stitch segments at y=1.2 and y=2.8, x=0.5..13.5. The dashed closed seam rectangle is a flat reference, not a requirement to sew its entire perimeter before assembly."},
+    {"step": 4, "operationId": "install-key-ring", "instruction": "Thread the strip through one metal key ring and return-fold around x=7 so the two turned short ends align. Anchor [7,2] records local flat ring intent only; verify actual ring clearance and material bend allowance."},
+    {"step": 5, "operationId": "join-short-ends", "instruction": "Join the matched short stitching edges with the specified thread. The folded 6.5 x 2 cm envelope ignores thickness and ring bend uptake and is only a hypothesis."},
+    {"step": 6, "operationId": "reinforce-end-join", "instruction": "Reinforce the coincident end layers represented by distinct flat anchors [0.5,2] and [13.5,2]. Determine bar-tack/stitch settings and prove retention/load capacity physically before use."}
+  ],
+  "proposal": {
+    "design": {
+      "path": "experiments/mvp-design-flow/keychain-draft.json#proposal.design.data",
+      "data": {
+        "schemaVersion": "borsal.design/0.1", "id": "authored-burgundy-key-fob", "name": "Authored folded Burgundy Keychain engineering draft",
+        "category": "TOTE_BAG",
+        "creative": {
+          "description": "One manually drafted folded key fob, not a tote or AI output. Sequence: cut one strip; turn long and short hems; topstitch long edges; insert one ring and return-fold; join ends; reinforce end join. All targets and material specifications are UNVERIFIED requirements, not facts about the saved scrap.",
+          "aesthetic": ["Burgundy appearance intent", "Simple folded strip with one visible metal key ring"],
+          "intendedUse": "Small key holder, pending dimensional, retention, abrasion and load tests"
+        },
+        "technical": {
+          "dimensionUnit": "cm", "evidence": "ILLUSTRATIVE_ONLY",
+          "overallDimensions": {"width": 2, "height": 6.5, "depth": 0.4},
+          "scrapSources": [{"id": "fabric-6af715aa702bbc870df35fba"}],
+          "bom": [
+            {"id": "outer", "source": {"kind": "SCRAP", "scrapId": "fabric-6af715aa702bbc870df35fba"}, "material": {"type": "WOVEN_FABRIC", "specs": {"fiber": "COTTON", "weave": "PLAIN", "weightGsm": 200}}, "quantity": {"value": 56, "unit": "cm2"}},
+            {"id": "thread", "source": {"kind": "STOCK", "availability": "NOT_CHECKED"}, "material": {"type": "THREAD", "specs": {"fiber": "POLYESTER", "tex": 40}}, "quantity": {"value": 150, "unit": "cm"}},
+            {"id": "key-ring", "source": {"kind": "STOCK", "availability": "NOT_CHECKED"}, "material": {"type": "HARDWARE", "specs": {"kind": "D_RING", "finish": "NICKEL", "sizeCm": 2}}, "quantity": {"value": 1, "unit": "piece"}}
+          ],
+          "components": [{"id": "key-fob-body", "role": "BODY", "pieceIds": ["folded-strip"]}],
+          "patternPieces": [{
+            "id": "folded-strip", "bomId": "outer", "cutCount": 1, "outlineBasis": "SEAM_LINE",
+            "outline": {"start": [0.5, 1.2], "segments": [
+              {"id": "long-lower", "type": "LINE", "to": [13.5, 1.2]},
+              {"id": "end-right", "type": "LINE", "to": [13.5, 2.8]},
+              {"id": "long-upper", "type": "LINE", "to": [0.5, 2.8]},
+              {"id": "end-left", "type": "LINE", "to": [0.5, 1.2]}
+            ]},
+            "seamAllowanceCm": 0.5, "grainDirectionDeg": 0,
+            "folds": [
+              {"id": "long-lower-turn", "type": "HEM", "from": [0,1], "to": [14,1], "allowanceCm": 1},
+              {"id": "long-upper-turn", "type": "HEM", "from": [0,3], "to": [14,3], "allowanceCm": 1},
+              {"id": "short-left-turn", "type": "HEM", "from": [0.5,0], "to": [0.5,4], "allowanceCm": 0.5},
+              {"id": "short-right-turn", "type": "HEM", "from": [13.5,0], "to": [13.5,4], "allowanceCm": 0.5}
+            ]
+          }],
+          "assembly": [
+            {"id": "install-key-ring", "type": "INSTALL", "bomId": "key-ring", "anchors": [{"pieceId": "folded-strip", "copy": 1, "point": [7,2]}]},
+            {"id": "join-short-ends", "type": "SEAM", "threadBomId": "thread", "sides": [
+              {"pieceId": "folded-strip", "copy": 1, "edgeIds": ["end-left"], "direction": "FORWARD"},
+              {"pieceId": "folded-strip", "copy": 1, "edgeIds": ["end-right"], "direction": "REVERSE"}
+            ]},
+            {"id": "reinforce-end-join", "type": "ATTACH", "threadBomId": "thread", "from": {"pieceId": "folded-strip", "copy": 1, "point": [0.5,2]}, "to": {"pieceId": "folded-strip", "copy": 1, "point": [13.5,2]}}
+          ],
+          "features": [
+            {"id": "strip-body", "kind": "BODY", "intent": "1. Cut one 14 x 4 cm strip including all allowance/fold material; 56 cm2 total. Material specs are proposed compatibility requirements only, not source properties.", "componentIds": ["key-fob-body"], "bomIds": ["outer"]},
+            {"id": "edge-folds", "kind": "FOLD", "intent": "2. Turn long edges by 1 cm and short ends by 0.5 cm. 3. Topstitch only long-lower and long-upper before assembly; stitch rectangle is a flat reference.", "componentIds": ["key-fob-body"], "bomIds": ["outer", "thread"]},
+            {"id": "ring-return", "kind": "FOLD", "intent": "4. Install one metal key ring at flat intent anchor [7,2] and return-fold about x=7, y=1..3. 5. Join end-left to end-right. 6. Reinforce distinct end anchors after folding. No 3D attachment proof is claimed.", "componentIds": ["key-fob-body"], "bomIds": ["outer", "key-ring", "thread"]}
+          ]
+        },
+        "limitations": [
+          {"id": "source-evidence", "featureId": "strip-body", "status": "PARTIAL", "reason": "DRAFT source geometry and all material requirements remain physically UNVERIFIED; legacy TOTE_BAG category is an accessory context only.", "missingInformation": ["Explicit source geometry confirmation and reviewed source refresh", "Measured fabric fiber, weave, weight, grain, tear and abrasion resistance", "Actual thread/ring stock, suitability and specifications"]},
+          {"id": "hem-process", "featureId": "edge-folds", "status": "PARTIAL", "reason": "Flat hem axes and stitch reference are explicit, but corner bulk, fraying and stitch settings are untested. Thread demand of 150 cm is an engineering allowance hypothesis, not available stock.", "missingInformation": ["Hem handling and stitch settings", "Real allowance and thread-consumption trial"]},
+          {"id": "return-fold", "featureId": "ring-return", "status": "UNSUPPORTED", "reason": "Center return axis x=7, y=1..3 is explicit intent but unsupported by the frozen fold vocabulary. The one ring is an explicitly proposed D-shaped metal key ring, not a circular split ring; opening/key insertion and assembled clearance/retention are not established. Return bend allowance 0.5 cm, thickness 0.4 cm and folded 6.5 x 2 cm envelope are illustrative hypotheses inside the one cut.", "missingInformation": ["Suitable D-shaped ring opening and key retention specification; stock remains unknown", "Physical ring/strip fit at x=7 return fold", "End seam and reinforcement load/retention test", "Measured thickness, bend uptake and finished dimensions"]}
+        ]
+      }
+    },
+    "context": {
+      "instances": [{"id": "folded-strip-1", "pieceId": "folded-strip", "copy": 1, "cuttingPolygonCm": [[0,0],[14,0],[14,4],[0,4]], "allowancesIncluded": true, "grainToleranceDeg": 5, "allowedRotationsDeg": [0,90,180,270]}],
+      "search": {"maxCandidates": 2000, "maxBacktracks": 20, "gridStepsCm": [2,1,0.5]}
+    }
+  }
+}

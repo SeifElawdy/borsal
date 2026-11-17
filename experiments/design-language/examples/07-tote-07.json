@@ -1,0 +1,558 @@
+{
+  "schemaVersion": "borsal.design/0.1",
+  "id": "tote-07",
+  "name": "Quiet Divide Lined Tote",
+  "category": "TOTE_BAG",
+  "creative": {
+    "description": "A fully lined open tote with a central internal divider, webbing handles, and a lining turning gap closed after assembly.",
+    "aesthetic": [
+      "contrasting inner chamber",
+      "discreet organization",
+      "soft open top"
+    ],
+    "intendedUse": "Original women's everyday handbag concept; illustrative dimensions only, not verified manufacturing instructions."
+  },
+  "technical": {
+    "dimensionUnit": "cm",
+    "evidence": "ILLUSTRATIVE_ONLY",
+    "overallDimensions": {
+      "width": 36,
+      "height": 34,
+      "depth": 8
+    },
+    "scrapSources": [
+      {
+        "id": "scrap-one"
+      }
+    ],
+    "bom": [
+      {
+        "id": "outer-fabric",
+        "source": {
+          "kind": "SCRAP",
+          "scrapId": "scrap-one"
+        },
+        "material": {
+          "type": "WOVEN_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weave": "TWILL",
+            "weightGsm": 240
+          }
+        },
+        "quantity": {
+          "value": 3200,
+          "unit": "cm2"
+        }
+      },
+      {
+        "id": "thread",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "THREAD",
+          "specs": {
+            "fiber": "POLYESTER",
+            "tex": 40
+          }
+        },
+        "quantity": {
+          "value": 2500,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "strap-webbing",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "WEBBING",
+          "specs": {
+            "fiber": "COTTON",
+            "widthCm": 3
+          }
+        },
+        "quantity": {
+          "value": 140,
+          "unit": "cm"
+        }
+      },
+      {
+        "id": "lining",
+        "source": {
+          "kind": "STOCK",
+          "availability": "NOT_CHECKED"
+        },
+        "material": {
+          "type": "LINING_FABRIC",
+          "specs": {
+            "fiber": "COTTON",
+            "weightGsm": 100
+          }
+        },
+        "quantity": {
+          "value": 4500,
+          "unit": "cm2"
+        }
+      }
+    ],
+    "components": [
+      {
+        "id": "shell",
+        "role": "BODY",
+        "pieceIds": [
+          "body-panel"
+        ]
+      },
+      {
+        "id": "inside",
+        "role": "LINING",
+        "pieceIds": [
+          "lining-panel"
+        ]
+      },
+      {
+        "id": "partition",
+        "role": "DIVIDER",
+        "pieceIds": [
+          "divider-panel"
+        ]
+      }
+    ],
+    "patternPieces": [
+      {
+        "id": "body-panel",
+        "bomId": "outer-fabric",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                36,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                36,
+                34
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                34
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "lining-panel",
+        "bomId": "lining",
+        "cutCount": 2,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                36,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                36,
+                34
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                34
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      },
+      {
+        "id": "divider-panel",
+        "bomId": "lining",
+        "cutCount": 1,
+        "seamAllowanceCm": 1,
+        "grainDirectionDeg": 90,
+        "folds": [
+          {
+            "id": "divider-hem",
+            "type": "HEM",
+            "from": [
+              0,
+              26
+            ],
+            "to": [
+              36,
+              26
+            ],
+            "allowanceCm": 2
+          }
+        ],
+        "outline": {
+          "start": [
+            0,
+            0
+          ],
+          "segments": [
+            {
+              "id": "bottom",
+              "type": "LINE",
+              "to": [
+                36,
+                0
+              ]
+            },
+            {
+              "id": "right",
+              "type": "LINE",
+              "to": [
+                36,
+                28
+              ]
+            },
+            {
+              "id": "top",
+              "type": "LINE",
+              "to": [
+                0,
+                28
+              ]
+            },
+            {
+              "id": "left",
+              "type": "LINE",
+              "to": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "outlineBasis": "SEAM_LINE"
+      }
+    ],
+    "assembly": [
+      {
+        "id": "outer-shell",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left",
+              "bottom",
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right",
+              "bottom",
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "lining-sides",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "lining-panel",
+            "copy": 1,
+            "edgeIds": [
+              "left",
+              "right"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "lining-panel",
+            "copy": 2,
+            "edgeIds": [
+              "right",
+              "left"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "front-rim",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "lining-panel",
+            "copy": 1,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "back-rim",
+        "type": "SEAM",
+        "sides": [
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          },
+          {
+            "pieceId": "lining-panel",
+            "copy": 2,
+            "edgeIds": [
+              "top"
+            ],
+            "direction": "FORWARD"
+          }
+        ],
+        "threadBomId": "thread"
+      },
+      {
+        "id": "divider-left",
+        "type": "ATTACH",
+        "from": {
+          "pieceId": "divider-panel",
+          "copy": 1,
+          "point": [
+            0,
+            0
+          ]
+        },
+        "to": {
+          "pieceId": "lining-panel",
+          "copy": 1,
+          "point": [
+            0,
+            3
+          ]
+        },
+        "threadBomId": "thread"
+      },
+      {
+        "id": "divider-right",
+        "type": "ATTACH",
+        "from": {
+          "pieceId": "divider-panel",
+          "copy": 1,
+          "point": [
+            36,
+            0
+          ]
+        },
+        "to": {
+          "pieceId": "lining-panel",
+          "copy": 2,
+          "point": [
+            36,
+            3
+          ]
+        },
+        "threadBomId": "thread"
+      },
+      {
+        "id": "handle-mounts",
+        "type": "INSTALL",
+        "bomId": "strap-webbing",
+        "anchors": [
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              8,
+              32
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 1,
+            "point": [
+              28,
+              32
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              8,
+              32
+            ]
+          },
+          {
+            "pieceId": "body-panel",
+            "copy": 2,
+            "point": [
+              28,
+              32
+            ]
+          }
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "shell-form",
+        "kind": "BODY",
+        "intent": "Outer panels from the single scrap.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": []
+      },
+      {
+        "id": "full-lining",
+        "kind": "STRUCTURE",
+        "intent": "Stock lining joined at the rim.",
+        "componentIds": [
+          "inside",
+          "shell"
+        ],
+        "bomIds": [
+          "lining"
+        ]
+      },
+      {
+        "id": "internal-compartment",
+        "kind": "COMPARTMENT",
+        "intent": "Central hemmed divider separates two inner chambers.",
+        "componentIds": [
+          "partition",
+          "inside"
+        ],
+        "bomIds": [
+          "lining"
+        ]
+      },
+      {
+        "id": "webbing-handles",
+        "kind": "HANDLE",
+        "intent": "Two stock webbing handles.",
+        "componentIds": [
+          "shell"
+        ],
+        "bomIds": [
+          "strap-webbing"
+        ]
+      },
+      {
+        "id": "turning-gap",
+        "kind": "STRUCTURE",
+        "intent": "An intentional partial-edge gap in the lining permits turning and subsequent closure.",
+        "componentIds": [
+          "inside"
+        ],
+        "bomIds": []
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "id": "full-lining-limit",
+      "featureId": "full-lining",
+      "status": "PARTIAL",
+      "reason": "Panel and rim relationships exist, but lining ease and turning order are missing.",
+      "missingInformation": [
+        "Lining ease and material shrinkage",
+        "Assembly order and seam access"
+      ]
+    },
+    {
+      "id": "internal-compartment-limit",
+      "featureId": "internal-compartment",
+      "status": "PARTIAL",
+      "reason": "Divider shape and anchors are represented; its orientation and full attachment paths are not.",
+      "missingInformation": [
+        "Divider placement transform and height",
+        "Side and base attachment paths"
+      ]
+    },
+    {
+      "id": "turning-gap-limit",
+      "featureId": "turning-gap",
+      "status": "UNSUPPORTED",
+      "reason": "References select whole edges, not parameterized sub-edge spans or temporary seam states.",
+      "missingInformation": [
+        "Gap start/end along an edge",
+        "Temporary-to-final seam state and sequence"
+      ]
+    }
+  ]
+}

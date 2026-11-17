@@ -1,0 +1,8 @@
+{
+  "experiments/design-language/schema.js": "a5d1f33d02819c4cec7613b5b9819e965eb1e09eec24b8b16149f50f40276695",
+  "experiments/design-language/ai-spike/fixtures/prompt-003.json": "0e24771bee64c3042906a83ddee57429e54f95a96478a74fb28bf3a0281c30e9",
+  "experiments/design-language/ai-spike/fixtures/shoulder-001.json": "43a1019b1a3b8e2ed1976f1c700174be513411c02a51bb5f85f585c88f8930b0",
+  "experiments/design-language/ai-spike/fixtures/shoulder-002.json": "f5f87378159267828e8c362a02b24dbb91194881ce40ff086976a6a61f24d9e5",
+  "experiments/design-language/ai-spike/fixtures/shoulder-003.json": "3ead068e2c1a39b12f2888846cbb35ed5a3791bf8f8b983f5d41c9cab9192d23",
+  "experiments/design-language/ai-spike/fixtures/shoulder-70b.json": "8e2b890510523861ddb2bbed68d951cfff9cf149914e6eaa89149f971e61c6d2"
+}

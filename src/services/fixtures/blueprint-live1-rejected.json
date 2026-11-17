@@ -1,0 +1,90 @@
+{
+  "provenance": "FIXTURE",
+  "originalCampaignId": "mvp-technical-97232cea-bf62-4467-b45a-8ddb469b399b",
+  "rawText": "{\"function\": \"Practical accessory\", \"closure\": \"UNKNOWN\", \"components\": [], \"materials\": [], \"operations\": [], \"unresolved\": [\"Determine the optimal fabric scrap size for the purse\", \"Physical construction and source material/stock remain unverified\", \"Unsupported closure kind\"]}",
+  "finishReason": "stop",
+  "truncated": false,
+  "expectedOriginalPaths": [
+    [
+      "components"
+    ],
+    [
+      "unresolved",
+      0
+    ],
+    [
+      "unresolved",
+      1
+    ],
+    [
+      "unresolved",
+      2
+    ]
+  ],
+  "authoritativeDesign": {
+    "schemaVersion": "borsal.design-identity/0.1",
+    "projectId": "6afaf4c0b75c874d3e57621e",
+    "fabricId": "6afaf4e1b75c874d3e57621f",
+    "runId": "6afaf4fab75c874d3e576222",
+    "conceptId": "3e5e03eb-6815-4b4a-a7ed-9d68492f444a",
+    "conceptHash": "57df014d35b40254d97c7eae64a71cb80c662695490331332bf4c12a81a3dd51",
+    "reviewVersion": 1,
+    "reviewHash": "bcd1281bf2174aeda3fccdbcdc22658e8e333f3575fabfdfc2a5ba4896a4cc32",
+    "sourceHash": "c29dbae71d4fb984d3afdcb5eaa76d912d87d562ed3114a0b788edc69a10ff27",
+    "proposalId": null,
+    "proposalVersion": null,
+    "proposalHash": null,
+    "product": {
+      "name": "Mini Coin Purse",
+      "category": null,
+      "intendedFunction": "Practical accessory",
+      "silhouette": "A small, functional purse made from fabric scraps, perfect for carrying coins or small items",
+      "closure": {
+        "kind": "UNKNOWN",
+        "description": "Closure not specified",
+        "requirements": []
+      },
+      "distinctiveDetails": [
+        "Small, compact design"
+      ],
+      "attachments": []
+    },
+    "originalRequirements": {
+      "name": "Mini Coin Purse",
+      "closure": {
+        "kind": "UNKNOWN",
+        "description": "Closure not specified",
+        "requirements": []
+      },
+      "features": [
+        "Small, compact design"
+      ]
+    },
+    "construction": {
+      "method": null,
+      "explicitlySelected": false,
+      "componentRoles": [],
+      "proposedDimensions": null
+    },
+    "sourceConstraints": {
+      "widthCm": 11.388888888888893,
+      "heightCm": 23.3611111111111,
+      "usableAreaCm2": 162.045910493827,
+      "material": "UNKNOWN",
+      "grain": "UNKNOWN",
+      "physicalAccuracy": "UNVERIFIED"
+    },
+    "changes": [],
+    "unresolved": [
+      "Determine the optimal fabric scrap size for the purse",
+      "Physical construction and source material/stock remain unverified"
+    ],
+    "conflicts": [],
+    "manufacturingVerified": false,
+    "contextHash": "9193b88eac8d653a8d6ac6ab381e916af4fa95e3591d38aed2bdbfcf11a2c394",
+    "version": 2,
+    "fingerprint": "a6d668cbd45f9547c715010c2bec424b191e5b8a5dbd1bc3c43be1ed3d125493",
+    "persisted": true,
+    "parentFingerprint": "e464e732de2b8fe355b7c396f580643a534fe55472a8bf68c05eb769ae89bfb3"
+  }
+}

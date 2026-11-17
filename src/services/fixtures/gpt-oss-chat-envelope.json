@@ -1,0 +1,47 @@
+{
+  "httpStatus": 200,
+  "body": {
+    "success": true,
+    "errors": [],
+    "messages": [],
+    "result": {
+      "id": "sanitized-live-chat-completion",
+      "object": "chat.completion",
+      "model": "@cf/openai/gpt-oss-120b",
+      "choices": [
+        {
+          "index": 0,
+          "finish_reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"schemaVersion\": \"borsal.construction-intent/0.1\",\n  \"name\": \"Fabric Mini Sleeve Keychain\",\n  \"function\": \"A small sewn sleeve that can hold a decorative fabric insert and be attached to a keyring as a personal keepsake.\",\n  \"method\": \"UNSUPPORTED\",\n  \"creativeChanges\": [\n    \"Replace the original wrap/weaving approach with a two‑panel sewn sleeve construction.\",\n    \"Cut two matching rectangular panels from the irregular scrap, maximizing usable area.\",\n    \"Sew the panels together on three sides, double‑turn the open top, and overcast internal seams for durability.\",\n    \"Add a reinforced fabric loop or tab for keyring attachment.\",\n    \"Include a modest seam allowance (≈0.5 cm) and a hem turn (≈0.3 cm) on all raw edges.\"\n  ],\n  \"unresolved\": [\n    \"Select the keyring type (e.g., split‑ring, lobster clasp, carabiner).\",\n    \"Determine the attachment method for the sleeve to the keyring (sewn loop, rivet, snap, or leather strap).\",\n    \"Confirm the exact seam allowance and hem turn dimensions suitable for the fabric weight.\",\n    \"Decide whether a closure (button, snap, or none) is needed for the sleeve opening.\",\n    \"Assess the long‑term durability of the specific fabric scrap under daily keychain use.\",\n    \"Finalize the sleeve dimensions that fit within the available scrap area while preserving design intent.\",\n    \"Identify any grain or pattern direction constraints that affect panel layout.\",\n    \"Establish a testing plan to verify the sleeve’s strength and wear resistance.\"\n  ]\n}",
+            "refusal": null,
+            "reasoning": "REDACTED_PROVIDER_REASONING_NOT_USED",
+            "reasoning_content": "REDACTED_PROVIDER_REASONING_NOT_USED"
+          }
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 1680,
+        "completion_tokens": 872,
+        "total_tokens": 2552,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 112.90876770019531
+      }
+    }
+  },
+  "_fixture": {
+    "origin": "SANITIZED_ACTUAL_LIVE_FAILURE",
+    "campaignId": "mvp-technical-08a057f5-6861-4c95-9c5d-8f26add0d5a4",
+    "originalEnvelopeSha256": "f898d89041025315488ab8227dd13ad97937d8cfe69d50313c3f5c694c07df78",
+    "contentSha256": "568f795bcba7fe3f91bf248bb274085cffaf4fc8a08f1d0123802ac9ee764a01",
+    "redactions": [
+      "provider response id",
+      "provider reasoning",
+      "unused provider metadata"
+    ],
+    "contentType": "NOT_RECORDED_IN_ORIGINAL_CAPTURE"
+  }
+}

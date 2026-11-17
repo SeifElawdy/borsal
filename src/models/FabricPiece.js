@@ -9,6 +9,8 @@ const GeometryBasisSchema = new mongoose.Schema(
     analysisId: { type: String },
     photoPath: { type: String },
     calibrationSource: { type: String, enum: ['manual-dev', 'auto-marker'] },
+    // Server-created immutable evidence for automatic calibration, including mat/H/observations.
+    calibrationEvidence: { type: mongoose.Schema.Types.Mixed, default: undefined },
     markerSizeCm: { type: Number },
     markerCornersPx: { type: mongoose.Schema.Types.Mixed },
     scale: {
@@ -81,6 +83,7 @@ const AnalysisSchema = new mongoose.Schema(
     // No default: legacy analyses remain valid without an ID.
     analysisId: { type: String },
     photoPath: { type: String },
+    calibrationEvidence: { type: mongoose.Schema.Types.Mixed, default: undefined },
     markerCornersPx: { type: mongoose.Schema.Types.Mixed },
     markerSizeCm: { type: Number },
     calibrationSource: {
@@ -160,6 +163,8 @@ const FabricPieceSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    // Every save checks/increments __v, including scalar-only geometry and analysis updates.
+    optimisticConcurrency: true,
   }
 );
 

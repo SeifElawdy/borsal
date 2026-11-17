@@ -69,8 +69,9 @@ async function create() {
   expect(res.status).toBe(201);
   return res.body;
 }
-async function confirm(id) {
-  return request(app).post('/api/fabrics/' + id + '/confirm-geometry').send({ polygonCm: polygon, source: 'manual' });
+async function confirm(id, extra = {}) {
+  const current = await FabricPiece.findById(id);
+  return request(app).post('/api/fabrics/' + id + '/confirm-geometry').send({ polygonCm: polygon, source: 'manual', basedOnAnalysisId: current.analysis?.analysisId, ...extra });
 }
 
 describe('Phase 1 image-first registration', () => {
@@ -243,7 +244,7 @@ describe('Phase 1 consistency guards', () => {
     expect(updated.body.geometry.confirmed).toBe(false);
     expect(updated.body.geometry.version).toBe(2);
     expect(updated.body.status).toBe('DRAFT');
-    const third = await confirm(fabric._id);
+    const third = await confirm(fabric._id, { expectedGeometryVersion: 2 });
     expect(third.status).toBe(200);
     expect(third.body.fabric.geometry.version).toBe(3);
     expect(third.body.fabric.geometryHistory).toEqual([first.body.fabric.geometry, updated.body.geometry]);

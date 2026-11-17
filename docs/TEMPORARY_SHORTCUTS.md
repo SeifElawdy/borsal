@@ -2,8 +2,8 @@
 
 ## TS-001: developer-supplied marker calibration
 - What: markerCornersPx (TL, TR, BR, BL pixel coordinates) and markerSizeCm are developer-only temporary multipart inputs. They are not the permanent user registration flow.
-- Why temporary: automatic Borsal marker detection does not exist yet.
-- Where: src/routes/fabrics.js calibrationShape, from-photo and analyze-photo; src/vision/extractContour.js consumes the supplied calibration. Both photo responses include devNotice; analysis.calibrationSource is manual-dev.
+- Why temporary: preset-based automatic registration now exists, but physical mat accuracy remains unverified; manual calibration is retained only for legacy development and compatibility.
+- Where: src/routes/fabrics.js calibrationShape, from-photo and analyze-photo; src/vision/extractContour.js consumes the supplied calibration. Legacy manual photo responses include devNotice; manual analyses use calibrationSource=manual-dev. Automatic from-photo requests use matPreset=a4|large and calibrationSource=auto-marker; no manual corner fields are needed.
 - Remove when: automatic Borsal marker detection exists and is validated; then populate calibration server-side using auto-marker.
 
 ## TS-002: manual creation without a photo

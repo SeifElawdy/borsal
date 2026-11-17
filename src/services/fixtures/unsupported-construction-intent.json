@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "borsal.construction-intent/0.1",
+  "name": "Fabric Keychain Sleeve (Proposed Alternative)",
+  "function": "Small sewn keepsake sleeve intended to hold a keyring or decorative charm",
+  "method": "UNSUPPORTED",
+  "creativeChanges": [
+    "Suggest a two‑panel sewn sleeve as a keychain holder",
+    "Add 0.5 cm seam allowance on all edges",
+    "Add 0.3 cm hem turn for edge finish",
+    "Plan double‑turned open top for easy key insertion",
+    "Include overcast stitching on internal seams",
+    "Design sleeve size roughly 3 × 4 cm (subject to fabric limits)",
+    "Consider a small loop for keyring attachment",
+    "Recommend reinforced stitching at attachment point"
+  ],
+  "unresolved": [
+    "Exact keyring type and size",
+    "Preferred attachment method (sew, rivet, snap)",
+    "Required durability for daily wear",
+    "Fabric wear resistance after repeated use",
+    "Final sleeve dimensions within scrap area",
+    "Method to secure fabric to keyring without tearing",
+    "Weight limit the sleeve must support",
+    "User preference for closure (open vs. button)"
+  ]
+}

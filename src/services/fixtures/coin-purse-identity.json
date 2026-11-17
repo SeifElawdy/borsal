@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "borsal.creative-concept/0.1",
+  "id": "concept-3",
+  "productIdea": {
+    "name": "Coin Purse",
+    "description": "A small, simple purse with a Velcro closure, perfect for storing coins or other small items"
+  },
+  "intendedUse": "Everyday carry",
+  "distinctiveFeatures": [
+    {
+      "id": "velcro-1",
+      "description": "A soft, flexible Velcro closure that is easy to use"
+    }
+  ],
+  "sourceReferences": [
+    "fabric-TEST_FIXTURE"
+  ],
+  "constraints": [
+    "Must be able to fit in a small pocket or bag"
+  ],
+  "unresolvedRequirements": [
+    {
+      "id": "closure-1",
+      "description": "Determine the best type of closure for the purse",
+      "neededInformation": [
+        "Intended use cases",
+        "Desired level of security"
+      ]
+    }
+  ]
+}

@@ -201,7 +201,7 @@ describe('POST /api/fabrics/:id/confirm-geometry', () => {
     const RECT2 = [[0, 0], [5, 0], [5, 5], [0, 5]];
     const res2 = await request(app)
       .post(`/api/fabrics/${fabric._id}/confirm-geometry`)
-      .send({ polygonCm: RECT2, source: 'manual' });
+      .send({ polygonCm: RECT2, source: 'manual', expectedGeometryVersion: 1 });
     expect(res2.status).toBe(200);
     expect(res2.body.fabric.geometry.version).toBe(2);
     expect(res2.body.fabric.geometryHistory).toHaveLength(1);
