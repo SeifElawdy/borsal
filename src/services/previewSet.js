@@ -2,7 +2,7 @@
 const preview=require('./productPreview');
 const ROLES=['HERO','ALTERNATE','DETAIL','IN_USE'];
 function initial(prepared,input){return {id:null,status:'QUEUED',authorizedCalls:4,sourceHash:prepared.provenance.sourceHash,reviewVersion:input.expectedReviewVersion,proposalId:input.proposalId||null,
-  designFingerprint:prepared.provenance.designFingerprint,designVersion:prepared.provenance.designVersion,designSpecification:prepared.provenance.designSpecification,imageCategory:prepared.provenance.imageCategory,fingerprint:prepared.fingerprint,visualSpecification:prepared.visualSpecification,startedAt:new Date().toISOString(),views:ROLES.map(viewRole=>({viewRole,status:'QUEUED'}))};}
+  technicalImageBriefHash:prepared.provenance.technicalImageBriefHash,designFingerprint:prepared.provenance.designFingerprint,designVersion:prepared.provenance.designVersion,designSpecification:prepared.provenance.designSpecification,imageCategory:prepared.provenance.imageCategory,fingerprint:prepared.fingerprint,visualSpecification:prepared.visualSpecification,startedAt:new Date().toISOString(),views:ROLES.map(viewRole=>({viewRole,status:'QUEUED'}))};}
 async function run({op,runId,conceptId,projectId,input,runtime,canContinue,onProviderFailure}){
  const set=op.result.previewSet;let hero,stop;
  const save=async()=>{op.markModified('result');await op.save();};

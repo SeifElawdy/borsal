@@ -1,6 +1,6 @@
 export const previewViews=[{id:'HERO',label:'Hero'},{id:'ALTERNATE',label:'Another Angle'},{id:'DETAIL',label:'Details'},{id:'IN_USE',label:'In Use'}];
 export function galleryFor(items,{sourceHash,reviewVersion,proposalId=null,designFingerprint,requireIdentity=false}){
- const current=o=>{const p=o.result.preview;return (!requireIdentity||(!!designFingerprint&&p.designFingerprint===designFingerprint))&&!p.stale&&p.sourceHash===sourceHash&&p.reviewVersion===reviewVersion&&(p.proposalId||null)===proposalId&&['borsal.product-preview/0.2','borsal.product-preview/0.3','borsal.product-preview/0.4'].includes(p.previewPolicy);};
+ const current=o=>{const p=o.result.preview;return (!proposalId||(p.technicalImageBriefHash&&p.technicalImageBrief?.proposalId===proposalId))&&(!requireIdentity||(!!designFingerprint&&p.designFingerprint===designFingerprint))&&!p.stale&&p.sourceHash===sourceHash&&p.reviewVersion===reviewVersion&&(p.proposalId||null)===proposalId&&['borsal.product-preview/0.2','borsal.product-preview/0.3','borsal.product-preview/0.4'].includes(p.previewPolicy);};
  const hero=items.find(o=>current(o)&&o.result.preview.viewRole==='HERO'),views={};
  for(const {id} of previewViews)views[id]=id==='HERO'?hero:items.find(o=>current(o)&&o.result.preview.viewRole===id&&o.result.preview.referencePreviewId===hero?._id&&!!hero);
  const count=previewViews.filter(v=>views[v.id]).length;

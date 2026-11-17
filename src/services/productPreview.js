@@ -39,10 +39,13 @@ async function prepare(runId,conceptId,proposalId,visualNotes='',options={}){
       proposedAssembly:proposal.assessment?.constructionPlan?.instructions||t?.assembly,
       layout:layout?{status:layout.status,placements:layout.placements,area:layout.areaSummary}:null};
   }
-  const visualSpecification=options.visualSpecification||(reference?.visualSpecification?.visualDesign?reference.visualSpecification:null)||specification(p,run.sourceSnapshot,technical,visualNotes,design),prompt=promptFor(visualSpecification,viewRole,!!reference)+(reference&&visualNotes?'\nView-specific direction only; preserve product identity: '+visualNotes:'');
+  const technicalBrief=proposal?require('./technicalImageBrief').build(proposal,design):null;
+  if(technicalBrief){provenance.technicalImageBrief=technicalBrief;provenance.technicalImageBriefHash=technicalBrief.hash;provenance.imageCategory='CURRENT_DESIGN';}
+  const visualSpecification=options.visualSpecification||(reference?.visualSpecification?.visualDesign?reference.visualSpecification:null)||specification(p,run.sourceSnapshot,technical,visualNotes,design,technicalBrief),prompt=promptFor(visualSpecification,viewRole,!!reference)+(reference&&visualNotes?'\nView-specific direction only; preserve product identity: '+visualNotes:'');
+  if(technicalBrief&&visualSpecification.technicalImageBrief?.hash!==technicalBrief.hash)throw fail(409,'PREVIEW_DESIGN_CONFLICT');
   if(design){if(visualSpecification.designIdentity?.fingerprint!==design.fingerprint)throw fail(409,'PREVIEW_DESIGN_CONFLICT');identity.assertPrompt(design,visualSpecification.visualDesign,visualNotes);}
   provenance.visualSpecificationSha256=fingerprint(visualSpecification);
-  return {run,concept,provenance,prompt,reference,visualSpecification,fingerprint:fingerprint({policy:POLICY,designFingerprint:design?.fingerprint||null,sourceHash,conceptHash,reviewVersion:concept.reviewVersion,proposalHash:provenance.proposalHash,visualNotes,viewRole,referencePreviewId:provenance.referencePreviewId,referenceImageSha256:provenance.referenceImageSha256})};
+  return {run,concept,provenance,prompt,reference,visualSpecification,fingerprint:fingerprint({policy:POLICY,technicalImageBriefHash:technicalBrief?.hash||null,designFingerprint:design?.fingerprint||null,sourceHash,conceptHash,reviewVersion:concept.reviewVersion,proposalHash:provenance.proposalHash,visualNotes,viewRole,referencePreviewId:provenance.referencePreviewId,referenceImageSha256:provenance.referenceImageSha256})};
 }
 async function generate(prepared,projectId,campaignId,runtime){
   validateRuntime(runtime);const {provenance,prompt,run}=prepared;
